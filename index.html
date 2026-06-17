@@ -1,0 +1,3713 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBFMF | Bidik Koordinat</title>
+    <!-- Google Fonts for premium modern aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ==========================================================================
+           1. STYLE TAMPILAN MONITOR (Web UI)
+           ========================================================================== */
+        :root {
+            --offset-x: 0.0mm;
+            --offset-y: 0.0mm;
+
+            /* Light Theme Tokens */
+            --bg-gradient: radial-gradient(circle at 50% 50%, #f8fafc, #f1f5f9);
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.5);
+            --text-main: #334155;
+            --text-heading: #0f172a;
+            --card-bg: #f8fafc;
+            --card-border: #e2e8f0;
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --btn-outline-bg: #ffffff;
+            --btn-outline-border: #cbd5e1;
+            --btn-outline-text: #475569;
+            --btn-outline-hover-bg: #f8fafc;
+            --btn-outline-hover-text: #0f172a;
+            --btn-outline-hover-border: #94a3b8;
+            --editor-bg: #fafafa;
+            --editor-border: #cbd5e1;
+            --guide-bg: #fffbeb;
+            --guide-border: #d97706;
+            --guide-text: #451a03;
+            --guide-title: #b45309;
+            --switch-text: #334155;
+        }
+
+        body.dark {
+            /* Dark Theme Tokens */
+            --bg-gradient: radial-gradient(circle at 50% 50%, #0f172a, #020617);
+            --panel-bg: rgba(15, 23, 42, 0.88);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-main: #94a3b8;
+            --text-heading: #f8fafc;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --input-bg: #0f172a;
+            --input-border: #475569;
+            --btn-outline-bg: rgba(255, 255, 255, 0.06);
+            --btn-outline-border: rgba(255, 255, 255, 0.15);
+            --btn-outline-text: #cbd5e1;
+            --btn-outline-hover-bg: rgba(255, 255, 255, 0.15);
+            --btn-outline-hover-text: #ffffff;
+            --btn-outline-hover-border: rgba(255, 255, 255, 0.35);
+            --editor-bg: #0f172a;
+            --editor-border: rgba(255, 255, 255, 0.15);
+            --guide-bg: #1e1b4b;
+            --guide-border: #6366f1;
+            --guide-text: #e0e7ff;
+            --guide-title: #a5b4fc;
+            --switch-text: #94a3b8;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .admin-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+            padding: 24px 30px;
+            max-width: 900px;
+            margin: 30px auto;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            margin-bottom: 80px;
+        }
+
+        h2 {
+            color: var(--text-heading);
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--card-border);
+            padding-bottom: 12px;
+        }
+
+        .layout-split {
+            display: flex;
+            gap: 24px;
+        }
+
+        .input-area {
+            flex: 2;
+        }
+
+        .input-area p {
+            margin-top: 0;
+            font-weight: 500;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .guide-area {
+            flex: 1;
+            background-color: var(--guide-bg);
+            padding: 20px;
+            border-left: 4px solid var(--guide-border);
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--guide-text);
+            transition: background-color 0.3s ease, border-left-color 0.3s ease, color 0.3s ease;
+        }
+
+        .guide-area h4 {
+            margin-top: 0;
+            color: var(--guide-title);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* Group for Calibration/Overlay Guide Controls */
+        .overlay-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 18px 24px;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: center;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group select,
+        .control-group input[type="number"] {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1.5px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-heading);
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .control-group select {
+            cursor: pointer;
+        }
+
+        .control-group select:focus,
+        .control-group input[type="number"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-group input[type="range"] {
+            width: 150px;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--input-border);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .opacity-badge {
+            font-size: 13px;
+            font-weight: bold;
+            color: #007bff;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        .switch-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--switch-text);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .action-bar {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-top: 1px solid var(--card-border);
+            padding-top: 18px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 123, 255, 0.25);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.25);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #6366f1, #4338ca);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+
+        .btn-export:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-outline {
+            background: var(--btn-outline-bg);
+            color: var(--btn-outline-text);
+            border: 1.5px solid var(--btn-outline-border);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .btn-outline:hover {
+            background: var(--btn-outline-hover-bg);
+            color: var(--btn-outline-hover-text);
+            border-color: var(--btn-outline-hover-border);
+            transform: translateY(-1px);
+        }
+
+        .data-item {
+            transform: translate(var(--offset-x), var(--offset-y));
+            transition: transform 0.1s ease;
+        }
+
+        .data-item:hover {
+            outline: 1.5px solid #007bff;
+            outline-offset: 2px;
+        }
+
+        .data-item:hover .delete-item-btn {
+            display: flex !important;
+        }
+
+        .delete-item-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 18px;
+            height: 18px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            transition: all 0.1s ease;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .delete-item-btn:hover {
+            background-color: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .data-item.draggable {
+            cursor: move;
+            user-select: none;
+            touch-action: none;
+            /* Cegah scrolling default pada mobile saat drag */
+        }
+
+        .data-item.dragging {
+            opacity: 0.75;
+            outline: 2px dashed #007bff;
+            outline-offset: 2px;
+            background-color: rgba(0, 123, 255, 0.05);
+            z-index: 100;
+        }
+
+        img.data-item {
+            object-fit: contain;
+            display: block;
+        }
+
+        /* Gagang resize di pojok kanan bawah */
+        .resize-handle {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 10px;
+            height: 10px;
+            background-color: #10b981;
+            /* Emerald green */
+            border: 1.5px solid white;
+            border-radius: 50%;
+            cursor: se-resize;
+            opacity: 0;
+            z-index: 15;
+            transition: opacity 0.2s ease, transform 0.1s ease;
+        }
+
+        .resize-handle:hover {
+            transform: scale(1.3);
+            background-color: #059669;
+        }
+
+        .data-item:hover .resize-handle {
+            opacity: 1;
+        }
+
+        /* Status Teks Sedang Diedit */
+        .data-item.editing {
+            outline: 2px dashed #6366f1 !important;
+            /* Indigo */
+            outline-offset: 4px;
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            cursor: text !important;
+            z-index: 150;
+        }
+
+        /* Styling Bilah Pemformatan Teks Melayang (Formatting Toolbar) */
+        .format-toolbar {
+            position: absolute;
+            background: #0f172a;
+            /* Slate 900 */
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            z-index: 500;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            pointer-events: none;
+        }
+
+        .format-toolbar.show {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .format-toolbar select {
+            background: rgba(255, 255, 255, 0.08);
+            color: #f8fafc;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .format-toolbar select:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .format-toolbar select option {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 2px;
+        }
+
+        .toolbar-btn {
+            width: 28px;
+            height: 28px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+
+        .toolbar-btn.active {
+            background: rgba(99, 102, 241, 0.25);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            color: #94a3b8;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .color-picker-wrapper:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            border: none;
+            padding: 0;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            margin-left: auto;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Container Utama Halaman Preview */
+        .print-container {
+            display: flex;
+            flex-direction: column;
+            gap: 80px;
+            align-items: center;
+            margin-bottom: 50px;
+        }
+
+        /* Template Lembar Kerja F4 (210mm x 330mm) */
+        .print-page {
+            position: relative;
+            width: 210mm;
+            height: 330mm;
+            background-color: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 1px dashed #cbd5e1;
+            overflow: visible;
+            /* agar badge di atas tidak tertutup */
+        }
+
+        .page-badge {
+            position: absolute;
+            top: -46px;
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #f8fafc;
+            padding: 0 16px;
+            height: 38px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 200;
+        }
+
+        .page-badge span {
+            color: #cbd5e1;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .page-badge button {
+            border: 1px solid transparent;
+            color: white;
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .page-badge button.btn-badge-text {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .page-badge button.btn-badge-text:hover {
+            background: rgba(99, 102, 241, 0.5);
+            border-color: rgba(99, 102, 241, 0.7);
+            transform: translateY(-1px) scale(1.03);
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+        }
+
+        .page-badge button.btn-badge-img {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .page-badge button.btn-badge-img:hover {
+            background: rgba(16, 185, 129, 0.5);
+            border-color: rgba(16, 185, 129, 0.7);
+            transform: translateY(-1px) scale(1.03);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Styles untuk overlay guide gambar */
+        .page-overlay-guide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: 100% 100%;
+            /* Menyesuaikan ukuran F4 kertas */
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            /* Supaya teks di atasnya tetap dapat diklik/diseleksi */
+            z-index: 0;
+            opacity: 0.5;
+            /* Dinamis */
+            display: block;
+            /* Dinamis */
+            transition: opacity 0.2s ease;
+        }
+
+        /* Style Umum Objek Teks Cetak */
+        .print-item {
+            position: absolute;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #000000;
+            z-index: 1;
+            /* Pastikan di atas overlay guide */
+        }
+
+        /* ==========================================================================
+           INDICATOR / MARKER KALIBRASI DI 4 SUDUT (Hardcoded 10mm dari tepi)
+           ========================================================================== */
+        .cal-mark {
+            color: #ef4444;
+            /* Warna merah agar kontras saat tes kalibrasi */
+            font-size: 10pt;
+            line-height: 1.2;
+            z-index: 2;
+            /* Di atas segalanya */
+        }
+
+        /* Sembunyikan marker kalibrasi saat pratinjau aktif */
+        .hide-cal-on-preview .cal-mark {
+            display: none !important;
+        }
+
+        /* Top Left: 10mm dari atas, 10mm dari kiri */
+        .cal-tl {
+            top: 10mm;
+            left: 10mm;
+        }
+
+        /* Top Right: 10mm dari atas, 10mm dari kanan */
+        .cal-tr {
+            top: 10mm;
+            right: 10mm;
+            text-align: right;
+        }
+
+        /* Bottom Left: 10mm dari bawah, 10mm dari kiri */
+        .cal-bl {
+            bottom: 10mm;
+            left: 10mm;
+        }
+
+        /* Bottom Right: 10mm dari bawah, 10mm dari kanan */
+        .cal-br {
+            bottom: 10mm;
+            right: 10mm;
+            text-align: right;
+        }
+
+        /* Progress Bar for PDF Processing */
+        .progress-bar-wrapper {
+            width: 200px;
+            height: 6px;
+            background: #cbd5e1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            border-radius: 3px;
+            transition: width 0.1s ease;
+            width: 0%;
+        }
+
+        @media (max-width: 900px) {
+            .layout-split {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .admin-panel {
+                margin: 15px;
+                padding: 20px;
+            }
+
+            .overlay-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+
+            .control-group input[type="range"] {
+                width: 100%;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .action-bar .checkbox-group {
+                margin-left: 0;
+            }
+        }
+
+        /* ==========================================================================
+           2. STYLE KHUSUS SAAT DI-PRINT (Masuk ke Printer)
+           ========================================================================== */
+        @media print {
+            @page {
+                size: 210mm 330mm;
+                margin: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background-color: transparent;
+                background: none !important;
+            }
+
+            .print-container {
+                gap: 0 !important;
+            }
+
+            .print-page {
+                border: none !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 210mm;
+                height: 330mm;
+                page-break-after: always;
+                break-after: page;
+            }
+
+            .print-page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            /* Sembunyikan marker kalibrasi saat checkbox aktif */
+            .hide-cal-on-print .cal-mark {
+                display: none !important;
+            }
+
+            /* Selalu sembunyikan gambar panduan overlay saat cetak asli, kecuali jika di-toggle cetak */
+            .page-overlay-guide {
+                display: none !important;
+            }
+
+            .print-overlay-visible .page-overlay-guide {
+                display: block !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        /* Lucide Icons Integration */
+        .lucide {
+            width: 14px;
+            height: 14px;
+            stroke-width: 2.5px;
+            display: inline-block;
+            vertical-align: -2.5px;
+        }
+
+        .btn i,
+        .page-badge button i {
+            margin-right: 4px;
+        }
+
+        /* ==========================================================================
+           FULLSCREEN JSON EDITOR STYLE
+           ========================================================================== */
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .editor-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000;
+            background: rgba(15, 23, 42, 0.98);
+            /* Slate 900 */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 24px;
+            box-sizing: border-box;
+            gap: 12px;
+        }
+
+        .editor-container.fullscreen #editorTitle {
+            color: #f8fafc !important;
+            font-size: 15px !important;
+        }
+
+        /* In fullscreen, switch header to column so title is above buttons */
+        .editor-container.fullscreen>div:first-child {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+
+        .editor-container.fullscreen #jsonInputEditor {
+            flex: 1;
+            height: auto !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+        }
+
+        .editor-container.fullscreen .btn-outline {
+            background: rgba(255, 255, 255, 0.06) !important;
+            color: #cbd5e1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        }
+
+        .editor-container.fullscreen .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            transform: translateY(-1px);
+        }
+
+        .editor-container.fullscreen .btn-outline[onclick*="resetJsonData"] {
+            color: #fca5a5 !important;
+            border-color: rgba(239, 68, 68, 0.45) !important;
+        }
+
+        .editor-container.fullscreen .btn-outline[onclick*="resetJsonData"]:hover {
+            background: rgba(239, 68, 68, 0.15) !important;
+            border-color: #ef4444 !important;
+            color: #ffffff !important;
+        }
+
+        .editor-container.fullscreen #jsonValidationStatus {
+            background-color: rgba(255, 255, 255, 0.06) !important;
+            color: #94a3b8 !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            flex-shrink: 0;
+        }
+
+        /* Tombol kecil untuk toolbar editor */
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* Header row editor */
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        /* Label/title editor */
+        .editor-label {
+            margin: 0;
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+        }
+
+        /* Tombol grup dalam toolbar */
+        .editor-toolbar {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-danger {
+            color: #ef4444 !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.1) !important;
+            border-color: #ef4444 !important;
+        }
+
+        /* Toast notification container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 11000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            animation: toastSlideIn 0.3s ease forwards;
+            max-width: 360px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .toast-success {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #166534;
+        }
+
+        .toast-error {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #991b1b;
+        }
+
+        .toast-warning {
+            background: rgba(234, 179, 8, 0.15);
+            border-color: rgba(234, 179, 8, 0.3);
+            color: #854d0e;
+        }
+
+        .toast-info {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #1e40af;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Custom Confirm Modal styling */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 12000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .modal-card h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .modal-card p {
+            font-size: 14px;
+            color: #64748b;
+            margin: 0 0 24px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Garis Pemandu Magnetik */
+        .magnetic-guide {
+            position: absolute;
+            background-color: #6366f1;
+            /* Indigo Snapping Guides */
+            z-index: 99;
+            pointer-events: none;
+            display: none;
+        }
+
+        .magnetic-guide.vertical {
+            width: 1px;
+            top: 0;
+            bottom: 0;
+        }
+
+        .magnetic-guide.horizontal {
+            height: 1px;
+            left: 0;
+            right: 0;
+        }
+
+        /* Status Terpilih untuk Mikro-Kalibrasi (Keyboard Nudging) */
+        .data-item.selected-item {
+            outline: 2px solid #3b82f6 !important;
+            outline-offset: 1px;
+        }
+
+        /* Tombol Clone Elemen Cetak */
+        .clone-item-btn {
+            position: absolute;
+            top: -10px;
+            right: 12px;
+            /* Ditempatkan di sebelah tombol hapus bulat merah */
+            width: 18px;
+            height: 18px;
+            background-color: #10b981;
+            /* Emerald Green */
+            color: white;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            transition: all 0.1s ease;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .clone-item-btn:hover {
+            background-color: #059669;
+            transform: scale(1.1);
+        }
+
+        .data-item:hover .clone-item-btn {
+            display: flex !important;
+        }
+
+        /* Ace Editor Container Class */
+        #jsonInputEditor {
+            height: 180px;
+            border: 1.5px solid var(--editor-border);
+            border-radius: 8px;
+            background-color: var(--editor-bg);
+            font-size: 13px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Modal Panduan Khusus */
+        .modal-card.help-modal {
+            max-width: 600px;
+            text-align: left;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .modal-body-scroll {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 20px;
+            padding-right: 8px;
+        }
+    </style>
+    <!-- PDF.js library for client-side PDF rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- Ace Editor library for premium JSON code editing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.js"></script>
+    <!-- Lucide Icons library for clean, modern SVG icons -->
+    <script src="https://unpkg.com/lucide@0.460.0"></script>
+</head>
+
+<body>
+    <script>
+        // Prevent theme flash
+        if (localStorage.getItem('theme_preference') === 'dark') {
+            document.body.classList.add('dark');
+        }
+    </script>
+
+    <div class="admin-panel no-print">
+
+
+        <div class="layout-split">
+            <div class="input-area">
+                <div id="editorContainer" class="editor-container">
+                    <p id="editorTitle" class="editor-label">Welcome to Bidik Koordinat</p>
+                    <hr style="margin: 10px 0;">
+                    <div class="editor-header">
+                        <div class="editor-toolbar">
+                            <button id="btnUndo" class="btn btn-outline btn-sm" onclick="undo()" disabled
+                                aria-label="Undo perubahan"><i data-lucide="undo-2"></i></button>
+                            <button id="btnRedo" class="btn btn-outline btn-sm" onclick="redo()" disabled
+                                aria-label="Redo perubahan"><i data-lucide="redo-2"></i></button>
+                            <div style="width: 1px; height: 16px; background: var(--card-border); margin: 0 4px;"></div>
+                            <button class="btn btn-outline btn-sm" onclick="addNewTextElement()"><i
+                                    data-lucide="plus"></i> Tambah Teks</button>
+                            <button class="btn btn-outline btn-sm" onclick="triggerImageUpload()"><i
+                                    data-lucide="image"></i> Tambah Gambar</button>
+                            <button class="btn btn-outline btn-sm" onclick="beautifyJsonInput()"><i
+                                    data-lucide="brush"></i> Format JSON</button>
+                            <button class="btn btn-outline btn-sm" onclick="loadDemoJson()"><i
+                                    data-lucide="rotate-ccw"></i> Contoh Data</button>
+                            <button class="btn btn-outline btn-sm btn-danger" onclick="resetJsonData()"><i
+                                    data-lucide="trash-2"></i> Reset Data</button>
+                            <button id="btnFullscreen" class="btn btn-outline btn-sm"
+                                onclick="toggleEditorFullscreen()"><i data-lucide="maximize-2"></i> Fullscreen</button>
+                        </div>
+                    </div>
+                    <div id="jsonInputEditor"></div>
+                    <textarea id="jsonInput" style="display: none;"></textarea>
+                    <input type="file" id="imageUploadInput" accept="image/*" style="display: none;"
+                        onchange="handleImageUpload(event)" aria-label="Pilih gambar untuk diunggah">
+                    <div id="jsonValidationStatus" role="status" aria-live="polite"
+                        style="font-size: 12px; font-weight: 500; margin-top: 6px; padding: 6px 12px; border-radius: 6px; display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="guide-area">
+                <h4 style="display: flex; align-items: center; gap: 6px;"><i data-lucide="lightbulb"
+                        style="color: #eab308; stroke-width: 2;"></i> Cara Kalibrasi & Cetak:</h4>
+                <p>1. Cetak halaman ke kertas kosong. Pengaturan dialog cetak browser:</p>
+                <ul style="margin: 4px 0 10px 0; padding-left: 20px; font-size: 12px;">
+                    <li>Margin: <b>None</b> (Tanpa Margin)</li>
+                    <li>Headers & Footers: <b>Off</b> (Nonaktif)</li>
+                </ul>
+                <p>2. Ambil penggaris fisik, ukur jarak kotak <b>[TL]</b> ke ujung kiri & atas kertas hasil cetak.</p>
+                <p>3. Jika terukur 12mm (seharusnya 10mm), berarti ada pergeseran printer +2mm horisontal. Masukkan
+                    nilai <b>-2.0</b> pada Offset X.</p>
+                <p>4. Gunakan tombol Ekspor/Impor di bawah untuk mengamankan konfigurasi Anda.</p>
+                <button id="btnShowHelp" class="btn btn-outline btn-sm" onclick="showHelpModal()"
+                    style="margin-top: 10px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i data-lucide="help-circle"></i> Panduan Fitur Lengkap
+                </button>
+            </div>
+        </div>
+
+        <!-- Section Kalibrasi & Backup Pengaturan -->
+        <div class="overlay-card" style="margin-top: 15px;">
+            <div style="display: flex; width: 100%; gap: 10px;">
+                <div class="control-group" style="width: 100%;">
+                    <label for="offsetX">Offset Kalibrasi X (Horisontal):</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="number" id="offsetX" value="0.0" step="0.1" style="width: 100%;"
+                            oninput="debouncedUpdateCalibrationOffsets()" aria-label="Offset kalibrasi horisontal X">
+                        <span style="font-size: 13px; color: #64748b; font-weight: 600;">mm</span>
+                    </div>
+                </div>
+
+                <div class="control-group" style="width: 100%;">
+                    <label for="offsetY">Offset Kalibrasi Y (Vertikal):</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="number" id="offsetY" value="0.0" step="0.1" style="width: 100%;"
+                            oninput="debouncedUpdateCalibrationOffsets()" aria-label="Offset kalibrasi vertikal Y">
+                        <span style="font-size: 13px; color: #64748b; font-weight: 600;">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group" style="display: flex; flex-direction: row; width: 100%;">
+                <button id="btnToggleTheme" class="btn btn-outline"
+                    style="width:100%; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center;"
+                    onclick="toggleTheme()" aria-label="Ganti Tema Gelap/Terang">
+                    <i data-lucide="moon"></i> Mode Gelap
+                </button>
+                <button class="btn btn-outline"
+                    style="width:100%; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center;"
+                    onclick="exportSettings()" aria-label="Ekspor data pengaturan kalibrasi ke file JSON">
+                    <i data-lucide="download"></i> Ekspor Pengaturan
+                </button>
+                <button class="btn btn-outline"
+                    style="width:100%; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center;"
+                    onclick="triggerImport()" aria-label="Impor data pengaturan kalibrasi dari file JSON">
+                    <i data-lucide="upload"></i> Impor Pengaturan
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display: none;"
+                    onchange="importSettings(event)" aria-label="Impor berkas pengaturan JSON">
+            </div>
+        </div>
+
+        <!-- Section Pengaturan Gambar Panduan (Overlay Guide) -->
+        <div class="overlay-card">
+            <div class="control-group">
+                <label for="overlayDocSelect">Panduan Dokumen PDF:</label>
+                <select id="overlayDocSelect" onchange="updateOverlaySettings()" aria-label="Pilih dokumen panduan PDF">
+                    <option value="none">-- Tanpa Gambar Panduan --</option>
+                    <option value="doc_1" selected>Perjanjian Pembiayaan (doc_1)</option>
+                </select>
+            </div>
+
+            <!-- Kontrol Impor PDF Langsung -->
+            <div class="control-group" style="flex-direction: row; gap: 8px; align-self: flex-end;">
+                <button id="btnUploadPdf" class="btn btn-outline"
+                    style="padding: 8px 12px; font-size: 13px; display: inline-flex; align-items: center;"
+                    onclick="triggerPdfUpload()" aria-label="Unggah file PDF baru">
+                    <i data-lucide="file-up"></i> Unggah PDF Baru
+                </button>
+                <button class="btn btn-outline" id="btnDeletePdf"
+                    style="padding: 8px 12px; font-size: 13px; color: #ef4444; border-color: #fca5a5; display: none; align-items: center;"
+                    onclick="deleteUploadedPdf()" aria-label="Hapus PDF unggahan">
+                    <i data-lucide="trash-2"></i> Hapus PDF
+                </button>
+                <input type="file" id="pdfUploadInput" accept=".pdf" style="display: none;"
+                    onchange="handlePdfUpload(event)" aria-label="Pilih file PDF">
+            </div>
+
+            <div class="control-group">
+                <label>Tampilkan Panduan:</label>
+                <label class="switch-container">
+                    <input type="checkbox" id="overlayToggle" checked onchange="updateOverlaySettings()">
+                    <span>Aktif di Layar</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label for="overlayOpacity">Transparansi Panduan:</label>
+                <div class="slider-wrapper">
+                    <input type="range" id="overlayOpacity" min="5" max="100" value="50"
+                        oninput="updateOpacityBadge(); debouncedUpdateOverlaySettings()"
+                        aria-label="Transparansi panduan dokumen">
+                    <span id="opacityVal" class="opacity-badge">50%</span>
+                </div>
+            </div>
+
+            <!-- Indikator Pemrosesan PDF -->
+            <div id="pdfUploadStatus"
+                style="font-size: 12px; color: #0284c7; font-weight: 500; margin-left: 10px; display: none; align-self: center;">
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <div>
+                <button class="btn btn-primary" onclick="renderDataDariJSON(true)">1. Render Preview</button>
+                <button class="btn btn-success" onclick="window.print()">2. Cetak ke Printer</button>
+                <button class="btn btn-export" onclick="exportToHTML()"><i data-lucide="file-down"></i> 3. Export ke
+                    HTML</button>
+            </div>
+
+            <div>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="hideCalCheck" onchange="toggleCalPrint(this)">
+                    <span>Sembunyikan Marker Kalibrasi saat dicetak asli</span>
+                </label>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="hideCalPreviewCheck" onchange="toggleCalPreview(this)">
+                    <span>Sembunyikan Marker Kalibrasi pada pratinjau layar</span>
+                </label>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="printOverlayCheck" onchange="togglePrintOverlay(this)">
+                    <span>Cetak Dokumen Latar Belakang (PDF)</span>
+                </label>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="enableSnapCheck" checked onchange="toggleSnapping(this)">
+                    <span>Aktifkan Snapping Magnetik</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="printContainer" class="print-container">
+    </div>
+
+    <script>
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function isValidImageSrc(src) {
+            return typeof src === 'string' && (src.startsWith('data:image/') || src.startsWith('blob:'));
+        }
+
+        function debounce(fn, delay) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        function showToast(message, type = 'info', duration = 3500) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(30px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        function showConfirm(message, title = 'Konfirmasi') {
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `
+                    <div class="modal-card">
+                        <h3>${escapeHtml(title)}</h3>
+                        <p>${escapeHtml(message)}</p>
+                        <div class="modal-actions">
+                            <button class="btn btn-outline" id="modalCancel">Batal</button>
+                            <button class="btn btn-primary" id="modalConfirm">Konfirmasi</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                overlay.querySelector('#modalConfirm').addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(true);
+                });
+                overlay.querySelector('#modalCancel').addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(false);
+                });
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                        resolve(false);
+                    }
+                });
+            });
+        }
+
+        // ======================== KONFIGURASI APLIKASI ========================
+        const APP_CONFIG = {
+            // Dimensi kertas F4
+            PAPER_WIDTH_MM: 210,
+            PAPER_HEIGHT_MM: 330,
+
+            // Batas dokumen default (doc_1)
+            DOC_1_PAGE_COUNT: 9,
+
+            // Rendering PDF
+            PDF_RENDER_SCALE: 1.5,
+            PDF_RENDER_FORMAT: 'image/jpeg',
+            PDF_RENDER_QUALITY: 0.82,
+
+            // Batas ukuran font
+            MIN_FONT_SIZE_PT: 4,
+            MAX_FONT_SIZE_PT: 72,
+            DEFAULT_FONT_SIZE_PT: 10,
+
+            // Batas ukuran gambar minimal (piksel)
+            MIN_IMAGE_SIZE_PX: 10,
+
+            // Debounce timeout (ms)
+            DEBOUNCE_DELAY_MS: 300,
+            SAVE_DEBOUNCE_MS: 500,
+
+            // IndexedDB
+            DB_NAME: 'OverlayPrintProDB',
+            DB_VERSION: 1,
+            STORE_NAME: 'pdf_overlays',
+            IMAGE_STORE_NAME: 'uploaded_images',
+
+            // LocalStorage key
+            SETTINGS_KEY: 'overlay_print_pro_settings',
+        };
+
+        const AppState = {
+            editor: null,               // jsonEditor
+            isSilentUpdate: false,      // isSilentUpdate
+            uploadedPdfPages: null,     // uploadedPdfPages
+            activeUpload: {             // activeUploadDbIdx/PageIdx
+                dbIdx: 0,
+                pageIdx: 0
+            },
+            activeTextElement: null,    // activeTextElement
+            previewPageMap: [],         // previewPageMap
+            dbConnection: null,         // Koneksi DB cached
+            previousData: null,         // Cache data terakhir untuk diffing
+
+            // Nice-to-have extension variables
+            undoStack: [],
+            redoStack: [],
+            selectedElement: null,       // element terpilih untuk keyboard nudging
+            lastCommittedState: null,    // state komitmen terakhir sebelum pengetikan
+            hasPendingTextUndo: false    // penanda apakah undo awal pengetikan sudah didorong
+        };
+
+        // --- DEBOUNCE WRAPPERS ---
+        const debouncedSaveAllSettings = debounce(saveAllSettingsToStorage, APP_CONFIG.SAVE_DEBOUNCE_MS);
+        const debouncedUpdateOverlaySettings = debounce(updateOverlaySettings, 100);
+        const debouncedUpdateCalibrationOffsets = debounce(updateCalibrationOffsets, APP_CONFIG.DEBOUNCE_DELAY_MS);
+
+        function updateOpacityBadge() {
+            const opacityInput = document.getElementById('overlayOpacity');
+            const opacityValBadge = document.getElementById('opacityVal');
+            if (opacityInput) {
+                let val = parseInt(opacityInput.value) || 50;
+
+                // Snap points: 25, 50, 75
+                const snapPoints = [25, 50, 75];
+                const threshold = 3; // toleransi snap 3%
+                for (const point of snapPoints) {
+                    if (Math.abs(val - point) <= threshold) {
+                        val = point;
+                        opacityInput.value = val;
+                        break;
+                    }
+                }
+
+                if (opacityValBadge) {
+                    opacityValBadge.textContent = val + '%';
+                }
+            }
+        }
+
+        // --- CORE HELPER FUNCTIONS ---
+
+        function collectCurrentSettings() {
+            return {
+                jsonInput: document.getElementById('jsonInput').value,
+                overlayDoc: document.getElementById('overlayDocSelect').value,
+                overlayToggle: document.getElementById('overlayToggle').checked,
+                overlayOpacity: document.getElementById('overlayOpacity').value,
+                offsetX: document.getElementById('offsetX').value,
+                offsetY: document.getElementById('offsetY').value,
+                hideCalCheck: document.getElementById('hideCalCheck').checked,
+                hideCalPreviewCheck: document.getElementById('hideCalPreviewCheck').checked,
+                printOverlayCheck: document.getElementById('printOverlayCheck').checked,
+                enableSnapCheck: document.getElementById('enableSnapCheck') ? document.getElementById('enableSnapCheck').checked : true
+            };
+        }
+
+        function applySettings(settings) {
+            if (!settings) return;
+            if (settings.jsonInput !== undefined) {
+                document.getElementById('jsonInput').value = settings.jsonInput;
+                if (AppState.editor) {
+                    AppState.editor.setValue(settings.jsonInput, -1);
+                }
+            }
+            if (settings.overlayDoc !== undefined) {
+                const selectEl = document.getElementById('overlayDocSelect');
+                if (settings.overlayDoc === 'uploaded_pdf' && !selectEl.querySelector('option[value="uploaded_pdf"]')) {
+                    selectEl.value = 'none';
+                } else {
+                    selectEl.value = settings.overlayDoc;
+                }
+            }
+            if (settings.overlayToggle !== undefined) document.getElementById('overlayToggle').checked = settings.overlayToggle;
+            if (settings.overlayOpacity !== undefined) document.getElementById('overlayOpacity').value = settings.overlayOpacity;
+            if (settings.offsetX !== undefined) document.getElementById('offsetX').value = settings.offsetX;
+            if (settings.offsetY !== undefined) document.getElementById('offsetY').value = settings.offsetY;
+            if (settings.hideCalCheck !== undefined) {
+                const chk = document.getElementById('hideCalCheck');
+                chk.checked = settings.hideCalCheck;
+                toggleCalPrint(chk);
+            }
+            if (settings.hideCalPreviewCheck !== undefined) {
+                const chk = document.getElementById('hideCalPreviewCheck');
+                chk.checked = settings.hideCalPreviewCheck;
+                toggleCalPreview(chk);
+            }
+            if (settings.printOverlayCheck !== undefined) {
+                const chk = document.getElementById('printOverlayCheck');
+                chk.checked = settings.printOverlayCheck;
+                togglePrintOverlay(chk);
+            }
+            if (settings.enableSnapCheck !== undefined) {
+                const chk = document.getElementById('enableSnapCheck');
+                if (chk) {
+                    chk.checked = settings.enableSnapCheck;
+                }
+            }
+        }
+
+        function getItemFromEditor(dbIdx, pageIdx, itemIdx) {
+            if (!AppState.editor) return null;
+            try {
+                const data = JSON.parse(AppState.editor.getValue());
+                if (data[dbIdx]?.pages?.[pageIdx]?.items?.[itemIdx]) {
+                    return { data, item: data[dbIdx].pages[pageIdx].items[itemIdx] };
+                }
+            } catch (e) { }
+            return null;
+        }
+
+        function updateEditorData(data, options = {}) {
+            const { silent = false, rerender = true } = options;
+            if (silent) AppState.isSilentUpdate = true;
+
+            let cursor = null;
+            if (AppState.editor) {
+                cursor = AppState.editor.getCursorPosition();
+                AppState.editor.setValue(JSON.stringify(data, null, 2), -1);
+                AppState.editor.moveCursorToPosition(cursor);
+                // Sinkronisasikan state komitmen terakhir untuk sesi pengetikan berikutnya
+                AppState.lastCommittedState = AppState.editor.getValue();
+                AppState.hasPendingTextUndo = false;
+            } else {
+                document.getElementById('jsonInput').value = JSON.stringify(data, null, 2);
+            }
+
+            if (silent) AppState.isSilentUpdate = false;
+            if (rerender) renderDataDariJSON();
+        }
+
+        function renderDataDariJSON(isManual = false) {
+            const textarea = document.getElementById('jsonInput');
+            const container = document.getElementById('printContainer');
+            const scrollY = window.scrollY;
+
+            try {
+                const dataList = JSON.parse(textarea.value);
+
+                if (!Array.isArray(dataList)) {
+                    showToast("Format JSON harus berupa Array [ ]", "error");
+                    return;
+                }
+
+                // Tentukan jumlah halaman PDF aktif untuk rendering
+                const docSelect = document.getElementById('overlayDocSelect');
+                const docVal = docSelect ? docSelect.value : 'none';
+                let activePdfPageCount = 0;
+                if (docVal === 'uploaded_pdf') {
+                    activePdfPageCount = (AppState.uploadedPdfPages && AppState.uploadedPdfPages.length) ? AppState.uploadedPdfPages.length : 0;
+                } else if (docVal === 'doc_1') {
+                    activePdfPageCount = APP_CONFIG.DOC_1_PAGE_COUNT;
+                }
+
+                AppState.previewPageMap = [];
+
+                const fragment = document.createDocumentFragment();
+                let globalPageIndex = 1;
+
+                dataList.forEach((debiturItem, dIndex) => {
+                    const debiturName = debiturItem.debitur || `Debitur ${dIndex + 1}`;
+                    const pages = debiturItem.pages || [];
+
+                    const totalPagesToRender = Math.max(pages.length, activePdfPageCount);
+                    for (let pIndex = 0; pIndex < totalPagesToRender; pIndex++) {
+                        const page = pages[pIndex] || { page_number: pIndex + 1, items: [] };
+                        AppState.previewPageMap[globalPageIndex] = { dbIdx: dIndex, pageIdx: pIndex };
+                        const pageNum = parseInt(page.page_number) || (pIndex + 1);
+                        const pageDiv = document.createElement('div');
+                        pageDiv.className = 'print-page';
+                        pageDiv.setAttribute('data-db-idx', dIndex);
+                        pageDiv.setAttribute('data-page-idx', pIndex);
+
+                        // Buat teks/gambar elemen-elemen secara dinamis dengan koordinat inline x dan y
+                        let itemsHtml = '';
+                        const items = page.items || [];
+                        items.forEach((item, itemIndex) => {
+                            const x = parseFloat(item.x) || 0;
+                            const y = parseFloat(item.y) || 0;
+                            const type = item.type || 'text';
+
+                            if (type === 'image') {
+                                const w = parseFloat(item.width) || 30;
+                                const h = parseFloat(item.height) || 15;
+                                itemsHtml += `
+                                    <div class="print-item data-item draggable" 
+                                         data-db-idx="${dIndex}" 
+                                         data-page-idx="${pIndex}" 
+                                         data-item-idx="${itemIndex}" 
+                                         style="left: ${x}mm; top: ${y}mm; width: ${w}mm; height: ${h}mm;">
+                                        <img src="${isValidImageSrc(item.text) ? item.text : ''}" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" />
+                                        <button class="clone-item-btn no-print" aria-label="Duplikasi elemen" onclick="cloneItem(${dIndex}, ${pIndex}, ${itemIndex}, event)">
+                                            <i data-lucide="copy" style="width: 10px; height: 10px;"></i>
+                                        </button>
+                                        <button class="delete-item-btn no-print" aria-label="Hapus elemen" onclick="deleteItem(${dIndex}, ${pIndex}, ${itemIndex}, event)">×</button>
+                                        <div class="resize-handle no-print"></div>
+                                    </div>
+                                `;
+                            } else {
+                                const text = item.text || '';
+                                const fontSize = item.font_size || 10;
+
+                                // Tentukan penataan inline kustom
+                                let inlineStyle = `left: ${x}mm; top: ${y}mm; font-size: ${fontSize}pt;`;
+
+                                // Ketebalan (Bold) - Default bold dari CSS .print-item, matikan jika bold === false
+                                if (item.bold === false) {
+                                    inlineStyle += ' font-weight: normal;';
+                                } else if (item.bold === true) {
+                                    inlineStyle += ' font-weight: bold;';
+                                }
+
+                                // Kemiringan (Italic) - Default normal
+                                if (item.italic === true) {
+                                    inlineStyle += ' font-style: italic;';
+                                } else if (item.italic === false) {
+                                    inlineStyle += ' font-style: normal;';
+                                }
+
+                                // Garis Bawah (Underline) - Default none
+                                if (item.underline === true) {
+                                    inlineStyle += ' text-decoration: underline;';
+                                } else if (item.underline === false) {
+                                    inlineStyle += ' text-decoration: none;';
+                                }
+
+                                // Font Family - Default Courier New
+                                if (item.font_family) {
+                                    inlineStyle += ` font-family: ${item.font_family};`;
+                                }
+
+                                // Warna Teks
+                                if (item.color) {
+                                    inlineStyle += ` color: ${item.color};`;
+                                }
+
+                                // Warna Sorotan Latar Belakang (Highlight)
+                                if (item.bg_color) {
+                                    inlineStyle += ` background-color: ${item.bg_color};`;
+                                }
+
+                                itemsHtml += `
+                                    <div class="print-item data-item draggable" 
+                                         data-db-idx="${dIndex}" 
+                                         data-page-idx="${pIndex}" 
+                                         data-item-idx="${itemIndex}" 
+                                         style="${inlineStyle}">
+                                        <span class="text-content">${escapeHtml(text)}</span>
+                                        <button class="clone-item-btn no-print" aria-label="Duplikasi elemen" onclick="cloneItem(${dIndex}, ${pIndex}, ${itemIndex}, event)">
+                                            <i data-lucide="copy" style="width: 10px; height: 10px;"></i>
+                                        </button>
+                                        <button class="delete-item-btn no-print" aria-label="Hapus elemen" onclick="deleteItem(${dIndex}, ${pIndex}, ${itemIndex}, event)">×</button>
+                                        <div class="resize-handle no-print"></div>
+                                    </div>
+                                `;
+                            }
+                        });
+
+                        pageDiv.innerHTML = `
+                            <div class="page-badge no-print">
+                                <span style="display: flex; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width: 13px; height: 13px;"></i> Kertas Ke-${globalPageIndex} (${escapeHtml(debiturName)} - Hal. ${pageNum})</span>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <button class="btn-badge-text" onclick="addNewTextElement(${dIndex}, ${pIndex})"><i data-lucide="plus"></i> Teks</button>
+                                    <button class="btn-badge-img" onclick="triggerImageUpload(${dIndex}, ${pIndex})"><i data-lucide="image"></i> Gambar</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Overlay Pemandu Kalibrasi dengan info halaman PDF terkait -->
+                            <div class="page-overlay-guide" data-pdf-page="${pageNum}"></div>
+                            
+                            <div class="print-item cal-mark cal-tl">┌───────────┐<br>│ [TL] 10mm │<br>└───────────┘</div>
+                            <div class="print-item cal-mark cal-tr">┌───────────┐<br>│ 10mm [TR] │<br>└───────────┘</div>
+                            <div class="print-item cal-mark cal-bl">┌───────────┐<br>│ [BL] 10mm │<br>└───────────┘</div>
+                            <div class="print-item cal-mark cal-br">┌───────────┐<br>│ 10mm [BR] │<br>└───────────┘</div>
+
+                            ${itemsHtml}
+                        `;
+
+                        fragment.appendChild(pageDiv);
+                        globalPageIndex++;
+                    }
+                });
+
+                container.innerHTML = '';
+                container.appendChild(fragment);
+
+                // Terapkan pengaturan gambar overlay langsung setelah dirender
+                updateOverlaySettings();
+
+                // Inisialisasi pendengar geser (drag & drop listener) setelah elemen selesai dirender
+                initDragAndDrop();
+
+                // Inisialisasi edit teks langsung
+                initInlineTextEditing();
+
+                // Inisialisasi pengubah ukuran elemen (teks & gambar)
+                initResizeHandler();
+
+                // Ubah markup data-lucide menjadi icon SVG Lucide
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+
+                // Kembalikan posisi scroll
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollY);
+                });
+
+                // Sinkronisasikan state komitmen setelah rendering selesai
+                if (AppState.editor && !AppState.isSilentUpdate) {
+                    AppState.lastCommittedState = AppState.editor.getValue();
+                    AppState.hasPendingTextUndo = false;
+                }
+
+            } catch (error) {
+                if (isManual) {
+                    showToast("Format JSON Error! Cek kembali penulisan tanda petik atau koma.", "error");
+                }
+                console.error(error);
+            }
+        }
+
+        function updateOverlaySettings() {
+            updateOpacityBadge();
+
+            const docSelect = document.getElementById('overlayDocSelect');
+            const toggle = document.getElementById('overlayToggle');
+            const opacityInput = document.getElementById('overlayOpacity');
+            const opacityValBadge = document.getElementById('opacityVal');
+
+            const docVal = docSelect.value;
+            const isVisible = toggle.checked;
+            const opacityVal = opacityInput.value;
+
+            // Perbarui label nilai opacity
+            if (opacityValBadge) {
+                opacityValBadge.textContent = opacityVal + '%';
+            }
+
+            // Terapkan properti ke seluruh elemen overlay halaman yang dirender
+            const overlays = document.querySelectorAll('.page-overlay-guide');
+            overlays.forEach((overlay) => {
+                const pdfPageNum = parseInt(overlay.getAttribute('data-pdf-page')) || 1;
+
+                if (docVal === 'none' || !isVisible) {
+                    overlay.style.display = 'none';
+                    overlay.style.backgroundImage = 'none';
+                } else if (docVal === 'uploaded_pdf') {
+                    if (AppState.uploadedPdfPages && AppState.uploadedPdfPages.length > 0) {
+                        overlay.style.display = 'block';
+                        overlay.style.opacity = opacityVal / 100;
+
+                        // Gunakan halaman yang sesuai dengan data-pdf-page (1-indexed)
+                        const pageIdx = (pdfPageNum - 1) % AppState.uploadedPdfPages.length;
+                        overlay.style.backgroundImage = `url("${AppState.uploadedPdfPages[pageIdx]}")`;
+                    } else {
+                        overlay.style.display = 'none';
+                        overlay.style.backgroundImage = 'none';
+                    }
+                } else {
+                    overlay.style.display = 'block';
+                    overlay.style.opacity = opacityVal / 100;
+
+                    // Indeks gambar assets default doc_1 (maksimal 9 lembar PNG)
+                    const pageNum = ((pdfPageNum - 1) % 9) + 1;
+                    const imgPath = `./assets/${docVal}/(1) Perjanjian Pembiayaan Multiguna  Investasi Angsuran-${pageNum}.png`;
+
+                    // Lakukan encodeURI untuk menangani spasi ganda dan karakter khusus pada nama file
+                    overlay.style.backgroundImage = `url("${encodeURI(imgPath)}")`;
+                }
+            });
+
+            debouncedSaveAllSettings();
+
+            // Picu live validation ulang karena pilihan dokumen PDF (panjang halaman) mungkin telah berubah
+            if (AppState.editor) {
+                validateJsonInputLive(AppState.editor.getValue());
+            }
+        }
+
+        function toggleCalPrint(checkbox) {
+            const container = document.getElementById('printContainer');
+            if (checkbox.checked) {
+                container.classList.add('hide-cal-on-print');
+            } else {
+                container.classList.remove('hide-cal-on-print');
+            }
+            debouncedSaveAllSettings();
+        }
+
+        function toggleCalPreview(checkbox) {
+            const container = document.getElementById('printContainer');
+            if (checkbox.checked) {
+                container.classList.add('hide-cal-on-preview');
+            } else {
+                container.classList.remove('hide-cal-on-preview');
+            }
+            debouncedSaveAllSettings();
+        }
+
+        function togglePrintOverlay(checkbox) {
+            const container = document.getElementById('printContainer');
+            if (checkbox.checked) {
+                container.classList.add('print-overlay-visible');
+            } else {
+                container.classList.remove('print-overlay-visible');
+            }
+            debouncedSaveAllSettings();
+        }
+
+        function toggleSnapping(checkbox) {
+            debouncedSaveAllSettings();
+        }
+
+        // --- SISTEM KALIBRASI DAN PENYIMPANAN PENGATURAN ---
+
+        function updateCalibrationOffsets() {
+            const offsetXInput = document.getElementById('offsetX');
+            const offsetYInput = document.getElementById('offsetY');
+
+            let valX = parseFloat(offsetXInput.value) || 0;
+            let valY = parseFloat(offsetYInput.value) || 0;
+
+            document.documentElement.style.setProperty('--offset-x', valX + 'mm');
+            document.documentElement.style.setProperty('--offset-y', valY + 'mm');
+
+            debouncedSaveAllSettings();
+        }
+
+        function saveAllSettingsToStorage() {
+            const settings = collectCurrentSettings();
+            localStorage.setItem(APP_CONFIG.SETTINGS_KEY, JSON.stringify(settings));
+        }
+
+        function loadAllSettingsFromStorage() {
+            try {
+                const settingsStr = localStorage.getItem(APP_CONFIG.SETTINGS_KEY);
+                if (!settingsStr) return;
+                applySettings(JSON.parse(settingsStr));
+            } catch (e) {
+                console.error("Failed to load settings from localStorage", e);
+            }
+        }
+
+        function exportSettings() {
+            const settings = collectCurrentSettings();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "calibration-settings.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importSettings(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const settings = JSON.parse(e.target.result);
+                    applySettings(settings);
+                    // Terapkan perubahan ke variabel CSS, render ulang, dan simpan
+                    updateCalibrationOffsets();
+                    renderDataDariJSON();
+
+                    showToast("Pengaturan berhasil diimpor!", "success");
+                } catch (err) {
+                    showToast("Gagal mengimpor file: Format JSON tidak valid.", "error");
+                    console.error(err);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- SISTEM UNGGAH & PENYIMPANAN PDF LANGSUNG (PDF.js + IndexedDB) ---
+
+        // Konfigurasi worker PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        async function getDB() {
+            if (AppState.dbConnection) return AppState.dbConnection;
+            try {
+                AppState.dbConnection = await initDB();
+                return AppState.dbConnection;
+            } catch (err) {
+                console.warn('IndexedDB tidak tersedia:', err);
+                showToast('Penyimpanan lokal tidak tersedia. Fitur PDF overlay mungkin terbatas.', 'warning');
+                return null;
+            }
+        }
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(APP_CONFIG.DB_NAME, APP_CONFIG.DB_VERSION);
+                request.onupgradeneeded = function (e) {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(APP_CONFIG.STORE_NAME)) {
+                        db.createObjectStore(APP_CONFIG.STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = function (e) {
+                    resolve(e.target.result);
+                };
+                request.onerror = function (e) {
+                    reject(e.target.error);
+                };
+            });
+        }
+
+        function savePdfToDB(pagesArray) {
+            return getDB().then(db => {
+                if (!db) return Promise.reject("DB tidak tersedia");
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([APP_CONFIG.STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(APP_CONFIG.STORE_NAME);
+                    const request = store.put({ id: 'active_pdf', pages: pagesArray, timestamp: Date.now() });
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            });
+        }
+
+        function getPdfFromDB() {
+            return getDB().then(db => {
+                if (!db) return Promise.resolve(null);
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([APP_CONFIG.STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(APP_CONFIG.STORE_NAME);
+                    const request = store.get('active_pdf');
+                    request.onsuccess = (e) => resolve(e.target.result ? e.target.result.pages : null);
+                    request.onerror = () => reject(request.error);
+                });
+            });
+        }
+
+        function deletePdfFromDB() {
+            return getDB().then(db => {
+                if (!db) return Promise.reject("DB tidak tersedia");
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([APP_CONFIG.STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(APP_CONFIG.STORE_NAME);
+                    const request = store.delete('active_pdf');
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            });
+        }
+
+        function triggerPdfUpload() {
+            document.getElementById('pdfUploadInput').click();
+        }
+
+        async function handlePdfUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('pdfUploadStatus');
+            const btnDelete = document.getElementById('btnDeletePdf');
+            const btnUpload = document.getElementById('btnUploadPdf');
+            const selectEl = document.getElementById('overlayDocSelect');
+
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = 'Membaca berkas PDF...';
+            }
+            if (btnUpload) btnUpload.disabled = true;
+            if (btnDelete) btnDelete.disabled = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const numPages = pdf.numPages;
+                const pagesArray = [];
+
+                for (let i = 1; i <= numPages; i++) {
+                    if (statusEl) {
+                        const pct = Math.round((i / numPages) * 100);
+                        statusEl.innerHTML = `
+                             <div style="display: flex; flex-direction: column; gap: 4px;">
+                                 <span>Memproses Halaman ${i} dari ${numPages}...</span>
+                                 <div class="progress-bar-wrapper">
+                                     <div class="progress-bar-fill" style="width: ${pct}%"></div>
+                                 </div>
+                             </div>
+                         `;
+                    }
+                    // Memberikan kesempatan browser untuk merender UI
+                    await new Promise(r => requestAnimationFrame(r));
+
+                    const page = await pdf.getPage(i);
+
+                    // Skala 1.5 memberikan resolusi cetak pratinjau yang tajam tanpa terlalu membebani browser
+                    const viewport = page.getViewport({ scale: APP_CONFIG.PDF_RENDER_SCALE });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    // Menggunakan format JPEG dengan kompresi kualitas 82% untuk menghemat penyimpanan IndexedDB
+                    const imgDataUrl = canvas.toDataURL(APP_CONFIG.PDF_RENDER_FORMAT, APP_CONFIG.PDF_RENDER_QUALITY);
+                    pagesArray.push(imgDataUrl);
+                }
+
+                if (statusEl) {
+                    statusEl.innerHTML = 'Menyimpan halaman panduan ke database lokal...';
+                }
+                await savePdfToDB(pagesArray);
+                AppState.uploadedPdfPages = pagesArray;
+
+                // Tambahkan opsi baru ke dropdown jika belum ada
+                let opt = selectEl.querySelector('option[value="uploaded_pdf"]');
+                if (!opt) {
+                    opt = document.createElement('option');
+                    opt.value = 'uploaded_pdf';
+                    opt.textContent = '-- PDF Unggahan Anda --';
+                    selectEl.appendChild(opt);
+                }
+                selectEl.value = 'uploaded_pdf';
+                if (btnDelete) btnDelete.style.display = 'inline-flex';
+
+                if (statusEl) {
+                    statusEl.innerHTML = 'Proses selesai!';
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, 3000);
+                }
+
+                updateOverlaySettings();
+
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.innerHTML = 'Gagal memproses file PDF.';
+                }
+                console.error(err);
+                showToast('Gagal memproses file PDF. Pastikan file tidak rusak.', 'error');
+            } finally {
+                if (btnUpload) btnUpload.disabled = false;
+                if (btnDelete) btnDelete.disabled = false;
+                event.target.value = '';
+            }
+        }
+
+        async function deleteUploadedPdf() {
+            if (!await showConfirm('Apakah Anda yakin ingin menghapus PDF unggahan ini secara permanen dari database lokal?')) return;
+
+            const selectEl = document.getElementById('overlayDocSelect');
+            const btnDelete = document.getElementById('btnDeletePdf');
+
+            try {
+                await deletePdfFromDB();
+                AppState.uploadedPdfPages = null;
+
+                const opt = selectEl.querySelector('option[value="uploaded_pdf"]');
+                if (opt) opt.remove();
+
+                if (selectEl.value === 'uploaded_pdf') {
+                    selectEl.value = 'none';
+                }
+                btnDelete.style.display = 'none';
+
+                updateOverlaySettings();
+                showToast('PDF berhasil dihapus.', 'success');
+            } catch (err) {
+                console.error('Failed to delete PDF', err);
+                showToast('Gagal menghapus file PDF.', 'error');
+            }
+        }
+
+        // --- MANAJEMEN EDITOR KODE JSON (ACE EDITOR) ---
+        const DEFAULT_DEMO_JSON = `[
+  {
+    "debitur": "DAFFA NABIL HARTONO",
+    "pages": [
+      {
+        "page_number": 1,
+        "items": [
+          { "text": "DAFFA NABIL HARTONO", "x": 50, "y": 45, "bold": true,
+            "font_family": "Arial, sans-serif",
+            "color": "#ff0000",
+            "font_size": 7.7 },
+          { "text": "Assistent Manager", "x": 50, "y": 49, "bold": true,
+            "font_family": "Arial, sans-serif",
+            "color": "#ff0000",
+            "font_size": 7.7 },
+          { "text": "08123456789", "x": 50, "y": 53, "bold": true,
+            "font_family": "Arial, sans-serif",
+            "color": "#ff0000",
+            "font_size": 7.7 }
+        ]
+      },
+      {
+        "page_number": 2,
+        "items": [
+          { "text": "Jaminan: Ruko 2 Lantai", "x": 60, "y": 80, "bold": true,
+            "font_family": "Arial, sans-serif",
+            "color": "#ff0000",
+            "font_size": 7.7 },
+          { "text": "Nilai Taksasi: Rp 500.000.000", "x": 60, "y": 88, "bold": true,
+            "font_family": "Arial, sans-serif",
+            "color": "#ff0000",
+            "font_size": 7.7 }
+        ]
+      }
+    ]
+  }
+]`;
+
+        function getLineAndColumnFromPosition(text, position) {
+            let line = 1;
+            let column = 1;
+            for (let i = 0; i < Math.min(position, text.length); i++) {
+                if (text[i] === '\n') {
+                    line++;
+                    column = 1;
+                } else {
+                    column++;
+                }
+            }
+            return { line, column };
+        }
+
+        function validateJsonInputLive(text) {
+            const statusEl = document.getElementById('jsonValidationStatus');
+            if (!statusEl) return false;
+
+            if (!text.trim()) {
+                statusEl.style.display = 'block';
+                statusEl.style.backgroundColor = '#fef2f2';
+                statusEl.style.color = '#991b1b';
+                statusEl.style.border = '1px solid #fecaca';
+                statusEl.textContent = '❌ JSON tidak boleh kosong.';
+                if (AppState.editor) AppState.editor.session.clearAnnotations();
+                return false;
+            }
+
+            try {
+                const parsed = JSON.parse(text);
+
+                // Pengecekan Skema JSON (Schema Validation)
+                if (!Array.isArray(parsed)) {
+                    throw new Error("Format root JSON harus berupa Array [ ]");
+                }
+                if (parsed.length !== 1) {
+                    throw new Error("Format JSON harus berisi tepat 1 debitur saja di dalam array root.");
+                }
+
+                for (let i = 0; i < parsed.length; i++) {
+                    const item = parsed[i];
+                    if (typeof item !== 'object' || item === null) {
+                        throw new Error(`Elemen ke-${i + 1} harus berupa objek { }`);
+                    }
+                    if (!item.debitur) {
+                        throw new Error(`Elemen ke-${i + 1} harus memiliki properti "debitur" (Nama Debitur)`);
+                    }
+                    if (!item.pages || !Array.isArray(item.pages)) {
+                        throw new Error(`Debitur "${item.debitur}" (Elemen ke-${i + 1}) harus memiliki array "pages"`);
+                    }
+
+                    for (let j = 0; j < item.pages.length; j++) {
+                        const page = item.pages[j];
+                        if (typeof page !== 'object' || page === null) {
+                            throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1} harus berupa objek { }`);
+                        }
+                        if (page.page_number === undefined) {
+                            throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1} harus memiliki properti "page_number"`);
+                        }
+                        if (!page.items || !Array.isArray(page.items)) {
+                            throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1} harus memiliki array "items"`);
+                        }
+
+                        for (let k = 0; k < page.items.length; k++) {
+                            const it = page.items[k];
+                            if (typeof it !== 'object' || it === null) {
+                                throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1}, Elemen ke-${k + 1} harus berupa objek { }`);
+                            }
+                            if (it.text === undefined) {
+                                throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1}, Elemen ke-${k + 1} harus memiliki properti "text"`);
+                            }
+                            if (it.x === undefined || it.y === undefined) {
+                                throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1}, Elemen ke-${k + 1} harus memiliki properti "x" dan "y" (koordinat dalam mm)`);
+                            }
+                            if (isNaN(parseFloat(it.x)) || isNaN(parseFloat(it.y))) {
+                                throw new Error(`Debitur "${item.debitur}", Halaman ke-${j + 1}, Elemen ke-${k + 1} memiliki koordinat "x" atau "y" yang tidak valid (harus angka numerik)`);
+                            }
+                        }
+                    }
+                }
+
+                // Cek panjang halaman terhadap dokumen PDF aktif
+                const docSelect = document.getElementById('overlayDocSelect');
+                const docVal = docSelect ? docSelect.value : 'none';
+
+                let activePdfPageCount = 0;
+                if (docVal === 'uploaded_pdf') {
+                    activePdfPageCount = (AppState.uploadedPdfPages && AppState.uploadedPdfPages.length) ? AppState.uploadedPdfPages.length : 0;
+                } else if (docVal === 'doc_1') {
+                    activePdfPageCount = APP_CONFIG.DOC_1_PAGE_COUNT;
+                }
+
+                let pageMismatchWarnings = [];
+                if (activePdfPageCount > 0) {
+                    parsed.forEach((item, index) => {
+                        const jsonPageCount = item.pages.length;
+                        if (jsonPageCount !== activePdfPageCount) {
+                            pageMismatchWarnings.push(
+                                `Debitur ke-${index + 1} ("${item.debitur}") mendefinisikan ${jsonPageCount} halaman, sedangkan PDF aktif memiliki ${activePdfPageCount} halaman.`
+                            );
+                        }
+                    });
+                }
+
+                if (AppState.editor) AppState.editor.session.clearAnnotations();
+
+                if (pageMismatchWarnings.length > 0) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.backgroundColor = '#fffbeb';
+                    statusEl.style.color = '#854d0e';
+                    statusEl.style.border = '1px solid #fef08a';
+                    statusEl.innerHTML = `⚠️ <b>Peringatan Kecocokan Halaman:</b><br>` + pageMismatchWarnings.join('<br>');
+                } else {
+                    statusEl.style.display = 'block';
+                    statusEl.style.backgroundColor = '#f0fdf4';
+                    statusEl.style.color = '#166534';
+                    statusEl.style.border = '1px solid #bbf7d0';
+                    statusEl.textContent = '✓ Format JSON & Skema Valid' + (activePdfPageCount > 0 ? ` (Halaman data cocok dengan ${activePdfPageCount} halaman PDF)` : '');
+                }
+
+                return true;
+            } catch (err) {
+                let message = err.message;
+                let line = 1;
+                let column = 1;
+
+                const posMatch = message.match(/at position (\d+)/);
+                if (posMatch) {
+                    const pos = parseInt(posMatch[1], 10);
+                    const coords = getLineAndColumnFromPosition(text, pos);
+                    line = coords.line;
+                    column = coords.column;
+                } else {
+                    const lineMatch = message.match(/at line (\d+) column (\d+)/);
+                    if (lineMatch) {
+                        line = parseInt(lineMatch[1], 10);
+                        column = parseInt(lineMatch[2], 10);
+                    }
+                }
+
+                statusEl.style.display = 'block';
+                statusEl.style.backgroundColor = '#fef2f2';
+                statusEl.style.color = '#991b1b';
+                statusEl.style.border = '1px solid #fecaca';
+                statusEl.textContent = `❌ Kesalahan: ${message}` + (posMatch || err.message.includes('JSON.parse') ? ` (Baris ${line}, Kolom ${column})` : '');
+
+                if (AppState.editor) {
+                    AppState.editor.session.setAnnotations([{
+                        row: line - 1,
+                        column: column - 1,
+                        text: message,
+                        type: "error"
+                    }]);
+                }
+                return false;
+            }
+        }
+
+        function beautifyJsonInput() {
+            if (!AppState.editor) return;
+            const code = AppState.editor.getValue();
+            try {
+                const parsed = JSON.parse(code);
+                const pretty = JSON.stringify(parsed, null, 2);
+                AppState.editor.setValue(pretty, -1);
+                validateJsonInputLive(pretty);
+            } catch (err) {
+                showToast("Tidak dapat merapikan: format JSON saat ini masih mengandung error.", "error");
+            }
+        }
+
+        async function loadDemoJson() {
+            if (!AppState.editor) return;
+            if (await showConfirm("Apakah Anda yakin ingin memuat kembali data contoh awal?")) {
+                AppState.editor.setValue(DEFAULT_DEMO_JSON, -1);
+                validateJsonInputLive(DEFAULT_DEMO_JSON);
+            }
+        }
+
+        async function resetJsonData() {
+            if (!AppState.editor) return;
+            if (await showConfirm("Apakah Anda yakin ingin mengosongkan seluruh data elemen template?")) {
+                const emptyJson = `[\n  {\n    "debitur": "Nama Debitur Baru",\n    "pages": []\n  }\n]`;
+                if (typeof hideFormatToolbar === 'function') {
+                    hideFormatToolbar();
+                }
+                AppState.editor.setValue(emptyJson, -1);
+                validateJsonInputLive(emptyJson);
+                renderDataDariJSON();
+            }
+        }
+
+        // --- SISTEM DRAG & DROP & PENGELOLAAN ELEMEN VISUAL ---
+
+        function initDragAndDrop() {
+            const draggables = document.querySelectorAll('.data-item.draggable');
+
+            draggables.forEach(elem => {
+                let isDragging = false;
+                let startX = 0;
+                let startY = 0;
+                let startLeft = 0;
+                let startTop = 0;
+                let vGuide = null;
+                let hGuide = null;
+
+                elem.addEventListener('pointerdown', function (e) {
+                    // Abaikan jika pointerdown dipicu pada tombol clone, delete, atau resize-handle
+                    if (e.target.closest('.clone-item-btn') ||
+                        e.target.closest('.delete-item-btn') ||
+                        e.target.closest('.resize-handle')) {
+                        return;
+                    }
+                    if (e.button !== 0) return;
+                    if (elem.classList.contains('editing')) return;
+
+                    isDragging = true;
+                    elem.classList.add('dragging');
+
+                    // Sembunyikan toolbar formatting saat mulai geser
+                    if (typeof hideFormatToolbar === 'function') {
+                        hideFormatToolbar();
+                    }
+
+                    startX = e.clientX;
+                    startY = e.clientY;
+
+                    const pageEl = elem.closest('.print-page');
+                    if (!pageEl) return;
+
+                    // Ambil panduan snapping dan taruh di page aktif. Recreate jika tidak sengaja terhapus saat render
+                    vGuide = document.getElementById('vGuide');
+                    hGuide = document.getElementById('hGuide');
+                    if (!vGuide) {
+                        vGuide = document.createElement('div');
+                        vGuide.id = 'vGuide';
+                        vGuide.className = 'magnetic-guide vertical no-print';
+                        document.body.appendChild(vGuide);
+                    }
+                    if (!hGuide) {
+                        hGuide = document.createElement('div');
+                        hGuide.id = 'hGuide';
+                        hGuide.className = 'magnetic-guide horizontal no-print';
+                        document.body.appendChild(hGuide);
+                    }
+                    pageEl.appendChild(vGuide);
+                    pageEl.appendChild(hGuide);
+
+                    const pageRect = pageEl.getBoundingClientRect();
+                    const elemRect = elem.getBoundingClientRect();
+
+                    startLeft = elemRect.left - pageRect.left;
+                    startTop = elemRect.top - pageRect.top;
+
+                    elem.setPointerCapture(e.pointerId);
+                    e.stopPropagation();
+                });
+
+                elem.addEventListener('pointermove', function (e) {
+                    if (!isDragging) return;
+
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+
+                    let newLeft = startLeft + deltaX;
+                    let newTop = startTop + deltaY;
+
+                    const pageEl = elem.closest('.print-page');
+                    if (pageEl) {
+                        const pageRect = pageEl.getBoundingClientRect();
+                        const elemRect = elem.getBoundingClientRect();
+
+                        const maxLeft = pageRect.width - elemRect.width;
+                        const maxTop = pageRect.height - elemRect.height;
+
+                        if (newLeft < 0) newLeft = 0;
+                        if (newLeft > maxLeft) newLeft = maxLeft;
+                        if (newTop < 0) newTop = 0;
+                        if (newTop > maxTop) newTop = maxTop;
+
+                        // Kumpulkan posisi elemen lain untuk snapping jika diaktifkan
+                        const isSnapEnabled = document.getElementById('enableSnapCheck') ? document.getElementById('enableSnapCheck').checked : true;
+                        let snapX = null;
+                        let snapY = null;
+                        let guideX = null;
+                        let guideY = null;
+
+                        if (isSnapEnabled) {
+                            const siblings = pageEl.querySelectorAll('.data-item.draggable:not(.dragging)');
+                            const snapTolerancePx = 5; // Toleransi snap 5px (~1.5mm)
+
+                            const w = elem.offsetWidth;
+                            const h = elem.offsetHeight;
+
+                            siblings.forEach(sib => {
+                                const sibLeft = sib.offsetLeft;
+                                const sibTop = sib.offsetTop;
+                                const sibWidth = sib.offsetWidth;
+                                const sibHeight = sib.offsetHeight;
+
+                                // Cocok Sisi Kiri
+                                if (Math.abs(newLeft - sibLeft) < snapTolerancePx) {
+                                    snapX = sibLeft;
+                                    guideX = sibLeft;
+                                }
+                                // Cocok Sisi Kanan
+                                else if (Math.abs((newLeft + w) - (sibLeft + sibWidth)) < snapTolerancePx) {
+                                    snapX = sibLeft + sibWidth - w;
+                                    guideX = sibLeft + sibWidth;
+                                }
+                                // Cocok Tengah Horisontal (Center X)
+                                else if (Math.abs((newLeft + w / 2) - (sibLeft + sibWidth / 2)) < snapTolerancePx) {
+                                    snapX = sibLeft + sibWidth / 2 - w / 2;
+                                    guideX = sibLeft + sibWidth / 2;
+                                }
+
+                                // Cocok Sisi Atas
+                                if (Math.abs(newTop - sibTop) < snapTolerancePx) {
+                                    snapY = sibTop;
+                                    guideY = sibTop;
+                                }
+                                // Cocok Sisi Bawah
+                                else if (Math.abs((newTop + h) - (sibTop + sibHeight)) < snapTolerancePx) {
+                                    snapY = sibTop + sibHeight - h;
+                                    guideY = sibTop + sibHeight;
+                                }
+                                // Cocok Tengah Vertikal (Center Y)
+                                else if (Math.abs((newTop + h / 2) - (sibTop + sibHeight / 2)) < snapTolerancePx) {
+                                    snapY = sibTop + sibHeight / 2 - h / 2;
+                                    guideY = sibTop + sibHeight / 2;
+                                }
+                            });
+                        }
+
+                        // Terapkan Snap dan Munculkan Panduan
+                        if (snapX !== null) {
+                            newLeft = snapX;
+                            if (vGuide) {
+                                vGuide.style.left = guideX + 'px';
+                                vGuide.style.display = 'block';
+                            }
+                        } else {
+                            if (vGuide) vGuide.style.display = 'none';
+                        }
+
+                        if (snapY !== null) {
+                            newTop = snapY;
+                            if (hGuide) {
+                                hGuide.style.top = guideY + 'px';
+                                hGuide.style.display = 'block';
+                            }
+                        } else {
+                            if (hGuide) hGuide.style.display = 'none';
+                        }
+                    }
+
+                    elem.style.left = newLeft + 'px';
+                    elem.style.top = newTop + 'px';
+                });
+
+                const endDrag = function (e) {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    elem.classList.remove('dragging');
+
+                    if (vGuide) vGuide.style.display = 'none';
+                    if (hGuide) hGuide.style.display = 'none';
+
+                    try {
+                        elem.releasePointerCapture(e.pointerId);
+                    } catch (err) { }
+
+                    const pageEl = elem.closest('.print-page');
+                    if (!pageEl) return;
+
+                    const pageRect = pageEl.getBoundingClientRect();
+                    const elemRect = elem.getBoundingClientRect();
+
+                    const finalLeftPx = elemRect.left - pageRect.left;
+                    const finalTopPx = elemRect.top - pageRect.top;
+
+                    const finalX_mm = parseFloat(((finalLeftPx / pageRect.width) * APP_CONFIG.PAPER_WIDTH_MM).toFixed(1));
+                    const finalY_mm = parseFloat(((finalTopPx / pageRect.height) * APP_CONFIG.PAPER_HEIGHT_MM).toFixed(1));
+
+                    // Bersihkan inline style kembali ke mm
+                    elem.style.left = finalX_mm + 'mm';
+                    elem.style.top = finalY_mm + 'mm';
+
+                    const dbIdx = parseInt(elem.getAttribute('data-db-idx'));
+                    const pageIdx = parseInt(elem.getAttribute('data-page-idx'));
+                    const itemIdx = parseInt(elem.getAttribute('data-item-idx'));
+
+                    const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+                    if (res) {
+                        pushStateToUndo();
+                        res.item.x = finalX_mm;
+                        res.item.y = finalY_mm;
+                        updateEditorData(res.data, { silent: true, rerender: false });
+                    }
+                };
+
+                elem.addEventListener('pointerup', endDrag);
+                elem.addEventListener('pointercancel', endDrag);
+            });
+        }
+
+        function initInlineTextEditing() {
+            const draggables = document.querySelectorAll('.data-item.draggable');
+
+            draggables.forEach(elem => {
+                const textSpan = elem.querySelector('.text-content');
+                if (!textSpan) return; // Ini adalah gambar, skip
+
+                elem.addEventListener('dblclick', function (e) {
+                    e.stopPropagation();
+
+                    // Cegah double-click berulang
+                    if (elem.classList.contains('editing')) return;
+
+                    elem.classList.add('editing');
+                    textSpan.contentEditable = "true";
+                    textSpan.focus();
+
+                    // Seleksi seluruh teks agar mudah diganti
+                    const range = document.createRange();
+                    range.selectNodeContents(textSpan);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                    // Simpan teks asli untuk dibatalkan jika menekan Escape
+                    const originalText = textSpan.textContent;
+
+                    function finishEditing() {
+                        textSpan.contentEditable = "false";
+                        elem.classList.remove('editing');
+                        textSpan.removeEventListener('blur', onBlur);
+                        textSpan.removeEventListener('keydown', onKeyDown);
+
+                        const newText = textSpan.textContent.trim();
+                        if (newText === '') {
+                            // Jika kosong, kembalikan ke teks semula
+                            textSpan.textContent = originalText;
+                            return;
+                        }
+
+                        if (newText !== originalText) {
+                            const dbIdx = parseInt(elem.getAttribute('data-db-idx'), 10);
+                            const pageIdx = parseInt(elem.getAttribute('data-page-idx'), 10);
+                            const itemIdx = parseInt(elem.getAttribute('data-item-idx'), 10);
+
+                            const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+                            if (res) {
+                                pushStateToUndo();
+                                res.item.text = newText;
+                                updateEditorData(res.data, { silent: true });
+                            } else {
+                                textSpan.textContent = originalText;
+                            }
+                        }
+                    }
+
+                    function cancelEditing() {
+                        textSpan.textContent = originalText;
+                        textSpan.contentEditable = "false";
+                        elem.classList.remove('editing');
+                        textSpan.removeEventListener('blur', onBlur);
+                        textSpan.removeEventListener('keydown', onKeyDown);
+                    }
+
+                    function onBlur() {
+                        finishEditing();
+                    }
+
+                    function onKeyDown(evt) {
+                        if (evt.key === 'Enter') {
+                            evt.preventDefault(); // Cegah baris baru
+                            textSpan.blur(); // Memicu blur yang akan menyimpan perubahan
+                        } else if (evt.key === 'Escape') {
+                            cancelEditing();
+                        }
+                    }
+
+                    textSpan.addEventListener('blur', onBlur);
+                    textSpan.addEventListener('keydown', onKeyDown);
+                });
+
+                // Klik sekali untuk memicu formatting toolbar melayang dan menandai seleksi nudging
+                elem.addEventListener('click', function (e) {
+                    e.stopPropagation();
+
+                    document.querySelectorAll('.data-item.selected-item').forEach(el => {
+                        el.classList.remove('selected-item');
+                    });
+                    elem.classList.add('selected-item');
+
+                    const dbIdx = parseInt(elem.getAttribute('data-db-idx'), 10);
+                    const pageIdx = parseInt(elem.getAttribute('data-page-idx'), 10);
+                    const itemIdx = parseInt(elem.getAttribute('data-item-idx'), 10);
+
+                    AppState.selectedElement = { element: elem, dbIdx, pageIdx, itemIdx };
+
+                    if (elem.classList.contains('editing')) return;
+
+                    if (typeof showFormatToolbar === 'function') {
+                        showFormatToolbar(elem, dbIdx, pageIdx, itemIdx);
+                    }
+                });
+            });
+        }
+
+        function initResizeHandler() {
+            const handles = document.querySelectorAll('.resize-handle');
+
+            handles.forEach(handle => {
+                const elem = handle.closest('.print-item');
+                if (!elem) return;
+
+                handle.addEventListener('pointerdown', function (e) {
+                    if (e.button !== 0) return;
+                    e.stopPropagation(); // Mencegah memicu event drag dari parent elem
+                    e.preventDefault();
+
+                    // Sembunyikan toolbar formatting saat mulai resize
+                    if (typeof hideFormatToolbar === 'function') {
+                        hideFormatToolbar();
+                    }
+
+                    const dbIdx = parseInt(elem.getAttribute('data-db-idx'), 10);
+                    const pageIdx = parseInt(elem.getAttribute('data-page-idx'), 10);
+                    const itemIdx = parseInt(elem.getAttribute('data-item-idx'), 10);
+
+                    const pageEl = elem.closest('.print-page');
+                    if (!pageEl) return;
+
+                    const pageRect = pageEl.getBoundingClientRect();
+                    const startRect = elem.getBoundingClientRect();
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+
+                    // Deteksi tipe item: apakah gambar atau teks
+                    const isImage = elem.querySelector('img') !== null;
+
+                    // Ambil properti font-size awal (untuk teks)
+                    let startFontSize = APP_CONFIG.DEFAULT_FONT_SIZE_PT;
+                    if (!isImage) {
+                        const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+                        if (res) {
+                            startFontSize = parseFloat(res.item.font_size) || APP_CONFIG.DEFAULT_FONT_SIZE_PT;
+                        }
+                    }
+
+                    handle.setPointerCapture(e.pointerId);
+
+                    function onPointerMove(evt) {
+                        const deltaX = evt.clientX - startX;
+                        const deltaY = evt.clientY - startY;
+
+                        if (isImage) {
+                            // Untuk gambar: ubah dimensi width & height
+                            let newWidthPx = startRect.width + deltaX;
+                            let newHeightPx = startRect.height + deltaY;
+
+                            // Batas minimum ukuran gambar
+                            if (newWidthPx < APP_CONFIG.MIN_IMAGE_SIZE_PX) newWidthPx = APP_CONFIG.MIN_IMAGE_SIZE_PX;
+                            if (newHeightPx < APP_CONFIG.MIN_IMAGE_SIZE_PX) newHeightPx = APP_CONFIG.MIN_IMAGE_SIZE_PX;
+
+                            elem.style.width = newWidthPx + 'px';
+                            elem.style.height = newHeightPx + 'px';
+                        } else {
+                            // Untuk teks: ubah font-size secara proporsional berdasarkan deltaY
+                            const scale = (startRect.height + deltaY) / startRect.height;
+                            let newFontSize = startFontSize * scale;
+
+                            // Batas minimum font-size dan maksimum
+                            if (newFontSize < APP_CONFIG.MIN_FONT_SIZE_PT) newFontSize = APP_CONFIG.MIN_FONT_SIZE_PT;
+                            if (newFontSize > APP_CONFIG.MAX_FONT_SIZE_PT) newFontSize = APP_CONFIG.MAX_FONT_SIZE_PT;
+
+                            elem.style.fontSize = newFontSize.toFixed(1) + 'pt';
+                        }
+                    }
+
+                    function onPointerUp(evt) {
+                        try {
+                            handle.releasePointerCapture(evt.pointerId);
+                        } catch (err) { }
+
+                        handle.removeEventListener('pointermove', onPointerMove);
+                        handle.removeEventListener('pointerup', onPointerUp);
+                        handle.removeEventListener('pointercancel', onPointerUp);
+
+                        const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+                        if (res) {
+                            pushStateToUndo();
+                            if (isImage) {
+                                // Konversi dimensi piksel ke mm
+                                const finalRect = elem.getBoundingClientRect();
+                                const finalWidthMM = parseFloat(((finalRect.width / pageRect.width) * APP_CONFIG.PAPER_WIDTH_MM).toFixed(1));
+                                const finalHeightMM = parseFloat(((finalRect.height / pageRect.height) * APP_CONFIG.PAPER_HEIGHT_MM).toFixed(1));
+
+                                res.item.width = finalWidthMM;
+                                res.item.height = finalHeightMM;
+
+                                // Kembalikan inline style ke mm
+                                elem.style.width = finalWidthMM + 'mm';
+                                elem.style.height = finalHeightMM + 'mm';
+                            } else {
+                                // Simpan font-size baru ke properti font_size
+                                const finalFontSize = parseFloat(parseFloat(elem.style.fontSize).toFixed(1));
+                                res.item.font_size = finalFontSize;
+                            }
+                            updateEditorData(res.data, { silent: true, rerender: false });
+                        }
+                    }
+
+                    handle.addEventListener('pointermove', onPointerMove);
+                    handle.addEventListener('pointerup', onPointerUp);
+                    handle.addEventListener('pointercancel', onPointerUp);
+                });
+            });
+        }
+
+        function addNewTextElement(dbIdx = null, pageIdx = null, customX = null, customY = null) {
+            if (!AppState.editor) return;
+            try {
+                const data = JSON.parse(AppState.editor.getValue());
+                if (!Array.isArray(data) || data.length === 0) {
+                    showToast("Harap masukkan format JSON Array valid terlebih dahulu.", "warning");
+                    return;
+                }
+                pushStateToUndo();
+
+                if (dbIdx === null || pageIdx === null) {
+                    const totalPages = AppState.previewPageMap ? AppState.previewPageMap.length - 1 : 0;
+                    if (totalPages > 1) {
+                        const targetPageStr = prompt(`Pilih nomor pratinjau kertas tujuan (1 s.d. ${totalPages}):`, "1");
+                        if (targetPageStr === null) return;
+                        const targetPage = parseInt(targetPageStr, 10);
+                        if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+                            showToast(`Halaman tidak valid. Masukkan angka antara 1 s.d. ${totalPages}.`, "warning");
+                            return;
+                        }
+                        const target = AppState.previewPageMap[targetPage];
+                        dbIdx = target.dbIdx;
+                        pageIdx = target.pageIdx;
+                    } else {
+                        dbIdx = 0;
+                        pageIdx = 0;
+                    }
+                }
+
+                if (!data[dbIdx]) dbIdx = 0;
+                if (!data[dbIdx].pages) data[dbIdx].pages = [];
+
+                // Pastikan array pages terisi sampai indeks pageIdx
+                while (data[dbIdx].pages.length <= pageIdx) {
+                    const newPageNum = data[dbIdx].pages.length + 1;
+                    data[dbIdx].pages.push({
+                        page_number: newPageNum,
+                        items: []
+                    });
+                }
+
+                const posX = customX !== null ? customX : 20.0;
+                const posY = customY !== null ? customY : 20.0;
+                const newItemIdx = data[dbIdx].pages[pageIdx].items.length;
+
+                data[dbIdx].pages[pageIdx].items.push({
+                    text: "Teks Baru",
+                    x: posX,
+                    y: posY,
+                    font_family: "Arial, sans-serif",
+                    bold: false
+                });
+
+                updateEditorData(data, { silent: true });
+
+                // Jika di-tambah kustom via double-click, picu langsung mode edit
+                if (customX !== null && customY !== null) {
+                    const newElem = document.querySelector(`.data-item[data-db-idx="${dbIdx}"][data-page-idx="${pageIdx}"][data-item-idx="${newItemIdx}"]`);
+                    if (newElem) {
+                        // Kirim event dblclick buatan ke element untuk memicu inline text editing secara langsung
+                        const dblClickEvt = new MouseEvent('dblclick', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        newElem.dispatchEvent(dblClickEvt);
+                    }
+                }
+            } catch (err) {
+                showToast("Tidak dapat menambah elemen: Pastikan format JSON saat ini tidak error.", "error");
+            }
+        }
+
+        function triggerImageUpload(dbIdx = null, pageIdx = null) {
+            if (dbIdx === null || pageIdx === null) {
+                const totalPages = AppState.previewPageMap ? AppState.previewPageMap.length - 1 : 0;
+                if (totalPages > 1) {
+                    const targetPageStr = prompt(`Pilih nomor pratinjau kertas tujuan untuk gambar (1 s.d. ${totalPages}):`, "1");
+                    if (targetPageStr === null) return;
+                    const targetPage = parseInt(targetPageStr, 10);
+                    if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+                        showToast(`Halaman tidak valid. Masukkan angka antara 1 s.d. ${totalPages}.`, "warning");
+                        return;
+                    }
+                    const target = AppState.previewPageMap[targetPage];
+                    dbIdx = target.dbIdx;
+                    pageIdx = target.pageIdx;
+                } else {
+                    dbIdx = 0;
+                    pageIdx = 0;
+                }
+            }
+            AppState.activeUpload.dbIdx = dbIdx;
+            AppState.activeUpload.pageIdx = pageIdx;
+            document.getElementById('imageUploadInput').click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                if (!AppState.editor) return;
+                try {
+                    const data = JSON.parse(AppState.editor.getValue());
+                    if (!Array.isArray(data) || data.length === 0) {
+                        showToast("Harap masukkan format JSON Array valid terlebih dahulu.", "warning");
+                        return;
+                    }
+                    pushStateToUndo();
+
+                    const dbIdx = AppState.activeUpload.dbIdx;
+                    const pageIdx = AppState.activeUpload.pageIdx;
+
+                    if (!data[dbIdx].pages) data[dbIdx].pages = [];
+                    if (data[dbIdx].pages.length === 0) {
+                        data[dbIdx].pages.push({ page_number: 1, items: [] });
+                    }
+                    if (!data[dbIdx].pages[pageIdx]) {
+                        showToast("Halaman target tidak ditemukan.", "error");
+                        return;
+                    }
+
+                    data[dbIdx].pages[pageIdx].items.push({
+                        type: "image",
+                        text: e.target.result,
+                        x: 20.0,
+                        y: 20.0,
+                        width: 30.0,
+                        height: 15.0
+                    });
+
+                    updateEditorData(data, { silent: true });
+                } catch (err) {
+                    showToast("Tidak dapat menambah gambar: Pastikan format JSON saat ini tidak error.", "error");
+                }
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        async function deleteItem(dbIdx, pageIdx, itemIdx, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+
+            if (!await showConfirm("Apakah Anda yakin ingin menghapus elemen ini?")) return;
+
+            // Sembunyikan toolbar formatting jika ada
+            if (typeof hideFormatToolbar === 'function') {
+                hideFormatToolbar();
+            }
+
+            if (AppState.editor) {
+                try {
+                    const data = JSON.parse(AppState.editor.getValue());
+                    if (data[dbIdx] && data[dbIdx].pages[pageIdx] && data[dbIdx].pages[pageIdx].items) {
+                        pushStateToUndo();
+                        data[dbIdx].pages[pageIdx].items.splice(itemIdx, 1);
+                        updateEditorData(data, { silent: true });
+                    }
+                } catch (err) {
+                    console.error("Gagal menghapus elemen:", err);
+                }
+            }
+        }
+
+        // --- FLOATING TEXT FORMATTING TOOLBAR LOGIC ---
+
+        function showFormatToolbar(element, dbIdx, pageIdx, itemIdx) {
+            AppState.activeTextElement = { element, dbIdx, pageIdx, itemIdx };
+
+            const toolbar = document.getElementById('textFormatToolbar');
+            if (!toolbar) return;
+
+            const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+            const itemData = res ? res.item : null;
+            if (!itemData) return;
+
+            // 1. Bold (Default bold dari CSS .print-item, jika tidak terdefinisi dianggap bold)
+            const isBold = itemData.bold !== false;
+            const btnBold = document.getElementById('btnBold');
+            if (isBold) {
+                btnBold.classList.add('active');
+            } else {
+                btnBold.classList.remove('active');
+            }
+
+            // 2. Italic (Default normal)
+            const isItalic = !!itemData.italic;
+            const btnItalic = document.getElementById('btnItalic');
+            if (isItalic) {
+                btnItalic.classList.add('active');
+            } else {
+                btnItalic.classList.remove('active');
+            }
+
+            // 3. Underline (Default none)
+            const isUnderline = !!itemData.underline;
+            const btnUnderline = document.getElementById('btnUnderline');
+            if (isUnderline) {
+                btnUnderline.classList.add('active');
+            } else {
+                btnUnderline.classList.remove('active');
+            }
+
+            // 4. Font Family select dropdown
+            const fontSelect = document.getElementById('toolbarFontFamily');
+            if (itemData.font_family) {
+                fontSelect.value = itemData.font_family;
+            } else {
+                fontSelect.value = "Courier New, monospace";
+            }
+
+            // 5. Color Pickers (Ambil value dari JSON atau default slate #334155)
+            const textColorPicker = document.getElementById('textColorPicker');
+            textColorPicker.value = itemData.color || '#334155';
+
+            const highlightColorPicker = document.getElementById('highlightColorPicker');
+            highlightColorPicker.value = itemData.bg_color || '#ffffff';
+
+            // Tampilkan toolbar melayang
+            toolbar.classList.add('show');
+
+            // Hitung posisi koordinat di atas elemen teks
+            const elementRect = element.getBoundingClientRect();
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            const toolbarRect = toolbar.getBoundingClientRect();
+            let leftPos = elementRect.left + scrollLeft + (elementRect.width - toolbarRect.width) / 2;
+            let topPos = elementRect.top + scrollTop - toolbarRect.height - 10; // 10px gap di atas teks
+
+            // Batasi agar tetap di dalam viewport
+            if (leftPos < 10) leftPos = 10;
+            if (topPos < 10) topPos = 10;
+
+            toolbar.style.left = `${leftPos}px`;
+            toolbar.style.top = `${topPos}px`;
+        }
+
+        function hideFormatToolbar() {
+            const toolbar = document.getElementById('textFormatToolbar');
+            if (toolbar) {
+                toolbar.classList.remove('show');
+            }
+            AppState.activeTextElement = null;
+        }
+
+        function applyTextFormat(property, value) {
+            if (!AppState.activeTextElement || !AppState.editor) return;
+
+            const { dbIdx, pageIdx, itemIdx } = AppState.activeTextElement;
+
+            const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+            if (res) {
+                pushStateToUndo();
+                const item = res.item;
+
+                if (property === 'bold' || property === 'italic' || property === 'underline') {
+                    // Toggle nilai boolean
+                    const currentVal = item[property];
+                    if (property === 'bold') {
+                        // Default bold adalah true, jadi jika undefined/true di-toggle menjadi false
+                        item.bold = (currentVal !== false) ? false : true;
+                    } else {
+                        item[property] = !currentVal;
+                    }
+                } else if (property === 'bg_color' && value === '') {
+                    delete item.bg_color;
+                } else {
+                    item[property] = value;
+                }
+
+                updateEditorData(res.data, { silent: true });
+
+                // Temukan elemen baru setelah di-render ulang agar toolbar tetap menempel di posisi baru
+                const newElement = document.querySelector(`.data-item[data-db-idx="${dbIdx}"][data-page-idx="${pageIdx}"][data-item-idx="${itemIdx}"]`);
+                if (newElement) {
+                    showFormatToolbar(newElement, dbIdx, pageIdx, itemIdx);
+                }
+            }
+        }
+
+        // Listener klik global untuk menyembunyikan toolbar jika mengklik di luar area teks / toolbar
+        document.addEventListener('pointerdown', function (e) {
+            const toolbar = document.getElementById('textFormatToolbar');
+            if (!toolbar || !toolbar.classList.contains('show')) return;
+
+            const clickedOnText = e.target.closest('.print-item.data-item') && e.target.closest('.print-item.data-item').querySelector('.text-content');
+            const clickedInsideToolbar = e.target.closest('#textFormatToolbar');
+
+            if (!clickedOnText && !clickedInsideToolbar) {
+                hideFormatToolbar();
+            }
+        });
+
+        // Delegasi event double-click pada printContainer untuk menambahkan teks baru secara langsung
+        document.getElementById('printContainer').addEventListener('dblclick', function (e) {
+            // Jika double-click di atas elemen draggable (teks/gambar) yang sudah ada, abaikan
+            if (e.target.closest('.data-item')) return;
+
+            const pageEl = e.target.closest('.print-page');
+            if (!pageEl) return;
+
+            const dbIdx = parseInt(pageEl.getAttribute('data-db-idx'), 10);
+            const pageIdx = parseInt(pageEl.getAttribute('data-page-idx'), 10);
+
+            const rect = pageEl.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Konversikan koordinat piksel ke milimeter (mm) berdasarkan rasio ukuran pratinjau kertas F4 (210mm x 330mm)
+            const x_mm = parseFloat(((clickX / rect.width) * APP_CONFIG.PAPER_WIDTH_MM).toFixed(1));
+            const y_mm = parseFloat(((clickY / rect.height) * APP_CONFIG.PAPER_HEIGHT_MM).toFixed(1));
+
+            addNewTextElement(dbIdx, pageIdx, x_mm, y_mm);
+        });
+
+        // --- EXTENSION FEATURES (UNDO/REDO, CLONE, DARK MODE, KEYBOARD NUDGE, HELP MODAL) ---
+
+        // 1. Undo & Redo System
+        function pushStateToUndo() {
+            if (!AppState.editor) return;
+            const currentState = AppState.editor.getValue();
+            // Hindari duplikasi penyimpanan state yang identik berturut-turut
+            if (AppState.undoStack.length > 0 && AppState.undoStack[AppState.undoStack.length - 1] === currentState) {
+                return;
+            }
+            AppState.undoStack.push(currentState);
+            if (AppState.undoStack.length > 50) {
+                AppState.undoStack.shift();
+            }
+            AppState.redoStack = []; // Bersihkan redo stack untuk aksi baru
+            AppState.lastCommittedState = currentState;
+            AppState.hasPendingTextUndo = false;
+            updateUndoRedoStatus();
+        }
+
+        function updateUndoRedoStatus() {
+            const btnUndo = document.getElementById('btnUndo');
+            const btnRedo = document.getElementById('btnRedo');
+            if (btnUndo) btnUndo.disabled = AppState.undoStack.length === 0;
+            if (btnRedo) btnRedo.disabled = AppState.redoStack.length === 0;
+        }
+
+        function undo() {
+            if (AppState.undoStack.length === 0) return;
+            const currentState = AppState.editor.getValue();
+            AppState.redoStack.push(currentState);
+
+            const prevState = AppState.undoStack.pop();
+            updateEditorDataFromStack(prevState);
+        }
+
+        function redo() {
+            if (AppState.redoStack.length === 0) return;
+            const currentState = AppState.editor.getValue();
+            AppState.undoStack.push(currentState);
+
+            const nextState = AppState.redoStack.pop();
+            updateEditorDataFromStack(nextState);
+        }
+
+        function updateEditorDataFromStack(jsonStr) {
+            if (!AppState.editor) return;
+            AppState.isSilentUpdate = true;
+            const cursor = AppState.editor.getCursorPosition();
+            AppState.editor.setValue(jsonStr, -1);
+            AppState.editor.moveCursorToPosition(cursor);
+            AppState.isSilentUpdate = false;
+
+            AppState.lastCommittedState = jsonStr;
+            AppState.hasPendingTextUndo = false;
+
+            validateJsonInputLive(jsonStr);
+            renderDataDariJSON();
+            updateUndoRedoStatus();
+        }
+
+        // 2. Duplikasi Elemen (Clone Item)
+        function cloneItem(dbIdx, pageIdx, itemIdx, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            pushStateToUndo();
+            const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+            if (res) {
+                const copy = JSON.parse(JSON.stringify(res.item));
+                // Beri pergeseran offset +5mm (dibatasi dimensi halaman)
+                copy.x = parseFloat(Math.min(APP_CONFIG.PAPER_WIDTH_MM - 10, copy.x + 5).toFixed(1));
+                copy.y = parseFloat(Math.min(APP_CONFIG.PAPER_HEIGHT_MM - 10, copy.y + 5).toFixed(1));
+
+                res.data[dbIdx].pages[pageIdx].items.push(copy);
+                updateEditorData(res.data, { silent: true });
+                showToast("Elemen berhasil diduplikasi!", "success");
+            }
+        }
+
+        // 3. Peralihan Tema Mode Gelap / Terang (Dark Theme Toggling)
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            const btn = document.getElementById('btnToggleTheme');
+
+            if (isDark) {
+                if (btn) btn.innerHTML = '<i data-lucide="sun"></i> Mode Terang';
+                localStorage.setItem('theme_preference', 'dark');
+            } else {
+                if (btn) btn.innerHTML = '<i data-lucide="moon"></i> Mode Gelap';
+                localStorage.setItem('theme_preference', 'light');
+            }
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        function syncThemeButtonState() {
+            const btn = document.getElementById('btnToggleTheme');
+            if (btn) {
+                if (document.body.classList.contains('dark')) {
+                    btn.innerHTML = '<i data-lucide="sun"></i> Mode Terang';
+                } else {
+                    btn.innerHTML = '<i data-lucide="moon"></i> Mode Gelap';
+                }
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        // 4. Keyboard Shortcuts & Mikro-Kalibrasi Tombol Panah (Nudging)
+        window.addEventListener('keydown', function (e) {
+            // Cek pintasan keyboard undo & redo global terlebih dahulu
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const isCmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+            if (isCmdOrCtrl && !e.altKey) {
+                if (e.key === 'z' || e.key === 'Z') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        redo();
+                    } else {
+                        undo();
+                    }
+                    return;
+                } else if (e.key === 'y' || e.key === 'Y') {
+                    e.preventDefault();
+                    redo();
+                    return;
+                }
+            }
+
+            if (!AppState.selectedElement) return;
+
+            // Abaikan jika fokus sedang berada pada form input, textarea, contentEditable, atau editor kode
+            const activeEl = document.activeElement;
+            if (activeEl && (
+                activeEl.tagName === 'INPUT' ||
+                activeEl.tagName === 'TEXTAREA' ||
+                activeEl.contentEditable === 'true' ||
+                activeEl.closest('#jsonInputEditor')
+            )) {
+                return;
+            }
+
+            const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+            if (!keys.includes(e.key)) return;
+
+            e.preventDefault(); // Cegah scrolling viewport monitor browser
+
+            const step = e.shiftKey ? 1.0 : 0.1; // Pergeseran makro 1.0mm vs mikro 0.1mm
+
+            const { element, dbIdx, pageIdx, itemIdx } = AppState.selectedElement;
+            const res = getItemFromEditor(dbIdx, pageIdx, itemIdx);
+
+            if (res) {
+                pushStateToUndo();
+                if (e.key === 'ArrowUp') res.item.y = parseFloat(Math.max(0, res.item.y - step).toFixed(1));
+                if (e.key === 'ArrowDown') res.item.y = parseFloat(Math.min(APP_CONFIG.PAPER_HEIGHT_MM, res.item.y + step).toFixed(1));
+                if (e.key === 'ArrowLeft') res.item.x = parseFloat(Math.max(0, res.item.x - step).toFixed(1));
+                if (e.key === 'ArrowRight') res.item.x = parseFloat(Math.min(APP_CONFIG.PAPER_WIDTH_MM, res.item.x + step).toFixed(1));
+
+                // Perbarui posisi visual secara instan (menggunakan mm)
+                element.style.left = `${res.item.x}mm`;
+                element.style.top = `${res.item.y}mm`;
+
+                // Simpan perubahan secara senyap (tanpa re-render DOM penuh)
+                updateEditorData(res.data, { silent: true, rerender: false });
+                debouncedSaveAllSettings();
+
+                // Pindahkan posisi bilah format melayang jika sedang aktif
+                if (typeof showFormatToolbar === 'function' && document.getElementById('textFormatToolbar').classList.contains('show')) {
+                    showFormatToolbar(element, dbIdx, pageIdx, itemIdx);
+                }
+            }
+        });
+
+        // Event listener klik global untuk menghapus seleksi nudging saat mengklik kanvas kosong
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.data-item')) {
+                document.querySelectorAll('.data-item.selected-item').forEach(el => el.classList.remove('selected-item'));
+                AppState.selectedElement = null;
+                if (typeof hideFormatToolbar === 'function') {
+                    hideFormatToolbar();
+                }
+            }
+        });
+
+        // 5. Modal Panduan shortcuts & Fitur (Help Modal Dialog)
+        function showHelpModal() {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal-card help-modal" style="background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--panel-border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+                    <h3 style="display: flex; align-items: center; gap: 8px; border-bottom: 1.5px solid var(--card-border); padding-bottom: 10px; margin-bottom: 15px; margin-top: 0; color: var(--text-heading);">
+                        <i data-lucide="help-circle" style="color: #3b82f6;"></i> Panduan Fitur & Pintasan Keyboard
+                    </h3>
+                    <div class="modal-body-scroll" style="font-size: 13px; line-height: 1.6; color: var(--text-main);">
+                        <h4 style="margin: 0 0 8px; color: var(--text-heading);">🛠️ Fitur & Cara Penggunaan</h4>
+                        <ul style="margin: 0 0 16px; padding-left: 20px;">
+                            <li><b>Klik-Ganda Lembar Kerja</b>: Menambahkan elemen teks baru secara instan di posisi klik.</li>
+                            <li><b>Geser & Lepas (Drag & Drop)</b>: Menyeret elemen teks/gambar ke koordinat mana saja di kertas.</li>
+                            <li><b>Ubah Ukuran (Resize)</b>: Seret lingkaran hijau kecil di pojok kanan bawah elemen untuk mengubah ukuran gambar atau mengubah ukuran huruf teks secara proporsional.</li>
+                            <li><b>Penyuntingan Teks Langsung</b>: Klik-ganda pada elemen teks untuk mengubah isinya langsung di layar, lalu tekan Enter atau klik di luar untuk menyimpan.</li>
+                            <li><b>Bilah Format Melayang</b>: Klik sekali pada elemen teks untuk menampilkan panel pemformatan (Tebal, Miring, Garis Bawah, Jenis Font, Warna Teks, Warna Latar).</li>
+                            <li><b>Salin Elemen (Clone)</b>: Arahkan kursor ke elemen, klik tombol salin hijau (<i data-lucide="copy" style="width: 10px; height: 10px; display: inline-block;"></i>) untuk menggandakannya.</li>
+                            <li><b>Hapus Elemen</b>: Klik tombol bulat merah (<span style="color: #ef4444; font-weight: bold;">×</span>) untuk menghapus elemen.</li>
+                        </ul>
+
+                        <h4 style="margin: 0 0 8px; color: var(--text-heading);">⌨️ Pintasan Keyboard (Keyboard Shortcuts)</h4>
+                        <ul style="margin: 0 0 16px; padding-left: 20px;">
+                            <li><kbd>Ctrl</kbd> + <kbd>Z</kbd> (atau <kbd>Cmd</kbd> + <kbd>Z</kbd>): <b>Undo</b> (Membatalkan aksi terakhir).</li>
+                            <li><kbd>Ctrl</kbd> + <kbd>Y</kbd> (atau <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>): <b>Redo</b> (Mengembalikan aksi yang dibatalkan).</li>
+                            <li><kbd>Tombol Panah</kbd>: <b>Micro-Nudge</b> (Menggeser elemen terpilih sejauh 0.1 mm).</li>
+                            <li><kbd>Shift</kbd> + <kbd>Tombol Panah</kbd>: <b>Macro-Nudge</b> (Menggeser elemen terpilih sejauh 1.0 mm).</li>
+                            <li><kbd>Escape</kbd>: Keluar dari mode Fullscreen editor atau menutup jendela bantuan ini.</li>
+                        </ul>
+
+                        <h4 style="margin: 0 0 8px; color: var(--text-heading);">⚙️ Sistem Penyelaras & Kalibrasi</h4>
+                        <ul style="margin: 0; padding-left: 20px;">
+                            <li><b>Snapping Guidelines</b>: Garis penunjuk sejajar (indigo) akan muncul otomatis saat Anda menggeser elemen lurus dengan batas elemen lain.</li>
+                            <li><b>Penyimpanan Tangguh</b>: Riwayat data tersimpan otomatis di dalam database lokal browser secara aman tanpa server backend.</li>
+                        </ul>
+                    </div>
+                    <div class="modal-actions" style="border-top: 1.5px solid var(--card-border); padding-top: 15px;">
+                        <button class="btn btn-primary" id="modalCloseHelp" style="width: 100%;">Tutup</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            overlay.querySelector('#modalCloseHelp').addEventListener('click', () => {
+                overlay.remove();
+            });
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) { overlay.remove(); }
+            });
+
+            const handleEscHelp = (e) => {
+                if (e.key === 'Escape') {
+                    overlay.remove();
+                    window.removeEventListener('keydown', handleEscHelp);
+                }
+            };
+            window.addEventListener('keydown', handleEscHelp);
+        }
+
+        window.addEventListener('load', async function () {
+            try {
+                const pages = await getPdfFromDB();
+                if (pages && pages.length > 0) {
+                    AppState.uploadedPdfPages = pages;
+
+                    const selectEl = document.getElementById('overlayDocSelect');
+                    let opt = selectEl.querySelector('option[value="uploaded_pdf"]');
+                    if (!opt) {
+                        opt = document.createElement('option');
+                        opt.value = 'uploaded_pdf';
+                        opt.textContent = '-- PDF Unggahan Anda --';
+                        selectEl.appendChild(opt);
+                    }
+
+                    document.getElementById('btnDeletePdf').style.display = 'inline-flex';
+                }
+            } catch (err) {
+                console.error("Gagal memuat PDF unggahan:", err);
+            }
+
+            const editorEl = document.getElementById('jsonInputEditor');
+            if (editorEl) {
+                AppState.editor = ace.edit("jsonInputEditor");
+                AppState.editor.setTheme("ace/theme/chrome");
+                AppState.editor.session.setMode("ace/mode/json");
+                AppState.editor.session.setUseWorker(false);
+
+                const settingsStr = localStorage.getItem(APP_CONFIG.SETTINGS_KEY);
+                let initialJson = DEFAULT_DEMO_JSON;
+                if (settingsStr) {
+                    try {
+                        const settings = JSON.parse(settingsStr);
+                        if (settings.jsonInput !== undefined) {
+                            if (!settings.jsonInput.includes('"pages"') || !settings.jsonInput.includes('"items"')) {
+                                initialJson = DEFAULT_DEMO_JSON;
+                            } else {
+                                initialJson = settings.jsonInput;
+                            }
+                        }
+                    } catch (e) { }
+                }
+                AppState.editor.setValue(initialJson, -1);
+                document.getElementById('jsonInput').value = initialJson;
+
+                const debouncedRender = debounce(() => {
+                    renderDataDariJSON();
+                }, 400);
+
+                AppState.lastCommittedState = initialJson;
+                AppState.hasPendingTextUndo = false;
+
+                AppState.editor.session.on('change', function () {
+                    const val = AppState.editor.getValue();
+                    document.getElementById('jsonInput').value = val;
+                    debouncedSaveAllSettings();
+                    const isValid = validateJsonInputLive(val);
+
+                    if (!AppState.isSilentUpdate) {
+                        if (isValid) {
+                            if (!AppState.hasPendingTextUndo && AppState.lastCommittedState && AppState.lastCommittedState !== val) {
+                                if (AppState.undoStack.length === 0 || AppState.undoStack[AppState.undoStack.length - 1] !== AppState.lastCommittedState) {
+                                    AppState.undoStack.push(AppState.lastCommittedState);
+                                    if (AppState.undoStack.length > 50) {
+                                        AppState.undoStack.shift();
+                                    }
+                                    AppState.redoStack = [];
+                                    updateUndoRedoStatus();
+                                }
+                                AppState.hasPendingTextUndo = true;
+                            }
+                            debouncedRender();
+                        }
+                    }
+                });
+
+                validateJsonInputLive(initialJson);
+            }
+
+            loadAllSettingsFromStorage();
+            updateCalibrationOffsets();
+            renderDataDariJSON();
+            syncThemeButtonState();
+        });
+
+        function toggleEditorFullscreen() {
+            const container = document.getElementById('editorContainer');
+            if (!container) return;
+
+            const isFullscreen = container.classList.toggle('fullscreen');
+            const btn = document.getElementById('btnFullscreen');
+            const inputArea = document.querySelector('.input-area');
+
+            if (isFullscreen) {
+                // Pindahkan ke body agar bebas dari batasan containing block (misalnya backdrop-filter pada .admin-panel)
+                document.body.appendChild(container);
+
+                if (btn) {
+                    btn.innerHTML = '<i data-lucide="minimize-2"></i> Perkecil';
+                }
+                document.addEventListener('keydown', handleEscapeKey);
+                document.body.style.overflow = 'hidden';
+            } else {
+                // Kembalikan ke posisi semula di dalam area input
+                if (inputArea) {
+                    inputArea.appendChild(container);
+                }
+
+                if (btn) {
+                    btn.innerHTML = '<i data-lucide="maximize-2"></i> Fullscreen';
+                }
+                document.removeEventListener('keydown', handleEscapeKey);
+                document.body.style.overflow = '';
+            }
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            if (AppState.editor) {
+                setTimeout(() => {
+                    AppState.editor.resize();
+                    AppState.editor.focus();
+                }, 100);
+            }
+        }
+
+        function handleEscapeKey(e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                const container = document.getElementById('editorContainer');
+                if (container && container.classList.contains('fullscreen')) {
+                    toggleEditorFullscreen();
+                }
+            }
+        }
+
+        function exportToHTML() {
+            const container = document.getElementById('printContainer');
+            const pages = container.querySelectorAll('.print-page');
+
+            if (pages.length === 0) {
+                showToast('Belum ada halaman yang di-render. Klik "Render Preview" terlebih dahulu.', 'warning');
+                return;
+            }
+
+            // Ambil state checkbox
+            const hideCalOnPrint = document.getElementById('hideCalCheck').checked;
+            const printOverlayVisible = document.getElementById('printOverlayCheck').checked;
+            const offsetX = parseFloat(document.getElementById('offsetX').value) || 0;
+            const offsetY = parseFloat(document.getElementById('offsetY').value) || 0;
+
+            // Bangun HTML untuk setiap halaman
+            let pagesHtml = '';
+            pages.forEach((page, idx) => {
+                let itemsHtml = '';
+
+                // Overlay guide (jika user memilih cetak overlay)
+                if (printOverlayVisible) {
+                    const overlay = page.querySelector('.page-overlay-guide');
+                    if (overlay && overlay.style.backgroundImage && overlay.style.backgroundImage !== 'none') {
+                        const bgImg = overlay.style.backgroundImage;
+                        const opacity = overlay.style.opacity || '0.5';
+                        itemsHtml += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:${bgImg};background-size:100% 100%;background-repeat:no-repeat;background-position:center;opacity:${opacity};z-index:0;pointer-events:none;"></div>\n`;
+                    }
+                }
+
+                // Marker kalibrasi (kecuali disembunyikan)
+                if (!hideCalOnPrint) {
+                    const calMarks = page.querySelectorAll('.cal-mark');
+                    calMarks.forEach(mark => {
+                        const style = mark.getAttribute('style') || '';
+                        const classes = mark.className.replace('print-item', '').replace('cal-mark', '').trim();
+                        itemsHtml += `<div class="print-item cal-mark ${classes}" style="${style}">${mark.innerHTML}</div>\n`;
+                    });
+                }
+
+                // Data items (teks dan gambar)
+                const dataItems = page.querySelectorAll('.data-item');
+                dataItems.forEach(item => {
+                    const style = item.getAttribute('style') || '';
+                    // Cek apakah item mengandung gambar
+                    const img = item.querySelector('img');
+                    if (img) {
+                        const src = img.getAttribute('src') || '';
+                        const imgStyle = img.getAttribute('style') || '';
+                        itemsHtml += `<div class="print-item" style="${style}"><img src="${src}" style="${imgStyle}" /></div>\n`;
+                    } else {
+                        const textSpan = item.querySelector('.text-content');
+                        const text = textSpan ? textSpan.innerHTML : item.textContent;
+                        itemsHtml += `<div class="print-item" style="${style}">${text}</div>\n`;
+                    }
+                });
+
+                pagesHtml += `<div class="print-page">${itemsHtml}</div>\n`;
+            });
+
+            // Ambil nama debitur dari JSON untuk penamaan file
+            let fileName = 'export';
+            try {
+                const data = JSON.parse(document.getElementById('jsonInput').value);
+                if (Array.isArray(data) && data.length > 0 && data[0].debitur) {
+                    fileName = data[0].debitur.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_');
+                }
+            } catch (e) { }
+
+            // PENTING: Hindari menulis tag penutup HTML literal (seperti <\/style>, <\/head>, dll.)
+            // di dalam blok <script>, karena HTML parser akan salah mengartikannya
+            // sebagai penutup konteks script/style yang sesungguhnya.
+            const closeStyle = '<' + '/style>';
+            const closeHead = '<' + '/head>';
+            const closeBody = '<' + '/body>';
+            const closeHtml = '<' + '/html>';
+
+            const exportHtml = '<!DOCTYPE html>\n'
+                + '<html lang="id">\n'
+                + '<head>\n'
+                + '    <meta charset="UTF-8">\n'
+                + '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+                + '    <title>Export - ' + escapeHtml(fileName) + '<' + '/title>\n'
+                + '    <style>\n'
+                + '        :root {\n'
+                + '            --offset-x: ' + offsetX + 'mm;\n'
+                + '            --offset-y: ' + offsetY + 'mm;\n'
+                + '        }\n'
+                + '        * { margin: 0; padding: 0; box-sizing: border-box; }\n'
+                + '        body {\n'
+                + '            font-family: \'Courier New\', Courier, monospace;\n'
+                + '            background: #f1f5f9;\n'
+                + '            display: flex;\n'
+                + '            flex-direction: column;\n'
+                + '            align-items: center;\n'
+                + '            gap: 40px;\n'
+                + '            padding: 40px 20px;\n'
+                + '        }\n'
+                + '        .print-page {\n'
+                + '            position: relative;\n'
+                + '            width: 210mm;\n'
+                + '            height: 330mm;\n'
+                + '            background-color: #ffffff;\n'
+                + '            box-shadow: 0 4px 20px rgba(0,0,0,0.08);\n'
+                + '            overflow: hidden;\n'
+                + '        }\n'
+                + '        .print-item {\n'
+                + '            position: absolute;\n'
+                + '            font-family: \'Courier New\', Courier, monospace;\n'
+                + '            font-size: 9pt;\n'
+                + '            font-weight: bold;\n'
+                + '            color: #000000;\n'
+                + '            z-index: 1;\n'
+                + '            transform: translate(var(--offset-x), var(--offset-y));\n'
+                + '        }\n'
+                + '        .cal-mark {\n'
+                + '            color: #ef4444;\n'
+                + '            font-size: 10pt;\n'
+                + '            line-height: 1.2;\n'
+                + '            z-index: 2;\n'
+                + '        }\n'
+                + '        .cal-tl { top: 10mm; left: 10mm; }\n'
+                + '        .cal-tr { top: 10mm; right: 10mm; text-align: right; }\n'
+                + '        .cal-bl { bottom: 10mm; left: 10mm; }\n'
+                + '        .cal-br { bottom: 10mm; right: 10mm; text-align: right; }\n'
+                + '        img { object-fit: contain; display: block; }\n'
+                + '        @media print {\n'
+                + '            @page { size: 210mm 330mm; margin: 0; }\n'
+                + '            body { background: none !important; padding: 0; gap: 0; }\n'
+                + '            .print-page {\n'
+                + '                box-shadow: none;\n'
+                + '                page-break-after: always;\n'
+                + '                break-after: page;\n'
+                + '            }\n'
+                + '            .print-page:last-child {\n'
+                + '                page-break-after: avoid;\n'
+                + '                break-after: avoid;\n'
+                + '            }\n'
+                + '        }\n'
+                + '    ' + closeStyle + '\n'
+                + closeHead + '\n'
+                + '<body>\n'
+                + pagesHtml + '\n'
+                + closeBody + '\n'
+                + closeHtml;
+
+            // Buat dan unduh file HTML
+            const blob = new Blob([exportHtml], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileName}_export.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast(`Berhasil mengexport ${pages.length} halaman ke file HTML!`, 'success');
+        }
+    </script>
+
+    <!-- Bilah Pemformatan Teks Melayang (Rich Text Formatting Toolbar) -->
+    <div id="textFormatToolbar" class="format-toolbar no-print">
+        <select id="toolbarFontFamily" onchange="applyTextFormat('font_family', this.value)">
+            <option value="Courier New, Courier, monospace">Courier New</option>
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="Times New Roman, Times, serif">Times New Roman</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="Verdana, sans-serif">Verdana</option>
+            <option value="Plus Jakarta Sans, sans-serif">Plus Jakarta Sans</option>
+        </select>
+        <div class="toolbar-divider"></div>
+        <button id="btnBold" class="toolbar-btn" onclick="applyTextFormat('bold')" title="Tebal (B)">
+            <i data-lucide="bold" style="width: 14px; height: 14px;"></i>
+        </button>
+        <button id="btnItalic" class="toolbar-btn" onclick="applyTextFormat('italic')" title="Miring (I)">
+            <i data-lucide="italic" style="width: 14px; height: 14px;"></i>
+        </button>
+        <button id="btnUnderline" class="toolbar-btn" onclick="applyTextFormat('underline')" title="Garis Bawah (U)">
+            <i data-lucide="underline" style="width: 14px; height: 14px;"></i>
+        </button>
+        <div class="toolbar-divider"></div>
+        <!-- Warna Teks -->
+        <div class="color-picker-wrapper" title="Warna Teks">
+            <i data-lucide="baseline" style="width: 14px; height: 14px;"></i>
+            <input type="color" id="textColorPicker" oninput="applyTextFormat('color', this.value)">
+        </div>
+        <!-- Sorotan Latar Belakang (Highlight) -->
+        <div class="color-picker-wrapper" title="Warna Sorotan (Highlight)">
+            <i data-lucide="highlighter" style="width: 14px; height: 14px;"></i>
+            <input type="color" id="highlightColorPicker" oninput="applyTextFormat('bg_color', this.value)">
+        </div>
+        <!-- Hapus Sorotan -->
+        <button id="btnClearHighlight" class="toolbar-btn" onclick="applyTextFormat('bg_color', '')"
+            title="Hapus Sorotan">
+            <i data-lucide="eraser" style="width: 14px; height: 14px;"></i>
+        </button>
+    </div>
+    <!-- Toast notification container -->
+    <div id="toastContainer" class="toast-container no-print" role="status" aria-live="polite"></div>
+    <div id="vGuide" class="magnetic-guide vertical no-print"></div>
+    <div id="hGuide" class="magnetic-guide horizontal no-print"></div>
+</body>
+
+</html>
