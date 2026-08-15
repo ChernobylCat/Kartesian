@@ -1,0 +1,20 @@
+[
+  {
+    "debitur": "Fixture Debitur",
+    "pages": [
+      {
+        "page_number": 1,
+        "items": [
+          {
+            "text": "Fixture Text",
+            "x": 20,
+            "y": 30,
+            "font_size": 10,
+            "font_family": "Arial, sans-serif",
+            "color": "#112233"
+          }
+        ]
+      }
+    ]
+  }
+]

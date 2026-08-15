@@ -1,0 +1,27 @@
+{
+  "name": "kartesian",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./assets/app.css --minify",
+    "dev:css": "tailwindcss -i ./src/input.css -o ./assets/app.css --watch",
+    "build:vendor": "node scripts/copy-vendor.cjs",
+    "build": "npm run build:vendor && npm run build:css",
+    "test:unit": "node tests/regression.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:chromium": "playwright test",
+    "test:visual": "playwright test -g \"baseline visual\"",
+    "audit": "npm audit --audit-level=high",
+    "test": "npm run test:unit && npm run test:e2e",
+    "check": "npm run build && npm run test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/cli": "^4.3.3",
+    "ace-builds": "1.16.0",
+    "lucide": "0.460.0",
+    "pdfjs-dist": "6.2.108",
+    "tailwindcss": "^4.3.3"
+  }
+}
