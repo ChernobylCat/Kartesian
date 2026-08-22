@@ -327,6 +327,26 @@ test('settings controller menyimpan offset dan flag kalibrasi setelah reload', a
   await expect(page.locator('#printContainer')).toHaveClass(/hide-cal-on-preview/);
 });
 
+test('offset kalibrasi tidak menggeser elemen teks pada canvas preview', async ({ page }) => {
+  await openReadyApp(page);
+
+  const textItem = page.locator('.data-item.text-item').first();
+  const before = await textItem.boundingBox();
+  expect(before).not.toBeNull();
+
+  await page.locator('#offsetX').fill('12.5');
+  await page.locator('#offsetY').fill('-8.5');
+  await expect.poll(() => page.evaluate(() => ({
+    x: document.documentElement.style.getPropertyValue('--offset-x'),
+    y: document.documentElement.style.getPropertyValue('--offset-y')
+  }))).toEqual({ x: '12.5mm', y: '-8.5mm' });
+
+  const after = await textItem.boundingBox();
+  expect(after).not.toBeNull();
+  expect(after.x).toBeCloseTo(before.x, 1);
+  expect(after.y).toBeCloseTo(before.y, 1);
+});
+
 test('fullscreen editor dan modal bantuan dapat dikendalikan dengan keyboard', async ({ page }) => {
   await openReadyApp(page);
 

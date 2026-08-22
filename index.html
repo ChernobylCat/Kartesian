@@ -90,6 +90,13 @@
             transition: transform 0.1s ease;
         }
 
+        /* Offset printer tidak menggeser posisi teks saat menyunting di canvas preview. */
+        @media screen {
+            .data-item.text-item {
+                transform: rotate(var(--item-rotation));
+            }
+        }
+
         .data-item.locked-item { cursor: not-allowed; }
         .data-item.locked-item::after {
             content: "🔒";
