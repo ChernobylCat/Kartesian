@@ -49,7 +49,7 @@ Open the application at:
 http://127.0.0.1:4173
 ```
 
-The runtime does not depend on a CDN. The build command copies the pinned Ace, Lucide, and PDF.js assets from `node_modules` into `assets/vendor`, then compiles Tailwind CSS into `assets/app.css`.
+The runtime does not depend on a CDN. The build command copies the pinned Ace, Lucide, PDF.js, and Driver.js assets from `node_modules` into `assets/vendor`, then compiles Tailwind CSS into `assets/app.css`.
 
 ### Developing the UI
 

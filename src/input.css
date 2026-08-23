@@ -333,13 +333,24 @@
     .context-menu button.danger { @apply text-red-600 dark:text-red-400; }
     .context-menu kbd { @apply ml-5 text-[10px] text-slate-400; }
 
-    .onboarding-overlay { @apply fixed inset-0 z-[14000] bg-slate-950/65; }
-    .onboarding-card { @apply fixed z-[14002] w-[min(360px,calc(100vw-24px))] rounded-xl border border-blue-300 bg-white p-5 shadow-2xl dark:border-blue-700 dark:bg-slate-900; }
-    .onboarding-card > span { @apply text-[10px] font-bold uppercase tracking-wider text-blue-600; }
-    .onboarding-card h2 { @apply my-1 text-base font-bold text-slate-900 dark:text-white; }
-    .onboarding-card p { @apply mt-0 mb-4 text-xs leading-relaxed text-slate-600 dark:text-slate-300; }
-    .onboarding-card > div { @apply flex justify-end gap-2; }
-    .onboarding-highlight { @apply relative z-[14001]! rounded-md ring-4 ring-blue-400 ring-offset-4; }
+    .driver-popover.kartesian-tour { @apply w-[min(360px,calc(100vw-24px))] max-w-none rounded-xl border border-blue-300 bg-white p-5 text-slate-900 shadow-2xl; font-family: inherit; }
+    .driver-popover.kartesian-tour .driver-popover-title { @apply pr-7 text-base font-bold leading-snug; }
+    .driver-popover.kartesian-tour .driver-popover-description { @apply mt-1 text-xs leading-relaxed text-slate-600; }
+    .driver-popover.kartesian-tour .driver-popover-progress-text { @apply text-[10px] font-bold uppercase tracking-wider text-blue-600; }
+    .driver-popover.kartesian-tour .driver-popover-footer-btn { @apply rounded-md border px-3 py-1.5 text-xs font-semibold; border-color: var(--input-border); }
+    .driver-popover.kartesian-tour .driver-popover-next-btn { @apply border-blue-600 bg-blue-600 text-white hover:bg-blue-700; }
+    .driver-popover.kartesian-tour .driver-popover-prev-btn { @apply bg-white text-slate-700 hover:bg-slate-100; }
+    .driver-popover.kartesian-tour .driver-popover-close-btn { @apply text-slate-400 hover:text-slate-700 focus:text-slate-700; }
+    .driver-popover.kartesian-tour button:focus-visible { @apply outline-2 outline-offset-2 outline-blue-500; }
+    body.dark .driver-popover.kartesian-tour { @apply border-blue-700 bg-slate-900 text-white; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-description { @apply text-slate-300; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-prev-btn { @apply bg-slate-900 text-slate-200 hover:bg-slate-800; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-close-btn { @apply hover:text-white focus:text-white; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-arrow { border-color: #0f172a; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-arrow-side-left { border-top-color: transparent; border-bottom-color: transparent; border-right-color: transparent; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-arrow-side-right { border-top-color: transparent; border-bottom-color: transparent; border-left-color: transparent; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-arrow-side-top { border-bottom-color: transparent; border-left-color: transparent; border-right-color: transparent; }
+    body.dark .driver-popover.kartesian-tour .driver-popover-arrow-side-bottom { border-top-color: transparent; border-left-color: transparent; border-right-color: transparent; }
 
     .format-toolbar {
         @apply pointer-events-none fixed z-[9000] flex max-w-[calc(100vw-24px)] scale-95 flex-col items-stretch gap-1.5 rounded-lg border border-white/15
@@ -561,5 +572,12 @@
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+}
+
+@media print {
+    .driver-popover,
+    .driver-overlay {
+        display: none !important;
     }
 }

@@ -163,12 +163,26 @@ test('marquee box memilih banyak elemen dengan contain, intersect, add, dan togg
 });
 
 test('tur onboarding dapat dijalankan dan diselesaikan', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await openReadyApp(page);
   await page.locator('#btnStartOnboarding').click();
-  await expect(page.locator('#onboardingCard')).toBeVisible();
-  await expect(page.locator('#onboardingProgress')).toHaveText('1 / 5');
-  for (let index = 0; index < 5; index++) await page.locator('#btnOnboardingNext').click();
-  await expect(page.locator('#onboardingCard')).toBeHidden();
+  const popover = page.locator('.driver-popover.kartesian-tour');
+  await expect(popover).toBeVisible();
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('1 / 5');
+  await expect(popover).toHaveAttribute('role', 'dialog');
+  await expect(page.getByRole('button', { name: 'Lewati tur' })).toBeVisible();
+  for (let index = 0; index < 3; index++) await popover.locator('.driver-popover-next-btn').click();
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 5');
+  await expect(page.locator('#propertyPanel')).toBeVisible();
+  await page.keyboard.press('ArrowLeft');
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('3 / 5');
+  await page.keyboard.press('ArrowRight');
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 5');
+  await popover.locator('.driver-popover-next-btn').click();
+  await popover.locator('.driver-popover-next-btn').click();
+  await expect(popover).toHaveCount(0);
+  await expect(page.locator('#propertyPanel')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('kartesian_onboarding_complete_v1'))).toBe('true');
 });
 
 test('PWA memiliki manifest dan service worker siap untuk offline', async ({ page, context, browserName }) => {

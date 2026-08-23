@@ -11,9 +11,12 @@ const files = [
   ['node_modules/ace-builds/src-min-noconflict/theme-chrome.js', 'theme-chrome.js'],
   ['node_modules/ace-builds/src-min-noconflict/theme-tomorrow_night.js', 'theme-tomorrow_night.js'],
   ['node_modules/lucide/dist/umd/lucide.min.js', 'lucide.min.js'],
+  ['node_modules/driver.js/dist/driver.js.mjs', 'driver.mjs'],
+  ['node_modules/driver.js/dist/driver.css', 'driver.css'],
   ['node_modules/ace-builds/LICENSE', 'ACE-LICENSE.txt'],
   ['node_modules/pdfjs-dist/LICENSE', 'PDFJS-LICENSE.txt'],
-  ['node_modules/lucide/LICENSE', 'LUCIDE-LICENSE.txt']
+  ['node_modules/lucide/LICENSE', 'LUCIDE-LICENSE.txt'],
+  ['node_modules/driver.js/license', 'DRIVERJS-LICENSE.txt']
 ];
 
 fs.mkdirSync(vendorDirectory, { recursive: true });

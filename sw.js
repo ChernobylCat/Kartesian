@@ -1,8 +1,9 @@
-const CACHE_NAME = 'kartesian-v7';
+const CACHE_NAME = 'kartesian-v8';
 const APP_SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/maskable-icon.svg',
   './assets/vendor/ace.js', './assets/vendor/lucide.min.js', './assets/vendor/pdf.min.mjs', './assets/vendor/pdf.worker.min.mjs',
+  './assets/vendor/driver.mjs', './assets/vendor/driver.css',
   './src/theme-bootstrap.js', './src/app.mjs', './src/config.mjs',
   './src/app/bootstrap.mjs', './src/canvas/commands.mjs', './src/canvas/interactions.mjs',
   './src/canvas/format-transaction.mjs',

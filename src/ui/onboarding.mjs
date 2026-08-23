@@ -1,62 +1,93 @@
+import { driver } from '../../assets/vendor/driver.mjs';
+
 const STORAGE_KEY = 'kartesian_onboarding_complete_v1';
 
-export function createOnboardingController({ documentRef = document, windowRef = window }) {
-    const steps = [
-        { selector: '#jsonInputEditor', title: 'Data dokumen', text: 'Edit data terstruktur di sini. Perubahan valid langsung dirender ke pratinjau.' },
-        { selector: '#btnAddText', title: 'Tambah elemen', text: 'Tambahkan teks atau gambar, lalu posisikan langsung pada halaman.' },
-        { selector: '#printContainer', title: 'Kanvas presisi', text: 'Klik elemen untuk membuka properti. Shift/Ctrl+klik memilih beberapa elemen.' },
-        { selector: '#propertyPanel', title: 'Properti & alignment', text: 'Atur koordinat, ukuran, gaya, rotasi, layer, lock, dan perataan secara presisi.' },
-        { selector: '.action-bar', title: 'Simpan hasil', text: 'Render ulang, cetak, atau ekspor HTML mandiri saat dokumen siap.' }
-    ];
-    let index = 0;
-    let active = false;
+export function createOnboardingController({
+    documentRef = document,
+    windowRef = window,
+    driverFactory = driver
+} = {}) {
     let temporarilyRevealedPanel = false;
-    const overlay = documentRef.getElementById('onboardingOverlay');
-    const card = documentRef.getElementById('onboardingCard');
+    let lifecycle = null;
+    let autoStartTimer = null;
 
-    function position() {
-        const step = steps[index];
-        const target = documentRef.querySelector(step.selector);
-        documentRef.querySelectorAll('.onboarding-highlight').forEach(node => node.classList.remove('onboarding-highlight'));
-        if (!target) return;
-        if (target.hidden) {
-            target.hidden = false;
-            if (target.id === 'propertyPanel') temporarilyRevealedPanel = true;
+    function propertyPanelTarget() {
+        const panel = documentRef.getElementById('propertyPanel');
+        if (panel?.hidden) {
+            panel.hidden = false;
+            temporarilyRevealedPanel = true;
         }
-        target.classList.add('onboarding-highlight');
-        target.scrollIntoView({ behavior: 'auto', block: 'center' });
-        documentRef.getElementById('onboardingTitle').textContent = step.title;
-        documentRef.getElementById('onboardingText').textContent = step.text;
-        documentRef.getElementById('onboardingProgress').textContent = `${index + 1} / ${steps.length}`;
-        documentRef.getElementById('btnOnboardingPrev').disabled = index === 0;
-        documentRef.getElementById('btnOnboardingNext').textContent = index === steps.length - 1 ? 'Selesai' : 'Lanjut';
-        requestAnimationFrame(() => {
-            const rect = target.getBoundingClientRect();
-            const left = Math.max(12, Math.min(windowRef.innerWidth - card.offsetWidth - 12, rect.left));
-            const below = rect.bottom + 14;
-            const top = below + card.offsetHeight < windowRef.innerHeight ? below : Math.max(12, rect.top - card.offsetHeight - 14);
-            card.style.left = `${left}px`; card.style.top = `${top}px`;
-        });
+        return panel;
     }
-    function finish() {
-        active = false; overlay.hidden = true; card.hidden = true;
+
+    function complete() {
         if (temporarilyRevealedPanel && !documentRef.querySelector('.data-item.selected-item')) {
             documentRef.getElementById('propertyPanel').hidden = true;
         }
         temporarilyRevealedPanel = false;
-        documentRef.querySelectorAll('.onboarding-highlight').forEach(node => node.classList.remove('onboarding-highlight'));
         try { windowRef.localStorage.setItem(STORAGE_KEY, 'true'); } catch {}
     }
-    function start() { index = 0; active = true; overlay.hidden = false; card.hidden = false; position(); }
+
+    const reduceMotion = windowRef.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const tour = driverFactory({
+        animate: !reduceMotion,
+        duration: reduceMotion ? 0 : 300,
+        smoothScroll: !reduceMotion,
+        allowKeyboardControl: true,
+        allowClose: true,
+        allowScroll: false,
+        overlayOpacity: 0.65,
+        stagePadding: 8,
+        stageRadius: 8,
+        showProgress: true,
+        progressText: '{{current}} / {{total}}',
+        nextBtnText: 'Lanjut',
+        prevBtnText: 'Kembali',
+        doneBtnText: 'Selesai',
+        popoverClass: 'kartesian-tour',
+        skipMissingElement: true,
+        onPopoverRender(popover) {
+            popover.closeButton.setAttribute('aria-label', 'Lewati tur');
+            popover.closeButton.title = 'Lewati tur';
+        },
+        onDestroyed: complete,
+        steps: [
+            { element: '#jsonInputEditor', popover: { title: 'Data dokumen', description: 'Edit data terstruktur di sini. Perubahan valid langsung dirender ke pratinjau.' } },
+            { element: '#btnAddText', popover: { title: 'Tambah elemen', description: 'Tambahkan teks atau gambar, lalu posisikan langsung pada halaman.' } },
+            { element: '#printContainer', popover: { title: 'Kanvas presisi', description: 'Klik elemen untuk membuka properti. Shift/Ctrl+klik memilih beberapa elemen.' } },
+            { element: propertyPanelTarget, popover: { title: 'Properti & alignment', description: 'Atur koordinat, ukuran, gaya, rotasi, layer, lock, dan perataan secara presisi.' } },
+            { element: '.action-bar', popover: { title: 'Simpan hasil', description: 'Render ulang, cetak, atau ekspor HTML mandiri saat dokumen siap.' } }
+        ]
+    });
+
+    function finish() {
+        if (tour.isActive()) tour.destroy();
+        else complete();
+    }
+
+    function start() {
+        if (autoStartTimer !== null) windowRef.clearTimeout(autoStartTimer);
+        autoStartTimer = null;
+        if (tour.isActive()) tour.destroy();
+        tour.drive(0);
+    }
+
     function init() {
-        documentRef.getElementById('btnStartOnboarding').addEventListener('click', start);
-        documentRef.getElementById('btnOnboardingSkip').addEventListener('click', finish);
-        documentRef.getElementById('btnOnboardingPrev').addEventListener('click', () => { if (index > 0) { index--; position(); } });
-        documentRef.getElementById('btnOnboardingNext').addEventListener('click', () => { if (index >= steps.length - 1) finish(); else { index++; position(); } });
-        windowRef.addEventListener('resize', () => { if (active) position(); });
+        lifecycle?.abort();
+        lifecycle = new AbortController();
+        documentRef.getElementById('btnStartOnboarding').addEventListener('click', start, { signal: lifecycle.signal });
         let completed = false;
         try { completed = windowRef.localStorage.getItem(STORAGE_KEY) === 'true'; } catch {}
-        if (!completed) windowRef.setTimeout(start, 500);
+        if (!completed) autoStartTimer = windowRef.setTimeout(start, 500);
     }
-    return { finish, init, start };
+
+    function destroy() {
+        lifecycle?.abort();
+        lifecycle = null;
+        if (autoStartTimer !== null) windowRef.clearTimeout(autoStartTimer);
+        autoStartTimer = null;
+        if (tour.isActive()) tour.destroy();
+    }
+
+    return { destroy, finish, init, start };
 }
