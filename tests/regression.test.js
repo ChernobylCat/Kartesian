@@ -78,7 +78,7 @@ async function run() {
     pxToMmX,
     pxToMmY
   } = await import(canvasInteractionsUrl);
-  const { calculateNudgedPosition } = await import(keyboardControllerUrl);
+  const { calculateNudgedPosition, getAlignmentShortcut } = await import(keyboardControllerUrl);
   const { applyVisualFormatPatch, createFormatTransactionController } = await import(formatTransactionUrl);
   const { createTextareaEditorAdapter } = await import(editorAdapterUrl);
   const { analyzeEditorText, getLineAndColumnFromPosition } = await import(editorControllerUrl);
@@ -374,6 +374,14 @@ async function run() {
     key: 'ArrowLeft',
     step: 1
   }), { x: 0, y: 0 });
+  [
+    ['A', false, 'left'], ['H', false, 'hcenter'], ['D', false, 'right'],
+    ['W', false, 'top'], ['V', false, 'vcenter'], ['S', false, 'bottom'],
+    ['H', true, 'distribute-h'], ['V', true, 'distribute-v']
+  ].forEach(([key, shiftKey, action]) => {
+    assert.equal(getAlignmentShortcut({ key, altKey: true, shiftKey, ctrlKey: false, metaKey: false }), action);
+  });
+  assert.equal(getAlignmentShortcut({ key: 'A', altKey: false, shiftKey: false, ctrlKey: false, metaKey: false }), null);
 
   const historyChanges = [];
   const history = createHistoryManager({

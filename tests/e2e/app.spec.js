@@ -77,7 +77,8 @@ test('panel properti, multi-select, alignment, shortcut, dan context menu bekerj
   await items.nth(0).click();
   await items.nth(1).click({ modifiers: ['Control'] });
   await expect(page.locator('#propertySelectionSummary')).toContainText('2 elemen');
-  await page.getByTitle('Rata kiri').click();
+  await expect(page.getByTitle('Rata kiri (Alt+A)')).toHaveAttribute('aria-keyshortcuts', 'Alt+A');
+  await page.keyboard.press('Alt+a');
   const positions = await items.evaluateAll(nodes => nodes.slice(0, 2).map(node => node.style.left));
   expect(positions[0]).toBe(positions[1]);
 

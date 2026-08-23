@@ -170,6 +170,9 @@ Use **Print** for the browser print workflow or **Export to HTML** to download a
 | `Ctrl/Cmd + A` | Select all elements on the active page |
 | `Ctrl/Cmd + D` | Duplicate selected elements |
 | `Alt + L` | Lock or unlock selected elements |
+| `Alt + A` / `Alt + H` / `Alt + D` | Align left / horizontal center / right |
+| `Alt + W` / `Alt + V` / `Alt + S` | Align top / vertical center / bottom |
+| `Alt + Shift + H` / `Alt + Shift + V` | Distribute horizontally / vertically |
 | `Delete` / `Backspace` | Delete selected elements |
 | `Escape` | Clear selection or close the active dialog/fullscreen view |
 

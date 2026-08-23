@@ -2,6 +2,25 @@ import { APP_CONFIG } from '../config.mjs';
 import { pxToMmX, pxToMmY } from './interactions.mjs';
 
 const ARROW_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const ALIGNMENT_SHORTCUTS = new Map([
+    ['a', 'left'],
+    ['h', 'hcenter'],
+    ['d', 'right'],
+    ['w', 'top'],
+    ['v', 'vcenter'],
+    ['s', 'bottom']
+]);
+
+export function getAlignmentShortcut(event) {
+    if (!event.altKey || event.ctrlKey || event.metaKey) return null;
+    const key = event.key.toLowerCase();
+    if (event.shiftKey) {
+        if (key === 'h') return 'distribute-h';
+        if (key === 'v') return 'distribute-v';
+        return null;
+    }
+    return ALIGNMENT_SHORTCUTS.get(key) || null;
+}
 
 export function calculateNudgedPosition({
     x,
@@ -53,6 +72,7 @@ export function createCanvasKeyboardController({
     duplicateSelection = () => {},
     selectAll = () => {},
     toggleLock = () => {},
+    alignSelection = () => {},
     showFormatToolbar = () => {},
     isFormatToolbarVisible = () => false
 }) {
@@ -87,6 +107,21 @@ export function createCanvasKeyboardController({
         }
 
         if (isEditableTarget(documentRef.activeElement)) return;
+        const alignmentAction = getAlignmentShortcut(event);
+        if (alignmentAction) {
+            event.preventDefault();
+            const selections = Array.isArray(getSelection()) ? getSelection() : [getSelection()].filter(Boolean);
+            if (selections.length < 2) return;
+            alignSelection(selections.map(selection => {
+                const pageElement = selection.element.closest('.print-page');
+                return {
+                    ...selection,
+                    width: pxToMmX(selection.element.offsetWidth, pageElement),
+                    height: pxToMmY(selection.element.offsetHeight, pageElement)
+                };
+            }), alignmentAction);
+            return;
+        }
         if (event.key === 'Escape') { clearSelection(); return; }
         if (event.key === 'Delete' || event.key === 'Backspace') {
             if ((getSelection() || []).length) { event.preventDefault(); deleteSelection(); }

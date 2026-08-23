@@ -152,6 +152,7 @@ const canvasKeyboard = createCanvasKeyboardController({
     duplicateSelection: duplicateSelectedItems,
     selectAll: selectAllItems,
     toggleLock: toggleSelectionLock,
+    alignSelection,
     showFormatToolbar: formatToolbar.show,
     isFormatToolbarVisible: formatToolbar.isVisible
 });
