@@ -20,6 +20,11 @@ export function createOnboardingController({
         return panel;
     }
 
+    function canvasPageTarget() {
+        return documentRef.querySelector('.data-item.selected-item')?.closest('.print-page') ||
+            documentRef.querySelector('#printContainer .print-page');
+    }
+
     function complete() {
         if (temporarilyRevealedPanel && !documentRef.querySelector('.data-item.selected-item')) {
             documentRef.getElementById('propertyPanel').hidden = true;
@@ -54,7 +59,7 @@ export function createOnboardingController({
         steps: [
             { element: '#jsonInputEditor', popover: { title: 'Data dokumen', description: 'Edit data terstruktur di sini. Perubahan valid langsung dirender ke pratinjau.' } },
             { element: '#btnAddText', popover: { title: 'Tambah elemen', description: 'Tambahkan teks atau gambar, lalu posisikan langsung pada halaman.' } },
-            { element: '#printContainer', popover: { title: 'Kanvas presisi', description: 'Klik elemen untuk membuka properti. Shift/Ctrl+klik memilih beberapa elemen.' } },
+            { element: canvasPageTarget, popover: { title: 'Kanvas presisi', description: 'Klik elemen untuk membuka properti. Shift/Ctrl+klik memilih beberapa elemen.' } },
             { element: propertyPanelTarget, popover: { title: 'Properti & alignment', description: 'Atur koordinat, ukuran, gaya, rotasi, layer, lock, dan perataan secara presisi.' } },
             { element: '.action-bar', popover: { title: 'Simpan hasil', description: 'Render ulang, cetak, atau ekspor HTML mandiri saat dokumen siap.' } }
         ]

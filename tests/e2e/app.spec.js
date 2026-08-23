@@ -171,7 +171,23 @@ test('tur onboarding dapat dijalankan dan diselesaikan', async ({ page }) => {
   await expect(popover.locator('.driver-popover-progress-text')).toHaveText('1 / 5');
   await expect(popover).toHaveAttribute('role', 'dialog');
   await expect(page.getByRole('button', { name: 'Lewati tur' })).toBeVisible();
-  for (let index = 0; index < 3; index++) await popover.locator('.driver-popover-next-btn').click();
+  for (let index = 0; index < 2; index++) await popover.locator('.driver-popover-next-btn').click();
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('3 / 5');
+  const activeCanvasTarget = page.locator('.driver-active-element');
+  await expect(activeCanvasTarget).toHaveClass(/print-page/);
+  const tourTargetGeometry = await page.evaluate(() => {
+    const target = document.querySelector('.driver-active-element').getBoundingClientRect();
+    const container = document.querySelector('#printContainer').getBoundingClientRect();
+    return {
+      targetWidth: target.width,
+      targetHeight: target.height,
+      containerWidth: container.width,
+      containerHeight: container.height
+    };
+  });
+  expect(tourTargetGeometry.targetWidth).toBeLessThan(tourTargetGeometry.containerWidth);
+  expect(tourTargetGeometry.targetHeight).toBeLessThan(tourTargetGeometry.containerHeight);
+  await popover.locator('.driver-popover-next-btn').click();
   await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 5');
   await expect(page.locator('#propertyPanel')).toBeVisible();
   await page.keyboard.press('ArrowLeft');
