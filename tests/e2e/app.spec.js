@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
+const http = require('node:http');
 const path = require('node:path');
 
 const validTextFixture = fs.readFileSync(path.resolve(__dirname, '..', 'fixtures', 'valid-text.json'), 'utf8');
@@ -32,6 +33,66 @@ function createMinimalPdf() {
   return Buffer.from(source);
 }
 
+function createDetectableFieldsPdf() {
+  const content = 'BT /F1 12 Tf 80 700 Td (Nama:) Tj ET\n160 697 m 400 697 l S\n';
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 960] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>',
+    `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}endstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    '<< /Fields [7 0 R] >>',
+    '<< /Type /Annot /Subtype /Widget /FT /Tx /T (tanggal_lahir) /Rect [160 650 400 680] /P 3 0 R >>'
+  ];
+  let source = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((body, index) => {
+    offsets.push(Buffer.byteLength(source));
+    source += `${index + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(source);
+  source += `xref\n0 ${objects.length + 1}\n`;
+  source += '0000000000 65535 f \n';
+  offsets.slice(1).forEach(offset => {
+    source += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  });
+  source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
+  source += `startxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(source);
+}
+
+function createKeyValueTablePdf() {
+  const content = [
+    'BT /F1 4 Tf 25 175 Td (Nama:) Tj ET',
+    'BT /F1 4 Tf 25 169 Td (Nomor KTP:) Tj ET',
+    '20 180 m 80 180 l S', '85 180 m 180 180 l S',
+    '20 174 m 80 174 l S', '85 174 m 180 174 l S',
+    '20 168 m 80 168 l S', '85 168 m 180 168 l S',
+    '20 168 m 20 180 l S', '80 168 m 80 180 l S',
+    '85 168 m 85 180 l S', '180 168 m 180 180 l S'
+  ].join('\n') + '\n';
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}endstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+  ];
+  let source = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((body, index) => {
+    offsets.push(Buffer.byteLength(source));
+    source += `${index + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(source);
+  source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach(offset => {
+    source += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  });
+  source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(source);
+}
+
 async function openReadyApp(page) {
   const response = await page.goto('/', { waitUntil: 'domcontentloaded' });
   expect(response?.ok()).toBeTruthy();
@@ -40,7 +101,7 @@ async function openReadyApp(page) {
   return response;
 }
 
-async function loadDocument(page, json) {
+async function loadDocument(page, json, expectedPageCount = 1) {
   await page.locator('#importFile').setInputFiles({
     name: 'document-fixture-settings.json',
     mimeType: 'application/json',
@@ -51,7 +112,7 @@ async function loadDocument(page, json) {
     }))
   });
   await expect(page.locator('.toast-success')).toContainText('Pengaturan berhasil diimpor');
-  await expect(page.locator('.print-page')).toHaveCount(1);
+  await expect(page.locator('.print-page')).toHaveCount(expectedPageCount);
 }
 
 async function setEditorText(page, value) {
@@ -168,11 +229,11 @@ test('tur onboarding dapat dijalankan dan diselesaikan', async ({ page }) => {
   await page.locator('#btnStartOnboarding').click();
   const popover = page.locator('.driver-popover.kartesian-tour');
   await expect(popover).toBeVisible();
-  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('1 / 5');
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('1 / 6');
   await expect(popover).toHaveAttribute('role', 'dialog');
   await expect(page.getByRole('button', { name: 'Lewati tur' })).toBeVisible();
-  for (let index = 0; index < 2; index++) await popover.locator('.driver-popover-next-btn').click();
-  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('3 / 5');
+  for (let index = 0; index < 3; index++) await popover.locator('.driver-popover-next-btn').click();
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 6');
   const activeCanvasTarget = page.locator('.driver-active-element');
   await expect(activeCanvasTarget).toHaveClass(/print-page/);
   const tourTargetGeometry = await page.evaluate(() => {
@@ -188,12 +249,12 @@ test('tur onboarding dapat dijalankan dan diselesaikan', async ({ page }) => {
   expect(tourTargetGeometry.targetWidth).toBeLessThan(tourTargetGeometry.containerWidth);
   expect(tourTargetGeometry.targetHeight).toBeLessThan(tourTargetGeometry.containerHeight);
   await popover.locator('.driver-popover-next-btn').click();
-  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 5');
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('5 / 6');
   await expect(page.locator('#propertyPanel')).toBeVisible();
   await page.keyboard.press('ArrowLeft');
-  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('3 / 5');
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 6');
   await page.keyboard.press('ArrowRight');
-  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('4 / 5');
+  await expect(popover.locator('.driver-popover-progress-text')).toHaveText('5 / 6');
   await popover.locator('.driver-popover-next-btn').click();
   await popover.locator('.driver-popover-next-btn').click();
   await expect(popover).toHaveCount(0);
@@ -318,6 +379,171 @@ test('PDF lokal dirender, disimpan, dan dipulihkan setelah reload', async ({ pag
   await expect(page.locator('#jsonValidationStatus')).toContainText('Peringatan Kecocokan Halaman');
   await expect(page.locator('#overlayDocSelect')).toHaveValue('uploaded_pdf');
   await expect(page.locator('.page-overlay-guide').first()).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
+});
+
+test('halaman tanpa kandidat PDF.js memakai fallback service lokal', async ({ page }) => {
+  const detectorRequests = [];
+  await page.addInitScript(() => {
+    window.__KARTESIAN_FIELD_SERVICE_URL = 'http://127.0.0.1:18765';
+  });
+  const detectorServer = http.createServer((request, response) => {
+    detectorRequests.push(`${request.method} ${request.url}`);
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': 'http://127.0.0.1:4173',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    };
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204, corsHeaders);
+      response.end();
+      return;
+    }
+    if (request.url === '/health') {
+      const body = JSON.stringify({ status: 'ok', pymupdf: true, paddleocr: true });
+      response.writeHead(200, {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      });
+      response.end(body);
+      return;
+    }
+    request.resume();
+    request.on('end', () => {
+      const forceOcr = request.url.includes('mode=ocr');
+      const body = JSON.stringify({
+        engines: [forceOcr ? 'paddleocr' : 'pymupdf'],
+        warnings: [],
+        candidates: [{
+          pageNumber: 1,
+          source: forceOcr ? 'paddleocr' : 'pymupdf-vector',
+          label: forceOcr ? 'Alamat OCR' : 'Nama Debitur',
+          x: 30,
+          y: 45,
+          width: 75,
+          height: 5,
+          confidence: 0.82
+        }]
+      });
+      response.writeHead(200, {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      });
+      response.end(body);
+    });
+  });
+  await new Promise((resolve, reject) => {
+    detectorServer.once('error', reject);
+    detectorServer.listen(18765, '127.0.0.1', resolve);
+  });
+
+  try {
+    await openReadyApp(page);
+    await page.locator('#pdfUploadInput').setInputFiles({
+      name: 'fallback.pdf',
+      mimeType: 'application/pdf',
+      buffer: createMinimalPdf()
+    });
+
+    await expect.poll(() => detectorRequests).toContainEqual(expect.stringContaining('/v1/detect'));
+    await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('1', { timeout: 15_000 });
+    await expect(page.locator('#pdfFieldScanControls')).toBeVisible();
+    await page.reload();
+    await expect(page.locator('#btnScanPdfFields')).toBeEnabled();
+    await page.locator('#pdfFieldScanMode').selectOption('paddleocr');
+    await page.locator('#btnScanPdfFields').click();
+    await expect(page.locator('#pdfDetectorStatus')).toContainText('PaddleOCR menemukan 1 kandidat');
+    await expect.poll(() => detectorRequests).toContainEqual(expect.stringContaining('mode=ocr'));
+    await page.locator('#btnReviewPdfFields').click();
+    await expect(page.locator('.field-review-meta')).toContainText('Hasil OCR');
+    await expect(page.locator('[data-field-placeholder]')).toHaveValue('{{alamat_ocr}}');
+  } finally {
+    await new Promise(resolve => detectorServer.close(resolve));
+  }
+});
+
+test('field PDF digital dipindai, direview, dipersist, dan diterapkan ke seluruh debitur', async ({ page }) => {
+  await openReadyApp(page);
+  await loadDocument(page, JSON.stringify([
+    { debitur: 'Debitur Satu', pages: [{ page_number: 1, items: [] }] },
+    { debitur: 'Debitur Dua', pages: [{ page_number: 1, items: [] }] }
+  ]), 2);
+
+  await page.locator('#pdfUploadInput').setInputFiles({
+    name: 'detectable-fields.pdf',
+    mimeType: 'application/pdf',
+    buffer: createDetectableFieldsPdf()
+  });
+  await expect(page.locator('#overlayDocSelect')).toHaveValue('uploaded_pdf', { timeout: 15_000 });
+  const reviewButton = page.locator('#btnReviewPdfFields');
+  await expect(reviewButton).toBeVisible();
+  await expect(reviewButton.locator('[data-field-count]')).toHaveText('2');
+  await expect(page.locator('.pdf-field-suggestion')).toHaveCount(4);
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem('overlay_print_pro_settings');
+    return raw ? JSON.parse(raw).overlayDoc : null;
+  })).toBe('uploaded_pdf');
+
+  await page.reload();
+  await expect(page.locator('#jsonValidationStatus')).toContainText('Format JSON & Skema Valid');
+  await expect(page.locator('#overlayDocSelect')).toHaveValue('uploaded_pdf');
+  await expect(page.locator('#btnReviewPdfFields')).toBeVisible();
+  await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('2');
+  await expect(page.locator('.pdf-field-suggestion')).toHaveCount(4);
+
+  await page.locator('#btnReviewPdfFields').click();
+  await expect(page.getByRole('dialog', { name: 'Tinjau kandidat field PDF' })).toBeVisible();
+  await expect(page.locator('.field-review-row')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Batal', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Tinjau kandidat field PDF' })).toBeHidden();
+  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
+    return JSON.parse(element.value).flatMap(debtor => debtor.pages[0].items).length;
+  })).toBe(0);
+
+  await page.locator('#btnReviewPdfFields').click();
+  await page.getByRole('button', { name: 'Terapkan Terpilih' }).click();
+  await expect(page.locator('.toast-success')).toContainText('4 placeholder berhasil diterapkan');
+  await expect(page.locator('#btnReviewPdfFields')).toBeHidden();
+  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
+    const data = JSON.parse(element.value);
+    return data.map(debtor => debtor.pages[0].items.map(item => item.text));
+  })).toEqual([
+    ['{{nama}}', '{{tanggal_lahir}}'],
+    ['{{nama}}', '{{tanggal_lahir}}']
+  ]);
+
+  await page.locator('#btnUndo').click();
+  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
+    return JSON.parse(element.value).map(debtor => debtor.pages[0].items.length);
+  })).toEqual([0, 0]);
+});
+
+test('tabel key-value PDF membuat kandidat hanya pada sel kanan yang kosong', async ({ page }) => {
+  await openReadyApp(page);
+  await loadDocument(page, JSON.stringify([
+    { debitur: 'Debitur Satu', pages: [{ page_number: 1, items: [] }] }
+  ]), 1);
+
+  await page.locator('#pdfUploadInput').setInputFiles({
+    name: 'key-value-table.pdf',
+    mimeType: 'application/pdf',
+    buffer: createKeyValueTablePdf()
+  });
+
+  await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('2', { timeout: 15_000 });
+  await expect(page.locator('.pdf-field-suggestion')).toHaveCount(2);
+  await page.locator('#btnReviewPdfFields').click();
+  await expect(page.locator('.field-review-row')).toHaveCount(2);
+  await expect(page.locator('.field-review-meta').first()).toContainText('Sel tabel');
+  await expect(page.locator('[data-field-placeholder]').first()).toHaveValue('{{nama}}');
+  await expect(page.locator('[data-field-placeholder]').last()).toHaveValue('{{nomor_ktp}}');
+
+  await page.getByRole('button', { name: 'Terapkan Terpilih' }).click();
+  await expect(page.locator('.toast-success').filter({ hasText: '2 placeholder berhasil diterapkan' })).toBeVisible();
+  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
+    return JSON.parse(element.value)[0].pages[0].items.map(item => item.text);
+  })).toEqual(['{{nama}}', '{{nomor_ktp}}']);
 });
 
 test('menyimpan preferensi tema gelap setelah reload', async ({ page }) => {
@@ -587,12 +813,46 @@ test('floating toolbar menyinkronkan properti presisi elemen teks', async ({ pag
   await expect(page.locator('#toolbarPropY')).toHaveValue('30');
   await expect(page.locator('#toolbarPropFontSize')).toHaveValue('10');
 
-  await page.locator('#toolbarPropX').fill('25.5');
-  await page.locator('#toolbarPropX').press('Enter');
+  const livePosition = await page.locator('#toolbarPropX').evaluate(async input => {
+    const item = document.querySelector('.data-item');
+    item.dataset.performanceIdentity = 'toolbar-live-preview';
+    for (const value of ['21', '24', '25.5']) {
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    return {
+      left: item.style.left,
+      modelX: JSON.parse(document.querySelector('#jsonInput').value)[0].pages[0].items[0].x
+    };
+  });
+  expect(livePosition).toEqual({ left: '25.5mm', modelX: 20 });
+  await expect(item).toHaveAttribute('data-performance-identity', 'toolbar-live-preview');
+  await page.locator('#toolbarPropX').dispatchEvent('change');
   item = page.locator('.data-item').first();
-  await expect(item).toHaveCSS('left', /px/);
+  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
+    return JSON.parse(element.value)[0].pages[0].items[0].x;
+  })).toBe(25.5);
+  await expect(item).toHaveAttribute('data-performance-identity', 'toolbar-live-preview');
   await expect(page.locator('#toolbarPropX')).toHaveValue('25.5');
   await expect(page.locator('#propertyPanel [data-property="x"]')).toHaveValue('25.5');
+
+  const liveFontSize = await page.locator('#toolbarPropFontSize').evaluate(async input => {
+    input.value = '14.5';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    return {
+      fontSize: document.querySelector('.data-item').style.fontSize,
+      modelFontSize: JSON.parse(document.querySelector('#jsonInput').value)[0].pages[0].items[0].font_size
+    };
+  });
+  expect(liveFontSize).toEqual({ fontSize: '14.5pt', modelFontSize: 10 });
+  await page.locator('#toolbarPropFontSize').dispatchEvent('change');
+  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
+    return JSON.parse(element.value)[0].pages[0].items[0].font_size;
+  })).toBe(14.5);
 
   await page.locator('#toolbarPropRotation').fill('20');
   await page.locator('#toolbarPropRotation').press('Enter');

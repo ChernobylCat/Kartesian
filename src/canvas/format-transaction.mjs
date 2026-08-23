@@ -38,6 +38,7 @@ export function createFormatTransactionController({
     let activeSelections = [];
     let activeKey = '';
     let pendingPatch = {};
+    let framePatch = {};
     let commitTimer = null;
     let previewFrame = null;
 
@@ -48,12 +49,15 @@ export function createFormatTransactionController({
 
     function renderPreview() {
         previewFrame = null;
-        activeSelections.forEach(({ element }) => applyVisualFormatPatch(element, pendingPatch));
+        const patch = framePatch;
+        framePatch = {};
+        activeSelections.forEach(({ element }) => applyVisualFormatPatch(element, patch));
     }
 
     function flushPreview() {
         if (previewFrame !== null) windowRef.cancelAnimationFrame(previewFrame);
-        if (Object.keys(pendingPatch).length) renderPreview();
+        if (Object.keys(framePatch).length) renderPreview();
+        else previewFrame = null;
     }
 
     function flush() {
@@ -81,6 +85,7 @@ export function createFormatTransactionController({
         if (!activeSelections.length || !patch || !Object.keys(patch).length) return false;
         const wasPending = Object.keys(pendingPatch).length > 0;
         Object.assign(pendingPatch, patch);
+        Object.assign(framePatch, patch);
         if (!wasPending) onPendingChange(true);
         if (previewFrame === null) previewFrame = windowRef.requestAnimationFrame(renderPreview);
         clearTimer();

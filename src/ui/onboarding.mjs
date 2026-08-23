@@ -59,6 +59,7 @@ export function createOnboardingController({
         steps: [
             { element: '#jsonInputEditor', popover: { title: 'Data dokumen', description: 'Edit data terstruktur di sini. Perubahan valid langsung dirender ke pratinjau.' } },
             { element: '#btnAddText', popover: { title: 'Tambah elemen', description: 'Tambahkan teks atau gambar, lalu posisikan langsung pada halaman.' } },
+            { element: '#btnUploadPdf', popover: { title: 'Pindai field PDF', description: 'Unggah PDF lalu gunakan Pindai Ulang Field untuk memilih mode Otomatis, PDF.js, PyMuPDF, atau PaddleOCR. Tinjau kandidat sebelum menerapkannya.' } },
             { element: canvasPageTarget, popover: { title: 'Kanvas presisi', description: 'Klik elemen untuk membuka properti. Shift/Ctrl+klik memilih beberapa elemen.' } },
             { element: propertyPanelTarget, popover: { title: 'Properti & alignment', description: 'Atur koordinat, ukuran, gaya, rotasi, layer, lock, dan perataan secara presisi.' } },
             { element: '.action-bar', popover: { title: 'Simpan hasil', description: 'Render ulang, cetak, atau ekspor HTML mandiri saat dokumen siap.' } }

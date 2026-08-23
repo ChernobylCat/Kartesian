@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kartesian-v8';
+const CACHE_NAME = 'kartesian-v13';
 const APP_SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/maskable-icon.svg',
@@ -10,10 +10,10 @@ const APP_SHELL = [
   './src/canvas/keyboard-controller.mjs', './src/canvas/renderer.mjs',
   './src/core/document-schema.mjs', './src/core/settings-schema.mjs', './src/core/utils.mjs',
   './src/editor/adapter.mjs', './src/editor/controller.mjs', './src/export/html-export.mjs',
-  './src/overlay/controller.mjs', './src/settings/controller.mjs', './src/state/history.mjs',
+  './src/overlay/controller.mjs', './src/pdf/field-detector.mjs', './src/pdf/local-field-service.mjs', './src/settings/controller.mjs', './src/state/history.mjs',
   './src/storage/pdf-storage.mjs', './src/storage/settings-storage.mjs',
   './src/ui/app-shell.mjs', './src/ui/dialog.mjs', './src/ui/feedback.mjs', './src/ui/format-toolbar.mjs',
-  './src/ui/property-panel.mjs', './src/ui/context-menu.mjs', './src/ui/onboarding.mjs', './src/pwa/register.mjs'
+  './src/ui/property-panel.mjs', './src/ui/context-menu.mjs', './src/ui/field-review.mjs', './src/ui/onboarding.mjs', './src/pwa/register.mjs'
 ];
 
 self.addEventListener('install', event => {

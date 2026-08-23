@@ -14,6 +14,7 @@ async function run() {
   const appSource = readProjectFile('src', 'app.mjs');
   const themeBootstrapSource = readProjectFile('src', 'theme-bootstrap.js');
   const workflowSource = readProjectFile('.github', 'workflows', 'quality.yml');
+  const serviceWorkerSource = readProjectFile('sw.js');
   const bootstrapSource = readProjectFile('src', 'app', 'bootstrap.mjs');
   const tailwindSource = readProjectFile('src', 'input.css');
   const compiledCss = readProjectFile('assets', 'app.css');
@@ -52,6 +53,9 @@ async function run() {
   const utilsUrl = pathToFileURL(path.join(projectRoot, 'src', 'core', 'utils.mjs')).href;
   const htmlExportUrl = pathToFileURL(path.join(projectRoot, 'src', 'export', 'html-export.mjs')).href;
   const overlayControllerUrl = pathToFileURL(path.join(projectRoot, 'src', 'overlay', 'controller.mjs')).href;
+  const fieldDetectorUrl = pathToFileURL(path.join(projectRoot, 'src', 'pdf', 'field-detector.mjs')).href;
+  const localFieldServiceUrl = pathToFileURL(path.join(projectRoot, 'src', 'pdf', 'local-field-service.mjs')).href;
+  const fieldReviewUrl = pathToFileURL(path.join(projectRoot, 'src', 'ui', 'field-review.mjs')).href;
   const pdfStorageUrl = pathToFileURL(path.join(projectRoot, 'src', 'storage', 'pdf-storage.mjs')).href;
   const historyUrl = pathToFileURL(path.join(projectRoot, 'src', 'state', 'history.mjs')).href;
   const settingsControllerUrl = pathToFileURL(path.join(projectRoot, 'src', 'settings', 'controller.mjs')).href;
@@ -92,6 +96,24 @@ async function run() {
     resolveOverlaySource,
     validatePdfFile
   } = await import(overlayControllerUrl);
+  const {
+    applyFieldCandidates,
+    convertPdfRectToCanvas,
+    deduplicateCandidates,
+    extractAnnotationCandidates,
+    extractTableCandidates,
+    extractTextCandidates,
+    extractVectorCandidates,
+    normalizePlaceholderKey
+  } = await import(fieldDetectorUrl);
+  const { isCandidateSelectedByDefault } = await import(fieldReviewUrl);
+  const {
+    getLocalFieldServiceHealth,
+    normalizeServiceCandidates,
+    scanPdfWithMode,
+    scanWithLocalFieldService,
+    unresolvedPdfPages
+  } = await import(localFieldServiceUrl);
   const { PdfOverlayStorage } = await import(pdfStorageUrl);
   const { createHistoryManager } = await import(historyUrl);
   const { createSettingsSnapshot, getSaveStatusModel, normalizeCalibrationOffset } = await import(settingsControllerUrl);
@@ -124,6 +146,9 @@ async function run() {
   assert.match(workflowSource, /actions\/checkout@[a-f0-9]{40}/);
   assert.match(workflowSource, /actions\/setup-node@[a-f0-9]{40}/);
   assert.match(workflowSource, /actions\/upload-artifact@[a-f0-9]{40}/);
+  assert.match(serviceWorkerSource, /src\/pdf\/field-detector\.mjs/);
+  assert.match(serviceWorkerSource, /src\/pdf\/local-field-service\.mjs/);
+  assert.match(serviceWorkerSource, /src\/ui\/field-review\.mjs/);
   assert.match(appSource, /import \{ APP_CONFIG \} from '\.\/config\.mjs'/);
   assert.doesNotMatch(appSource, /from '\.\/src\//);
 
@@ -505,6 +530,258 @@ async function run() {
   }), /assets\/doc_1/);
   assert.equal(resolveOverlaySource({ documentValue: 'none', pageNumber: 1 }), null);
 
+  const detectorViewport = {
+    width: 200,
+    height: 200,
+    convertToViewportPoint: (x, y) => [x, 200 - y]
+  };
+  assert.deepEqual(convertPdfRectToCanvas([60, 120, 160, 140], detectorViewport), {
+    x: 63,
+    y: 99,
+    width: 105,
+    height: 33
+  });
+  assert.equal(normalizePlaceholderKey('Nama Lengkap:'), 'nama_lengkap');
+  const widgetCandidates = extractAnnotationCandidates([{
+    subtype: 'Widget', fieldType: 'Tx', fieldName: 'nama_lengkap', rect: [60, 120, 160, 140]
+  }], detectorViewport, 1);
+  assert.equal(widgetCandidates.length, 1);
+  assert.equal(widgetCandidates[0].placeholder, '{{nama_lengkap}}');
+  assert.equal(widgetCandidates[0].confidence, 0.99);
+
+  const fakeOps = { save: 10, restore: 11, transform: 12, constructPath: 91 };
+  const vectorCandidates = extractVectorCandidates({
+    pageNumber: 1,
+    viewport: detectorViewport,
+    ops: fakeOps,
+    textContent: {
+      items: [{ str: 'Nama:', transform: [12, 0, 0, 12, 60, 60], width: 35, height: 12 }]
+    },
+    operatorList: {
+      fnArray: [fakeOps.constructPath],
+      argsArray: [[20, [], new Float32Array([60, 55, 160, 55])]]
+    }
+  });
+  assert.equal(vectorCandidates.length, 1);
+  assert.equal(vectorCandidates[0].source, 'vector-line');
+  assert.equal(vectorCandidates[0].key, 'nama');
+
+  const underlineCandidates = extractTextCandidates({
+    pageNumber: 1,
+    viewport: detectorViewport,
+    textContent: {
+      items: [{ str: 'Paraf: ______', transform: [12, 0, 0, 12, 40, 40], width: 90, height: 12 }]
+    }
+  });
+  assert.equal(underlineCandidates.length, 1);
+  assert.equal(underlineCandidates[0].source, 'text-underline');
+  assert.equal(underlineCandidates[0].key, 'paraf');
+  assert.equal(isCandidateSelectedByDefault({ confidence: 0.75 }), true);
+  assert.equal(isCandidateSelectedByDefault({ confidence: 0.74 }), false);
+
+  const narrativeCandidates = extractVectorCandidates({
+    pageNumber: 1,
+    viewport: detectorViewport,
+    ops: fakeOps,
+    textContent: {
+      items: [{
+        str: 'Kalimat naratif ini sangat panjang dan bukan merupakan label untuk sebuah field formulir kosong',
+        transform: [12, 0, 0, 12, 10, 60], width: 140, height: 12
+      }]
+    },
+    operatorList: {
+      fnArray: [fakeOps.constructPath],
+      argsArray: [[20, [], new Float32Array([155, 55, 195, 55])]]
+    }
+  });
+  assert.equal(narrativeCandidates.length, 0);
+
+  const multilineBoxCandidates = extractVectorCandidates({
+    pageNumber: 1,
+    viewport: detectorViewport,
+    ops: fakeOps,
+    textContent: {
+      items: [{ str: 'Alamat lengkap:', transform: [12, 0, 0, 12, 20, 55], width: 70, height: 12 }]
+    },
+    operatorList: {
+      fnArray: [fakeOps.constructPath],
+      argsArray: [[20, [], new Float32Array([20, 20, 180, 50])]]
+    }
+  });
+  assert.equal(multilineBoxCandidates.length, 1);
+  assert.equal(multilineBoxCandidates[0].source, 'vector-box');
+  assert.equal(multilineBoxCandidates[0].key, 'alamat_lengkap');
+
+  const denseGridCandidates = extractVectorCandidates({
+    pageNumber: 1,
+    viewport: detectorViewport,
+    ops: fakeOps,
+    textContent: {
+      items: [{ str: 'Baris tabel', transform: [12, 0, 0, 12, 20, 190], width: 70, height: 12 }]
+    },
+    operatorList: {
+      fnArray: Array.from({ length: 31 }, () => fakeOps.constructPath),
+      argsArray: Array.from({ length: 31 }, (_, index) => [
+        20, [], new Float32Array([20, 185 - index * 2, 180, 185 - index * 2])
+      ])
+    }
+  });
+  assert.equal(denseGridCandidates.length, 0);
+
+  const tableViewport = {
+    width: 200,
+    height: 200,
+    convertToViewportPoint: (x, y) => [x, y]
+  };
+  const keyValueTableCandidates = extractTableCandidates({
+    pageNumber: 1,
+    viewport: tableViewport,
+    ops: fakeOps,
+    textContent: {
+      items: [
+        { str: 'Nama:', transform: [4, 0, 0, 4, 25, 100.5], width: 25, height: 4 },
+        { str: 'Nomor KTP:', transform: [4, 0, 0, 4, 25, 106.5], width: 42, height: 4 }
+      ]
+    },
+    operatorList: {
+      fnArray: Array.from({ length: 6 }, () => fakeOps.constructPath),
+      argsArray: [100, 106, 112].flatMap(y => [
+        [20, [], new Float32Array([20, y, 80, y])],
+        [20, [], new Float32Array([85, y, 180, y])]
+      ])
+    }
+  });
+  assert.deepEqual(keyValueTableCandidates.map(candidate => candidate.key), ['nama', 'nomor_ktp']);
+  assert.ok(keyValueTableCandidates.every(candidate => candidate.source === 'table-cell'));
+
+  const numberedTableCandidates = extractTableCandidates({
+    pageNumber: 1,
+    viewport: tableViewport,
+    ops: fakeOps,
+    textContent: {
+      items: [
+        { str: '1.', transform: [4, 0, 0, 4, 11, 100.5], width: 5, height: 4 },
+        { str: 'Nama barang', transform: [4, 0, 0, 4, 25, 100.5], width: 40, height: 4 },
+        { str: '2.', transform: [4, 0, 0, 4, 11, 106.5], width: 5, height: 4 },
+        { str: 'Merk barang', transform: [4, 0, 0, 4, 25, 106.5], width: 40, height: 4 }
+      ]
+    },
+    operatorList: {
+      fnArray: Array.from({ length: 9 }, () => fakeOps.constructPath),
+      argsArray: [100, 106, 112].flatMap(y => [
+        [20, [], new Float32Array([10, y, 18, y])],
+        [20, [], new Float32Array([20, y, 80, y])],
+        [20, [], new Float32Array([85, y, 180, y])]
+      ])
+    }
+  });
+  assert.equal(numberedTableCandidates.length, 0);
+  assert.equal(deduplicateCandidates([...widgetCandidates, {
+    ...widgetCandidates[0], id: 'lower-priority', source: 'vector-box', confidence: 0.8
+  }]).length, 1);
+
+  assert.deepEqual(unresolvedPdfPages(4, [
+    { pageNumber: 1 }, { pageNumber: 3 }, { pageNumber: 3 }
+  ]), [2, 4]);
+  const normalizedLocalCandidates = normalizeServiceCandidates([{
+    pageNumber: 2,
+    source: 'pymupdf-vector',
+    label: 'Nomor KTP:',
+    x: 30.04,
+    y: 40.06,
+    width: 80,
+    height: 5,
+    confidence: 1.4
+  }, {
+    pageNumber: 3,
+    source: 'paddleocr',
+    label: 'Di luar halaman yang diminta',
+    x: 20,
+    y: 30,
+    width: 40,
+    height: 5,
+    confidence: 0.6
+  }], [2]);
+  assert.equal(normalizedLocalCandidates.length, 1);
+  assert.equal(normalizedLocalCandidates[0].placeholder, '{{nomor_ktp}}');
+  assert.equal(normalizedLocalCandidates[0].confidence, 1);
+  assert.equal(normalizedLocalCandidates[0].x, 30);
+
+  const localFetchCalls = [];
+  const localScan = await scanWithLocalFieldService(new Uint8Array([37, 80, 68, 70]), {
+    pages: [2],
+    endpoint: 'http://127.0.0.1:8765',
+    fetchImpl: async (url, options) => {
+      localFetchCalls.push({ url, options });
+      return {
+        ok: true,
+        json: async () => ({
+          engines: ['pymupdf'],
+          warnings: [],
+          candidates: normalizedLocalCandidates
+        })
+      };
+    }
+  });
+  assert.equal(localFetchCalls.length, 1);
+  assert.match(localFetchCalls[0].url, /pages=2/);
+  assert.equal(localFetchCalls[0].options.headers['Content-Type'], 'application/pdf');
+  assert.equal(localScan.available, true);
+  assert.equal(localScan.candidates[0].source, 'pymupdf-vector');
+
+  const serviceHealth = await getLocalFieldServiceHealth({
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({ pymupdf: true, paddleocr: false })
+    })
+  });
+  assert.deepEqual(serviceHealth, { available: true, pymupdf: true, paddleocr: false });
+
+  let forcedScanUrl = '';
+  const forcedOcrScan = await scanPdfWithMode({ numPages: 2 }, new Uint8Array([37, 80, 68, 70]), {
+    mode: 'paddleocr',
+    fetchImpl: async url => {
+      forcedScanUrl = url;
+      return {
+        ok: true,
+        json: async () => ({
+          engines: ['paddleocr'],
+          warnings: [],
+          candidates: [{
+            pageNumber: 2, source: 'paddleocr', label: 'Alamat',
+            x: 20, y: 30, width: 50, height: 5, confidence: 0.61
+          }]
+        })
+      };
+    }
+  });
+  assert.match(forcedScanUrl, /pages=1%2C2/);
+  assert.match(forcedScanUrl, /ocr=always/);
+  assert.match(forcedScanUrl, /mode=ocr/);
+  assert.equal(forcedOcrScan.candidates[0].source, 'paddleocr');
+  await assert.rejects(
+    () => scanPdfWithMode({ numPages: 1 }, new Uint8Array(), { mode: 'unknown' }),
+    /tidak didukung/
+  );
+
+  const unavailableLocalScan = await scanWithLocalFieldService(new Uint8Array([1]), {
+    pages: [1],
+    scanTimeoutMs: 50,
+    fetchImpl: async () => { throw new Error('connection refused'); }
+  });
+  assert.equal(unavailableLocalScan.available, false);
+  assert.match(unavailableLocalScan.warnings[0], /tidak tersedia/);
+
+  const appliedFields = applyFieldCandidates([
+    { debitur: 'Satu', pages: [] },
+    { debitur: 'Dua', pages: [{ page_number: 1, items: [] }] }
+  ], widgetCandidates);
+  assert.equal(appliedFields.addedCount, 2);
+  assert.equal(appliedFields.data[0].pages[0].items[0].text, '{{nama_lengkap}}');
+  assert.equal(appliedFields.data[1].pages[0].items[0].x, 63);
+  const duplicateApply = applyFieldCandidates(appliedFields.data, widgetCandidates);
+  assert.equal(duplicateApply.addedCount, 0);
+
   const pdfProgress = [];
   const renderedPdfPages = await renderPdfPages({
     numPages: 1,
@@ -765,14 +1042,23 @@ async function run() {
     }
   };
   const pdfStorage = new PdfOverlayStorage({ indexedDb: fakeIndexedDb });
-  await pdfStorage.savePages(['page-1']);
+  const storedPdfData = new Uint8Array([37, 80, 68, 70]).buffer;
+  await pdfStorage.savePages(['page-1'], widgetCandidates, { pdfData: storedPdfData, fileName: 'form.pdf' });
   assert.deepEqual(await pdfStorage.getPages(), ['page-1']);
+  assert.deepEqual((await pdfStorage.getPayload()).candidates, widgetCandidates);
+  await pdfStorage.saveCandidates([]);
+  const storedPdfPayload = await pdfStorage.getPayload();
+  assert.deepEqual(storedPdfPayload.candidates, []);
+  assert.equal(storedPdfPayload.pdfData, storedPdfData);
+  assert.equal(storedPdfPayload.fileName, 'form.pdf');
   await pdfStorage.deletePages();
   assert.equal(await pdfStorage.getPages(), null);
   await assert.rejects(() => new PdfOverlayStorage({ indexedDb: null }).getPages(), /tidak tersedia/);
 
   assert.match(canvasRendererSource, /overlay\.className = 'page-overlay-guide'/);
   assert.match(html, /<link rel="stylesheet" href="\.\/assets\/app\.css">/);
+  assert.match(html, /id="btnScanPdfFields"/);
+  assert.match(html, /id="pdfFieldScanMode"/);
   assert.match(tailwindSource, /@import "tailwindcss"/);
   assert.match(tailwindSource, /\.admin-panel\s*\{/);
   assert.match(compiledCss, /\.admin-panel\{/);

@@ -10,7 +10,7 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./assets/icons/app-icon.svg" type="image/svg+xml">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:">
+        content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:8765 http://localhost:8765 http://127.0.0.1:18765; worker-src 'self' blob:">
     <title>KBFMF | Bidik Koordinat</title>
     <style>
         /* ==========================================================================
@@ -765,8 +765,31 @@
                     aria-label="Hapus PDF unggahan">
                     <i data-lucide="trash-2"></i> Hapus PDF
                 </button>
+                <button id="btnReviewPdfFields" class="btn btn-outline px-3 py-2 text-[13px]" hidden
+                    aria-label="Tinjau kandidat field hasil pemindaian PDF">
+                    <i data-lucide="scan-search"></i> Tinjau Kandidat (<span data-field-count>0</span>)
+                </button>
                 <input type="file" id="pdfUploadInput" accept=".pdf" class="hidden"
                     aria-label="Pilih file PDF">
+            </div>
+
+            <div id="pdfFieldScanControls" class="control-group pdf-field-scan-controls" hidden>
+                <label for="pdfFieldScanMode">Pemindai Field:</label>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="pdfFieldScanMode" aria-label="Pilih metode pemindaian field PDF">
+                        <option value="auto">Otomatis</option>
+                        <option value="pdfjs">PDF.js saja</option>
+                        <option value="pymupdf">PyMuPDF</option>
+                        <option value="paddleocr">PaddleOCR</option>
+                    </select>
+                    <button id="btnScanPdfFields" class="btn btn-outline px-3 py-2 text-[13px]"
+                        aria-label="Pindai ulang field PDF dengan metode terpilih">
+                        <i data-lucide="scan-line"></i> Pindai Ulang Field
+                    </button>
+                </div>
+                <small id="pdfDetectorStatus" class="pdf-detector-status" role="status" aria-live="polite">
+                    PDF.js siap di browser.
+                </small>
             </div>
 
             <div class="control-group">

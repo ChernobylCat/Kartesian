@@ -10,6 +10,7 @@ import {
     isValidImageSrc,
     parseDocumentJson
 } from './core/document-schema.mjs';
+import { applyFieldCandidates } from './pdf/field-detector.mjs';
 import { createEditorController } from './editor/controller.mjs';
 import {
     buildStandaloneExportHtml,
@@ -26,6 +27,7 @@ import { createFormatToolbarController } from './ui/format-toolbar.mjs';
 import { createPropertyPanelController } from './ui/property-panel.mjs';
 import { createContextMenuController } from './ui/context-menu.mjs';
 import { createOnboardingController } from './ui/onboarding.mjs';
+import { createFieldReviewController } from './ui/field-review.mjs';
 import { registerServiceWorker } from './pwa/register.mjs';
 
 const AppState = {
@@ -39,6 +41,7 @@ const AppState = {
     selectedElements: []         // elemen terpilih untuk multi-select dan keyboard
 };
 let editorDataCache = { source: null, data: null };
+let fieldReview = null;
 const appLifecycle = new AbortController();
 
 const historyManager = createHistoryManager({
@@ -58,7 +61,8 @@ const overlayController = createOverlayController({
     onRender: () => renderDataDariJSON(),
     onValidate: () => {
         if (AppState.editor) editorController.validate(AppState.editor.getValue());
-    }
+    },
+    onCandidatesChange: candidates => fieldReview?.setCandidates(candidates)
 });
 const settingsController = createSettingsController({
     getJson: () => AppState.editor?.getValue() ?? document.getElementById('jsonInput').value,
@@ -86,6 +90,16 @@ const canvasCommands = createCanvasCommandController({
     getData: readEditorData,
     pushUndo: pushStateToUndo,
     updateData: updateEditorData
+});
+fieldReview = createFieldReviewController({
+    onApply: applyPdfFieldSuggestions,
+    onDismiss: candidateIds => overlayController.removeCandidates(candidateIds),
+    confirmDismiss: showConfirm,
+    showToast,
+    isPreviewVisible: () => (
+        document.getElementById('overlayDocSelect')?.value === 'uploaded_pdf' &&
+        (document.getElementById('overlayToggle')?.checked ?? true)
+    )
 });
 function setCanvasSelection(selections, options) {
     AppState.selectedElements = Array.isArray(selections) ? selections : selections ? [selections] : [];
@@ -251,6 +265,22 @@ function updateEditorData(data, options = {}) {
 
     if (silent) AppState.isSilentUpdate = false;
     if (rerender) renderDataDariJSON();
+}
+
+async function applyPdfFieldSuggestions(candidates) {
+    const result = applyFieldCandidates(readEditorData(), candidates);
+    parseDocumentJson(JSON.stringify(result.data));
+    if (result.addedCount > 0) {
+        pushStateToUndo();
+        updateEditorData(result.data, { silent: true });
+    }
+    try {
+        await overlayController.removeCandidates(result.appliedCandidateIds);
+    } catch (error) {
+        console.warn('Placeholder diterapkan, tetapi status kandidat gagal disimpan:', error);
+        showToast('Placeholder diterapkan, tetapi kandidat mungkin muncul kembali setelah reload.', 'warning', 6000);
+    }
+    return result;
 }
 
 function renderDataDariJSON(isManual = false) {
@@ -752,12 +782,14 @@ function destroyApp() {
     formatToolbar.destroy();
     propertyPanel.destroy();
     contextMenu.destroy();
+    fieldReview?.destroy();
     appShell.destroy();
     bootstrapController.destroy();
 }
 
 bindUiEvents(appLifecycle.signal);
 settingsController.init();
+fieldReview.init();
 overlayController.init();
 formatToolbar.init();
 propertyPanel.init();

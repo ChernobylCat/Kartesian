@@ -26,7 +26,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
-  "connect-src 'self'",
+  "connect-src 'self' http://127.0.0.1:8765 http://localhost:8765 http://127.0.0.1:18765",
   "worker-src 'self' blob:"
 ].join('; ');
 

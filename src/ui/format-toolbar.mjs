@@ -72,6 +72,7 @@ export function createFormatToolbarController({
     let activeElement = null;
     let lifecycle = null;
     let propertiesExpanded = false;
+    let positionFrame = null;
 
     function toolbar() {
         return documentRef.getElementById('textFormatToolbar');
@@ -79,6 +80,8 @@ export function createFormatToolbarController({
 
     function hide() {
         endFormat();
+        if (positionFrame !== null) windowRef.cancelAnimationFrame(positionFrame);
+        positionFrame = null;
         toolbar()?.classList.remove('show');
         activeElement = null;
     }
@@ -98,6 +101,14 @@ export function createFormatToolbarController({
         );
         toolbarElement.style.left = `${nextPosition.left}px`;
         toolbarElement.style.top = `${nextPosition.top}px`;
+    }
+
+    function schedulePosition() {
+        if (positionFrame !== null) return;
+        positionFrame = windowRef.requestAnimationFrame(() => {
+            positionFrame = null;
+            position();
+        });
     }
 
     function setPropertiesExpanded(expanded) {
@@ -177,6 +188,17 @@ export function createFormatToolbarController({
         }
     }
 
+    function previewProperty(property, rawValue) {
+        if (!activeElement || rawValue === '') return;
+        try {
+            const value = normalizePropertyValue(property, rawValue);
+            previewFormat({ [property]: value }, { immediate: false });
+            schedulePosition();
+        } catch {
+            // Nilai parsial/tidak valid dibiarkan di input hingga change melakukan validasi final.
+        }
+    }
+
     function apply(property, value, { immediate = true } = {}) {
         if (!activeElement) return;
         const { dbIdx, pageIdx, itemIdx } = activeElement;
@@ -216,9 +238,13 @@ export function createFormatToolbarController({
         const { signal } = lifecycle;
 
         toolbar()?.addEventListener('click', event => event.stopPropagation(), { signal });
-        documentRef.getElementById('toolbarFontFamily')?.addEventListener(
-            'change', event => apply('font_family', event.currentTarget.value), { signal }
-        );
+        documentRef.getElementById('toolbarFontFamily')?.addEventListener('input', event => {
+            apply('font_family', event.currentTarget.value, { immediate: false });
+        }, { signal });
+        documentRef.getElementById('toolbarFontFamily')?.addEventListener('change', event => {
+            apply('font_family', event.currentTarget.value, { immediate: false });
+            flushFormat();
+        }, { signal });
         documentRef.getElementById('btnBold')?.addEventListener('click', () => toggle('bold'), { signal });
         documentRef.getElementById('btnItalic')?.addEventListener('click', () => toggle('italic'), { signal });
         documentRef.getElementById('btnUnderline')?.addEventListener('click', () => toggle('underline'), { signal });
@@ -243,6 +269,9 @@ export function createFormatToolbarController({
             'click', () => setPropertiesExpanded(!propertiesExpanded), { signal }
         );
         documentRef.querySelectorAll('[data-toolbar-property]').forEach(input => {
+            input.addEventListener('input', () => {
+                previewProperty(input.dataset.toolbarProperty, input.value);
+            }, { signal });
             input.addEventListener('change', () => applyProperty(input.dataset.toolbarProperty, input.value), { signal });
         });
         documentRef.getElementById('btnToolbarLock')?.addEventListener('click', () => {
@@ -265,8 +294,8 @@ export function createFormatToolbarController({
             const clickedOnText = item?.querySelector('.text-content');
             if (!clickedOnText && !event.target.closest('#textFormatToolbar')) hide();
         }, { signal });
-        windowRef.addEventListener('resize', position, { signal });
-        windowRef.addEventListener('scroll', position, { signal, passive: true });
+        windowRef.addEventListener('resize', schedulePosition, { signal });
+        windowRef.addEventListener('scroll', schedulePosition, { signal, passive: true });
     }
 
     function isVisible() {

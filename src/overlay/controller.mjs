@@ -1,5 +1,9 @@
 import { APP_CONFIG } from '../config.mjs';
 import { debounce } from '../core/utils.mjs';
+import {
+    getLocalFieldServiceHealth,
+    scanPdfWithMode
+} from '../pdf/local-field-service.mjs';
 import { PdfOverlayStorage } from '../storage/pdf-storage.mjs';
 
 const UPLOADED_VALUE = 'uploaded_pdf';
@@ -82,9 +86,13 @@ export function createOverlayController({
     showToast = () => {},
     onSave = () => {},
     onRender = () => {},
-    onValidate = () => {}
+    onValidate = () => {},
+    onCandidatesChange = () => {}
 } = {}) {
     let uploadedPages = null;
+    let uploadedPdfData = null;
+    let uploadedPdfName = '';
+    let fieldCandidates = [];
     let lifecycle = null;
     let statusTimer = null;
 
@@ -107,6 +115,27 @@ export function createOverlayController({
         else element('overlayDocSelect')?.querySelector(`option[value="${UPLOADED_VALUE}"]`)?.remove();
         const deleteButton = element('btnDeletePdf');
         if (deleteButton) deleteButton.style.display = available ? 'inline-flex' : 'none';
+        const scanControls = element('pdfFieldScanControls');
+        if (scanControls) scanControls.hidden = !available;
+        const canRescan = available && Boolean(uploadedPdfData);
+        const scanButton = element('btnScanPdfFields');
+        const scanMode = element('pdfFieldScanMode');
+        if (scanButton) {
+            scanButton.disabled = !canRescan;
+            scanButton.title = canRescan ? '' : 'Unggah ulang PDF untuk mengaktifkan pemindaian manual.';
+        }
+        if (scanMode) scanMode.disabled = !canRescan;
+        if (available && !canRescan) {
+            updateDetectorStatus('PDF tersimpan dari versi lama. Unggah ulang untuk memindai manual.', 'warning');
+        }
+    }
+
+    function updateDetectorStatus(message, state = '') {
+        const status = element('pdfDetectorStatus');
+        if (!status) return;
+        status.textContent = message;
+        if (state) status.dataset.state = state;
+        else delete status.dataset.state;
     }
 
     function updateStatus(message, percent = null) {
@@ -155,6 +184,7 @@ export function createOverlayController({
     function afterRender() {
         applyOverlayToPages();
         applyPrintVisibility();
+        onCandidatesChange(fieldCandidates);
     }
 
     function persistAndValidate() {
@@ -169,6 +199,7 @@ export function createOverlayController({
 
     function handleVisibilityChange() {
         applyOverlayToPages();
+        onCandidatesChange(fieldCandidates);
         persistAndValidate();
     }
 
@@ -216,16 +247,151 @@ export function createOverlayController({
         afterRender();
     }
 
+    function setPdfControlsBusy(busy) {
+        ['btnUploadPdf', 'btnDeletePdf', 'btnScanPdfFields', 'pdfFieldScanMode'].forEach(id => {
+            const control = element(id);
+            if (control) control.disabled = busy;
+        });
+    }
+
+    function scanModeLabel(mode) {
+        if (mode === 'pdfjs') return 'PDF.js';
+        if (mode === 'pymupdf') return 'PyMuPDF';
+        if (mode === 'paddleocr') return 'PaddleOCR';
+        return 'Otomatis';
+    }
+
+    async function readStoredPdfBytes() {
+        if (uploadedPdfData?.arrayBuffer) return new Uint8Array(await uploadedPdfData.arrayBuffer());
+        if (uploadedPdfData instanceof ArrayBuffer) return new Uint8Array(uploadedPdfData.slice(0));
+        if (ArrayBuffer.isView(uploadedPdfData)) {
+            return new Uint8Array(uploadedPdfData.buffer.slice(
+                uploadedPdfData.byteOffset,
+                uploadedPdfData.byteOffset + uploadedPdfData.byteLength
+            ));
+        }
+        throw new Error('PDF asli tidak tersedia. Unggah ulang dokumen PDF terlebih dahulu.');
+    }
+
+    async function scanLoadedPdf(pdf, pdfBytes, mode = 'auto', {
+        progressStart = 0,
+        progressSpan = 100
+    } = {}) {
+        return scanPdfWithMode(pdf, pdfBytes, {
+            mode,
+            ops: pdfLibrary.OPS,
+            nextFrame: () => new Promise(resolve => windowRef.requestAnimationFrame(resolve)),
+            fetchImpl: windowRef.fetch?.bind(windowRef) || globalThis.fetch,
+            onProgress: ({ pageNumber, totalPages, percent }) => {
+                updateStatus(
+                    `${scanModeLabel(mode)} memindai Halaman ${pageNumber} dari ${totalPages}...`,
+                    progressStart + Math.round(percent * progressSpan / 100)
+                );
+            },
+            onFallback: ({ pages: fallbackPages }) => {
+                updateStatus(
+                    `${scanModeLabel(mode)} memproses ${fallbackPages.length} halaman melalui service lokal...`,
+                    Math.min(99, progressStart + progressSpan)
+                );
+            }
+        });
+    }
+
+    async function refreshDetectorStatus() {
+        if (!uploadedPdfData) return;
+        const mode = element('pdfFieldScanMode')?.value || 'auto';
+        if (mode === 'pdfjs') {
+            updateDetectorStatus('PDF.js siap di browser.', 'ready');
+            return;
+        }
+        updateDetectorStatus('Memeriksa service detector lokal...');
+        const health = await getLocalFieldServiceHealth({
+            fetchImpl: windowRef.fetch?.bind(windowRef) || globalThis.fetch
+        });
+        if (!health.pymupdf) {
+            updateDetectorStatus('Service lokal belum berjalan. PDF.js tetap tersedia.', mode === 'auto' ? 'warning' : 'error');
+        } else if (mode === 'paddleocr' && !health.paddleocr) {
+            updateDetectorStatus('PyMuPDF aktif, tetapi PaddleOCR belum terpasang.', 'warning');
+        } else {
+            updateDetectorStatus(
+                health.paddleocr ? 'PyMuPDF dan PaddleOCR siap.' : 'PyMuPDF siap; PaddleOCR tidak aktif.',
+                'ready'
+            );
+        }
+    }
+
+    async function handleManualFieldScan() {
+        if (!pdfLibrary) {
+            showToast('PDF.js tidak tersedia.', 'error', 6000);
+            return;
+        }
+        const mode = element('pdfFieldScanMode')?.value || 'auto';
+        setPdfControlsBusy(true);
+        updateDetectorStatus(`${scanModeLabel(mode)} sedang memindai...`);
+        updateStatus(`Menyiapkan pemindaian ${scanModeLabel(mode)}...`, 2);
+        let pdf = null;
+        try {
+            if (mode === 'pymupdf' || mode === 'paddleocr') {
+                const health = await getLocalFieldServiceHealth({
+                    fetchImpl: windowRef.fetch?.bind(windowRef) || globalThis.fetch
+                });
+                if (!health.pymupdf) throw new Error('Service PyMuPDF belum berjalan. Jalankan npm run detector:start.');
+                if (mode === 'paddleocr' && !health.paddleocr) {
+                    throw new Error('PaddleOCR belum terpasang pada service lokal.');
+                }
+            }
+            const pdfBytes = await readStoredPdfBytes();
+            pdf = await pdfLibrary.getDocument({ data: pdfBytes.slice() }).promise;
+            const result = await scanLoadedPdf(pdf, pdfBytes, mode);
+            if ((mode === 'pymupdf' || mode === 'paddleocr') && !result.localServiceAvailable) {
+                throw new Error(result.warnings?.[0] || 'Service detector lokal tidak tersedia.');
+            }
+            fieldCandidates = result.candidates;
+            await storage.saveCandidates(fieldCandidates);
+            onCandidatesChange(fieldCandidates);
+            const message = fieldCandidates.length
+                ? `${scanModeLabel(mode)} menemukan ${fieldCandidates.length} kandidat. Tinjau sebelum menerapkan.`
+                : `${scanModeLabel(mode)} selesai tanpa kandidat field.`;
+            updateStatus(message, 100);
+            updateDetectorStatus(message, fieldCandidates.length ? 'ready' : 'warning');
+            showToast(message, fieldCandidates.length ? 'success' : 'info', 6000);
+            if (result.warnings?.length) showToast(result.warnings[0], 'warning', 6000);
+        } catch (error) {
+            console.warn('Pemindaian manual field PDF gagal:', error);
+            updateStatus('Pemindaian manual gagal.');
+            updateDetectorStatus(error.message, 'error');
+            showToast(`Pemindaian gagal: ${error.message}`, 'error', 7000);
+        } finally {
+            try {
+                await pdf?.destroy?.();
+            } catch {
+                // PDF.js cleanup failure must not leave the controls disabled.
+            }
+            setPdfControlsBusy(false);
+            if (!uploadedPdfData) setUploadedUi(Boolean(uploadedPages?.length));
+        }
+    }
+
     async function hydrate(preferredDocument = 'none') {
         try {
-            const pages = await storage.getPages();
-            if (!pages?.length) return null;
-            uploadedPages = pages;
+            const payload = await storage.getPayload();
+            if (!payload?.pages?.length) return null;
+            uploadedPages = payload.pages;
+            uploadedPdfData = payload.pdfData || null;
+            uploadedPdfName = payload.fileName || '';
+            fieldCandidates = payload.candidates || [];
             setUploadedUi(true);
+            if (uploadedPdfData) {
+                updateDetectorStatus(
+                    `PDF asli ${uploadedPdfName || 'unggahan'} tersedia untuk pemindaian ulang.`,
+                    'ready'
+                );
+            }
             if (preferredDocument === UPLOADED_VALUE) element('overlayDocSelect').value = UPLOADED_VALUE;
             onRender();
             onValidate();
-            return pages;
+            onCandidatesChange(fieldCandidates);
+            return uploadedPages;
         } catch (error) {
             console.warn('Gagal memuat PDF unggahan:', error);
             showToast('Penyimpanan lokal tidak tersedia. Fitur PDF overlay mungkin terbatas.', 'warning');
@@ -246,27 +412,56 @@ export function createOverlayController({
             return;
         }
 
-        const uploadButton = element('btnUploadPdf');
-        const deleteButton = element('btnDeletePdf');
-        if (uploadButton) uploadButton.disabled = true;
-        if (deleteButton) deleteButton.disabled = true;
+        setPdfControlsBusy(true);
         updateStatus('Membaca berkas PDF...');
 
         try {
-            const pdf = await pdfLibrary.getDocument({ data: await file.arrayBuffer() }).promise;
+            const pdfBytes = new Uint8Array(await file.arrayBuffer());
+            const pdf = await pdfLibrary.getDocument({ data: pdfBytes.slice() }).promise;
             const pages = await renderPdfPages(pdf, {
                 documentRef,
                 nextFrame: () => new Promise(resolve => windowRef.requestAnimationFrame(resolve)),
                 onProgress: ({ pageNumber, totalPages, percent }) => {
-                    updateStatus(`Memproses Halaman ${pageNumber} dari ${totalPages}...`, percent);
+                    updateStatus(`Merender Halaman ${pageNumber} dari ${totalPages}...`, Math.round(percent * 0.7));
                 }
             });
+            let candidates = [];
+            let scanResult = null;
+            try {
+                scanResult = await scanLoadedPdf(pdf, pdfBytes, 'auto', { progressStart: 70, progressSpan: 25 });
+                candidates = scanResult.candidates;
+            } catch (scanError) {
+                console.warn('Pemindaian field PDF gagal:', scanError);
+                showToast('PDF berhasil dimuat, tetapi field tidak dapat dipindai.', 'warning', 6000);
+            }
             updateStatus('Menyimpan halaman panduan ke database lokal...');
-            await storage.savePages(pages);
+            const pdfData = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
+            await storage.savePages(pages, candidates, { pdfData, fileName: file.name });
             uploadedPages = pages;
+            uploadedPdfData = pdfData;
+            uploadedPdfName = file.name;
+            fieldCandidates = candidates;
             setUploadedUi(true);
             element('overlayDocSelect').value = UPLOADED_VALUE;
-            updateStatus('Proses selesai!');
+            onCandidatesChange(fieldCandidates);
+            updateStatus(candidates.length
+                ? `Proses selesai: ${candidates.length} kandidat ditemukan.`
+                : 'Proses selesai: tidak ada kandidat field digital.');
+            if (!candidates.length) {
+                showToast(
+                    scanResult?.localServiceAvailable === false
+                        ? 'Tidak ada field dari PDF.js. Jalankan service lokal untuk mencoba PyMuPDF dan OCR.'
+                        : 'Tidak ada AcroForm atau field teks/garis yang terdeteksi.',
+                    'info',
+                    6000
+                );
+            } else if (scanResult?.warnings?.length && scanResult.localServiceAvailable) {
+                showToast(scanResult.warnings[0], 'warning', 6000);
+            }
+            updateDetectorStatus(
+                `PDF asli ${uploadedPdfName} tersimpan. Pilih metode untuk memindai ulang.`,
+                'ready'
+            );
             windowRef.clearTimeout(statusTimer);
             statusTimer = windowRef.setTimeout(() => {
                 const status = element('pdfUploadStatus');
@@ -278,10 +473,9 @@ export function createOverlayController({
         } catch (error) {
             updateStatus('Gagal memproses file PDF.');
             console.error(error);
-            showToast(`Gagal memproses PDF: ${error.message}`, 'error', 6000);
+            showToast(`Gagal memproses PDF: ${error?.message || 'penyimpanan lokal gagal.'}`, 'error', 6000);
         } finally {
-            if (uploadButton) uploadButton.disabled = false;
-            if (deleteButton) deleteButton.disabled = false;
+            setPdfControlsBusy(false);
             input.value = '';
         }
     }
@@ -291,9 +485,13 @@ export function createOverlayController({
         try {
             await storage.deletePages();
             uploadedPages = null;
+            uploadedPdfData = null;
+            uploadedPdfName = '';
+            fieldCandidates = [];
             const select = element('overlayDocSelect');
             if (select?.value === UPLOADED_VALUE) select.value = 'none';
             setUploadedUi(false);
+            onCandidatesChange(fieldCandidates);
             onRender();
             persistAndValidate();
             showToast('PDF berhasil dihapus.', 'success');
@@ -301,6 +499,16 @@ export function createOverlayController({
             console.error('Failed to delete PDF', error);
             showToast('Gagal menghapus file PDF.', 'error');
         }
+    }
+
+    async function removeCandidates(candidateIds) {
+        const ids = new Set(candidateIds || []);
+        const nextCandidates = fieldCandidates.filter(candidate => !ids.has(candidate.id));
+        if (nextCandidates.length === fieldCandidates.length) return fieldCandidates;
+        await storage.saveCandidates(nextCandidates);
+        fieldCandidates = nextCandidates;
+        onCandidatesChange(fieldCandidates);
+        return fieldCandidates;
     }
 
     function init() {
@@ -324,6 +532,8 @@ export function createOverlayController({
         element('btnUploadPdf')?.addEventListener('click', () => element('pdfUploadInput')?.click(), { signal });
         element('pdfUploadInput')?.addEventListener('change', handlePdfUpload, { signal });
         element('btnDeletePdf')?.addEventListener('click', deleteUploadedPdf, { signal });
+        element('btnScanPdfFields')?.addEventListener('click', handleManualFieldScan, { signal });
+        element('pdfFieldScanMode')?.addEventListener('change', refreshDetectorStatus, { signal });
         afterRender();
     }
 
@@ -343,7 +553,9 @@ export function createOverlayController({
         getActivePageCount,
         getSettings,
         handlePdfUpload,
+        handleManualFieldScan,
         hydrate,
-        init
+        init,
+        removeCandidates
     };
 }

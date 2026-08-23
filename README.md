@@ -14,6 +14,7 @@ It is designed for coordinate-based print workflows where data must line up with
 - Multi-selection, marquee selection, alignment, and distribution tools
 - Inline text editing, undo/redo history, keyboard shortcuts, and context menus
 - PDF background overlays with opacity control and local persistence
+- Automatic suggestions for AcroForm, key-value table cells, labelled vector fields, multiline boxes, and text underlines in uploaded digital PDFs
 - Printer calibration offsets and separate preview/print visibility controls
 - Import/export for application settings and standalone HTML export
 - Autosave, dark mode, interactive onboarding, accessibility support, and offline PWA support
@@ -23,6 +24,7 @@ It is designed for coordinate-based print workflows where data must line up with
 
 - Node.js 24 is used by the CI workflow. A current Node.js LTS release should also work locally.
 - npm
+- Python 3.10 or newer is optional for PyMuPDF; PaddleOCR currently requires Python 3.10–3.12
 - A modern browser such as Edge, Chrome, Firefox, or Safari
 - A local web server; ES modules and service workers do not work correctly through `file://`
 
@@ -131,7 +133,63 @@ Choose an existing guide or upload a local PDF. The PDF is rendered beneath the 
 - displayed with adjustable opacity; and
 - optionally included in the printed output.
 
-Uploaded PDFs are stored locally in IndexedDB. PDF files are limited to 25 MB and 50 pages.
+Uploaded PDFs, including their original bytes, are stored locally in IndexedDB so field detection can be rerun after a browser reload. PDF files are limited to 25 MB and 50 pages.
+
+When a digital PDF is uploaded, Kartesian also scans it locally for AcroForm text widgets, two-column key-value tables, labelled empty lines or multiline boxes, underscore fields, signatures, and initials. In a key-value table, the populated left cell becomes the label and the empty right cell becomes the suggested field. Dense numbered or repeating table borders are suppressed so they do not become one suggestion per cell. Detected fields appear as non-printing dashed suggestions. Use **Review Candidates** to select or rename placeholders before applying them to the matching page for every debtor. Low-confidence suggestions remain visible but start unchecked. Applying suggestions creates regular text elements such as `{{nama}}`, preserves existing elements, and can be reverted with one Undo action.
+
+Field detection uses a local, per-page fallback pipeline:
+
+1. PDF.js scans digital PDF data in the browser.
+2. Pages without candidates are offered to the optional localhost PyMuPDF service.
+3. The service invokes PaddleOCR only when a requested page has no usable text layer.
+
+PDF.js remains fully functional when the Python service is not running. PyMuPDF improves independent parsing of widgets, tables, text underlines, and vector lines or boxes. PaddleOCR adds conservative suggestions for image-only scans; these suggestions use lower confidence and therefore start unchecked in the review dialog. Handwriting and unusually complex form layouts can still require manual placement.
+
+After uploading a PDF, use **Pindai Ulang Field** and choose one of these modes:
+
+| Mode | Behaviour |
+| --- | --- |
+| **Otomatis** | Runs PDF.js first, then sends only unresolved pages to PyMuPDF; image-only pages can continue to PaddleOCR |
+| **PDF.js saja** | Runs entirely in the browser without the Python service |
+| **PyMuPDF** | Forces every page through the local PyMuPDF service and disables OCR |
+| **PaddleOCR** | Forces OCR on every page; useful for scans but slower |
+
+A successful manual scan replaces the previous candidate list and opens it for review through **Tinjau Kandidat**. A failed service check does not delete existing candidates.
+
+### Optional local detector
+
+The detector binds to `127.0.0.1:8765`; uploaded PDFs are processed on the same computer and are not forwarded to a cloud provider. A virtual environment is recommended.
+
+PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+npm run detector:install
+npm run detector:start
+```
+
+macOS or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+npm run detector:install
+npm run detector:start
+```
+
+To enable the image-only scan fallback, create the environment with Python 3.10–3.12 and install the larger PaddleOCR runtime instead:
+
+```powershell
+py -3.12 -m venv .venv-ocr
+.\.venv-ocr\Scripts\Activate.ps1
+npm run detector:install:ocr
+npm run detector:start
+```
+
+On macOS or Linux, use `python3.12 -m venv .venv-ocr` followed by `source .venv-ocr/bin/activate` before running the same npm commands.
+
+PaddleOCR downloads its recognition models on first use. Its PaddlePaddle runtime does not currently provide official wheels for Python 3.13 or newer, and the installer reports that incompatibility before making changes. Keep the detector terminal open while using Kartesian. The status below the manual scan button and the health endpoint at `http://127.0.0.1:8765/health` report which engines are installed. The server accepts browser origins on localhost by default; set `KARTESIAN_ALLOWED_ORIGINS` to a comma-separated allowlist when Kartesian is served from another trusted origin.
 
 ### 7. Calibrate the printer
 
@@ -239,6 +297,7 @@ The schema rejects malformed values, unsupported image sources, unsafe colours, 
 
 - Document JSON, calibration values, UI preferences, and application settings are stored in `localStorage`.
 - Uploaded PDF overlays are stored in IndexedDB.
+- PDFs sent to the optional detector stay on localhost and are held only for the duration of the request.
 - The service worker precaches the application shell for offline use after the first successful visit.
 - PWA installation and offline support require HTTPS or a localhost origin.
 - Exported settings files are limited to 5 MB.
@@ -292,6 +351,10 @@ Kartesian/
 | `npm run build:vendor` | Copy pinned browser dependencies into `assets/vendor` |
 | `npm run dev:css` | Watch and rebuild Tailwind CSS |
 | `npm run test:unit` | Run unit and regression checks |
+| `npm run test:detector` | Run dependency-free tests for the Python detector helpers |
+| `npm run detector:install` | Install the PyMuPDF local fallback |
+| `npm run detector:install:ocr` | Install PyMuPDF and the optional PaddleOCR fallback |
+| `npm run detector:start` | Start the local detector on `127.0.0.1:8765` |
 | `npm run test:e2e` | Run the Playwright browser suite |
 | `npm run test:e2e:headed` | Run Playwright with a visible browser |
 | `npm run test:visual` | Run the visual baseline test |

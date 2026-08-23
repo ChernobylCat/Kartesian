@@ -49,28 +49,52 @@ export class PdfOverlayStorage {
     });
   }
 
-  async savePages(pages) {
+  async savePages(pages, candidates = [], { pdfData = null, fileName = '' } = {}) {
     const database = await this.getDatabase();
     return new Promise((resolve, reject) => {
       const transaction = database.transaction([this.storeName], 'readwrite');
       transaction.objectStore(this.storeName).put({
         id: ACTIVE_PDF_ID,
         pages,
+        candidates,
+        pdfData,
+        fileName: String(fileName || ''),
         timestamp: Date.now()
       });
       transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      transaction.onerror = () => reject(transaction.error || new Error('Gagal menyimpan PDF ke IndexedDB.'));
       transaction.onabort = () => reject(transaction.error || new Error('Transaksi penyimpanan PDF dibatalkan.'));
     });
   }
 
-  async getPages() {
+  async getPayload() {
     const database = await this.getDatabase();
     return new Promise((resolve, reject) => {
       const transaction = database.transaction([this.storeName], 'readonly');
       const request = transaction.objectStore(this.storeName).get(ACTIVE_PDF_ID);
-      request.onsuccess = event => resolve(event.target.result?.pages ?? null);
-      request.onerror = () => reject(request.error);
+      request.onsuccess = event => {
+        const record = event.target.result;
+        resolve(record ? {
+          pages: Array.isArray(record.pages) ? record.pages : [],
+          candidates: Array.isArray(record.candidates) ? record.candidates : [],
+          pdfData: record.pdfData || record.pdfBlob || null,
+          fileName: typeof record.fileName === 'string' ? record.fileName : ''
+        } : null);
+      };
+      request.onerror = () => reject(request.error || new Error('Gagal membaca PDF dari IndexedDB.'));
+    });
+  }
+
+  async getPages() {
+    return (await this.getPayload())?.pages ?? null;
+  }
+
+  async saveCandidates(candidates) {
+    const payload = await this.getPayload();
+    if (!payload) throw new Error('PDF aktif tidak ditemukan.');
+    return this.savePages(payload.pages, candidates, {
+      pdfData: payload.pdfData,
+      fileName: payload.fileName
     });
   }
 
@@ -80,7 +104,7 @@ export class PdfOverlayStorage {
       const transaction = database.transaction([this.storeName], 'readwrite');
       const request = transaction.objectStore(this.storeName).delete(ACTIVE_PDF_ID);
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error || new Error('Gagal menghapus PDF dari IndexedDB.'));
     });
   }
 }
