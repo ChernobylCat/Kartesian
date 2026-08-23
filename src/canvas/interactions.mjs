@@ -281,6 +281,7 @@ export function createCanvasInteractionController({
         element.addEventListener('pointerdown', event => {
             if (event.target.closest('.clone-item-btn, .delete-item-btn, .resize-handle')) return;
             if (event.button !== 0 || element.classList.contains('editing') || element.dataset.locked === 'true') return;
+            delete element.dataset.dragClickPending;
 
             const pageElement = element.closest('.print-page');
             if (!pageElement) return;
@@ -318,7 +319,17 @@ export function createCanvasInteractionController({
             const deltaX = event.clientX - startX;
             const deltaY = event.clientY - startY;
             if (!hasMoved && Math.hypot(deltaX, deltaY) < 3) return;
-            hasMoved = true;
+            if (!hasMoved) {
+                hasMoved = true;
+                element.dataset.dragClickPending = 'true';
+                if (!element.classList.contains('selected-item')) {
+                    documentRef.querySelectorAll('.data-item.selected-item').forEach(selected => {
+                        selected.classList.remove('selected-item');
+                    });
+                    element.classList.add('selected-item');
+                    setSelection(collectSelection());
+                }
+            }
 
             const pageElement = dragPageElement;
             if (!pageElement) return;
@@ -399,10 +410,14 @@ export function createCanvasInteractionController({
         const textContent = element.querySelector('.text-content');
         if (!textContent) return;
         let modifiedPointerSelection = false;
+        let pointerSelectionPending = false;
 
         element.addEventListener('pointerdown', event => {
             modifiedPointerSelection = event.shiftKey || event.ctrlKey || event.metaKey;
+            pointerSelectionPending = true;
         }, { signal, capture: true });
+        element.addEventListener('pointerup', () => { pointerSelectionPending = false; }, { signal });
+        element.addEventListener('pointercancel', () => { pointerSelectionPending = false; }, { signal });
 
         element.addEventListener('dblclick', event => {
             event.stopPropagation();
@@ -465,6 +480,14 @@ export function createCanvasInteractionController({
         }, { signal });
 
         element.addEventListener('click', event => {
+            // Browser tetap mengirim click setelah pointerup pada gesture drag.
+            // Konsumsi click tersebut agar toolbar tidak dibuka kembali.
+            if (element.dataset.dragClickPending === 'true') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                windowRef.setTimeout(() => { delete element.dataset.dragClickPending; }, 0);
+                return;
+            }
             // Biarkan tombol item diteruskan ke event delegation pada container.
             if (event.target.closest('[data-canvas-action]')) return;
             event.stopPropagation();
@@ -473,7 +496,9 @@ export function createCanvasInteractionController({
             modifiedPointerSelection = false;
         }, { signal });
         element.addEventListener('focus', () => {
-            if (!modifiedPointerSelection && !element.classList.contains('selected-item')) selectElement(element);
+            if (!pointerSelectionPending && !modifiedPointerSelection && !element.classList.contains('selected-item')) {
+                selectElement(element);
+            }
         }, { signal });
     }
 
@@ -579,6 +604,12 @@ export function createCanvasInteractionController({
             modifiedPointerSelection = event.shiftKey || event.ctrlKey || event.metaKey;
         }, { signal, capture: true });
         element.addEventListener('click', event => {
+            if (element.dataset.dragClickPending === 'true') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                windowRef.setTimeout(() => { delete element.dataset.dragClickPending; }, 0);
+                return;
+            }
             if (event.target.closest('[data-canvas-action]')) return;
             event.stopPropagation();
             const additive = event.shiftKey || event.ctrlKey || event.metaKey;

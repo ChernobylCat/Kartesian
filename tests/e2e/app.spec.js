@@ -575,6 +575,34 @@ test('floating toolbar menyinkronkan properti presisi elemen teks', async ({ pag
   await expect(page.locator('#propertyPanel [data-property="locked"]')).toBeChecked();
 });
 
+test('floating toolbar tetap tersembunyi selama dan setelah elemen teks di-drag', async ({ page }) => {
+  await openReadyApp(page);
+  await loadDocument(page, validTextFixture);
+  await page.getByRole('checkbox', { name: 'Aktifkan Snapping Magnetik' }).uncheck();
+
+  const item = page.locator('.data-item.text-item').first();
+  const toolbar = page.locator('#textFormatToolbar');
+  await item.click();
+  await expect(toolbar).toHaveClass(/show/);
+  await page.locator('#editorTitle').click();
+  await expect(item).not.toHaveClass(/selected-item/);
+  await expect(toolbar).not.toHaveClass(/show/);
+
+  await item.scrollIntoViewIfNeeded();
+  const itemBox = await item.boundingBox();
+  expect(itemBox).not.toBeNull();
+  const dragStartX = itemBox.x + itemBox.width / 2;
+  const dragStartY = itemBox.y + itemBox.height / 2;
+  await page.mouse.move(dragStartX, dragStartY);
+  await page.mouse.down();
+  await page.mouse.move(dragStartX + 40, dragStartY + 30, { steps: 6 });
+  await expect(toolbar).not.toHaveClass(/show/);
+  await page.mouse.up();
+
+  await expect(toolbar).not.toHaveClass(/show/);
+  await expect(item).toHaveClass(/selected-item/);
+});
+
 test('live formatting mem-patch elemen tanpa full render lalu commit secara debounce', async ({ page }) => {
   await openReadyApp(page);
   await loadDocument(page, validTextFixture);
