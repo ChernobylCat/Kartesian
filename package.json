@@ -3,10 +3,23 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "dev": "node scripts/prepare-next.cjs && next dev --webpack",
+    "start": "node scripts/serve-next.cjs",
+    "build:next": "node scripts/prepare-next.cjs && next build --webpack && node scripts/build-legacy.cjs && node scripts/build-offline.cjs",
+    "build:legacy": "npm run build:vendor && npm run build:css",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "next typegen && tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:next": "prettier --write \"src/{app,domain,application,features,infrastructure,components,styles}/**/*.{ts,tsx,css}\" \"tests/{unit,component,next-e2e}/**/*.{ts,tsx,js}\"",
+    "benchmark": "node scripts/benchmark-next.cjs",
+    "test:next:unit": "vitest run",
+    "test:next:e2e": "playwright test -c playwright.next.config.cjs",
+    "check:next": "npm run lint && npm run typecheck && npm run test:next:unit && npm run build:legacy && npm run build:next && npm run test:next:e2e",
     "build:css": "tailwindcss -i ./src/input.css -o ./assets/app.css --minify",
     "dev:css": "tailwindcss -i ./src/input.css -o ./assets/app.css --watch",
     "build:vendor": "node scripts/copy-vendor.cjs",
-    "build": "npm run build:vendor && npm run build:css",
+    "build": "npm run build:legacy && npm run build:next",
     "test:unit": "node tests/regression.test.js",
     "test:detector": "python -m unittest discover -s services/pdf-field-detector -p test_*.py",
     "detector:install": "python scripts/install-detector.py",
@@ -18,15 +31,36 @@
     "test:visual": "playwright test -g \"baseline visual\"",
     "audit": "npm audit --audit-level=high",
     "test": "npm run test:unit && npm run test:e2e",
-    "check": "npm run build && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test:next:unit && npm run build && npm run test && npm run test:next:e2e && npm run test:detector"
   },
   "devDependencies": {
+    "@fontsource/plus-jakarta-sans": "5.3.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "ace-builds": "1.16.0",
     "driver.js": "^1.8.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
+    "jsdom": "29.1.1",
     "lucide": "0.460.0",
     "pdfjs-dist": "6.2.108",
-    "tailwindcss": "^4.3.3"
+    "prettier": "3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "lucide-react": "1.61.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
   }
 }

@@ -6,3 +6,12 @@ blob-report/
 .venv-ocr/
 __pycache__/
 *.pyc
+.next/
+out/
+public/assets/
+public/vendor/
+public/icons/
+public/fonts/
+*.tsbuildinfo
+next-env.d.ts
+coverage/

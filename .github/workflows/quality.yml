@@ -42,6 +42,15 @@ jobs:
       - name: Build generated assets
         run: npm run build
 
+      - name: TypeScript and lint
+        run: npm run typecheck && npm run lint
+
+      - name: Next domain and component tests
+        run: npm run test:next:unit
+
+      - name: Python detector helpers
+        run: python -m unittest discover -s services/pdf-field-detector -p 'test_*.py'
+
       - name: Verify generated assets are committed
         run: git diff --exit-code -- assets/app.css assets/vendor
 
@@ -86,6 +95,12 @@ jobs:
 
       - name: Run end-to-end tests
         run: npm run test:e2e
+
+      - name: Build Next production export
+        run: npm run build
+
+      - name: Next production browser suite
+        run: npm run test:next:e2e
 
       - name: Upload failure artifacts
         if: ${{ failure() }}

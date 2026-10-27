@@ -15,7 +15,7 @@ const mimeTypes = {
   '.json': 'application/json; charset=utf-8',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
-  '.svg': 'image/svg+xml'
+  '.svg': 'image/svg+xml',
 };
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -27,7 +27,7 @@ const contentSecurityPolicy = [
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
   "connect-src 'self' http://127.0.0.1:8765 http://localhost:8765 http://127.0.0.1:18765",
-  "worker-src 'self' blob:"
+  "worker-src 'self' blob:",
 ].join('; ');
 
 function createStaticServer() {
@@ -36,7 +36,11 @@ function createStaticServer() {
     const relativePath = requestPath === '/' ? 'index.html' : requestPath.replace(/^\/+/, '');
     const filePath = path.resolve(projectRoot, relativePath);
 
-    if (!filePath.startsWith(projectRoot + path.sep) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    if (
+      !filePath.startsWith(projectRoot + path.sep) ||
+      !fs.existsSync(filePath) ||
+      !fs.statSync(filePath).isFile()
+    ) {
       response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       response.end('Not found');
       return;
@@ -49,7 +53,7 @@ function createStaticServer() {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
       'Referrer-Policy': 'no-referrer',
-      'X-Content-Type-Options': 'nosniff'
+      'X-Content-Type-Options': 'nosniff',
     });
 
     if (request.method === 'HEAD') {
@@ -72,7 +76,7 @@ function startStaticServer() {
 module.exports = { startStaticServer };
 
 if (require.main === module) {
-  startStaticServer().then(server => {
+  startStaticServer().then((server) => {
     function shutdown() {
       server.close(() => process.exit(0));
       setTimeout(() => process.exit(1), 2_000).unref();

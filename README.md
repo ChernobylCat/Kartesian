@@ -4,6 +4,14 @@ Kartesian is a browser-based visual editor for precisely positioning and printin
 
 It is designed for coordinate-based print workflows where data must line up with an existing paper form or PDF template. Users can prepare a document visually, calibrate printer offsets, preview the result against a PDF, and print or export the finished layout directly from the browser.
 
+Rencana rewrite ke Next.js tersedia di [Masterplan Rewrite Next.js](docs/NEXTJS-REWRITE-MASTERPLAN.md), mencakup arsitektur, tahapan implementasi, kompatibilitas data, quality gate, dan rollback.
+
+## Next.js rewrite
+
+The Next.js App Router application uses React, TypeScript strict, Zustand, Zod, and Tailwind. Run `npm install`, `npm run build`, then `npm start` to open the production static export at `http://127.0.0.1:4174`. Use `npm run dev` for development on port 3000. The original implementation remains available through its static server and at `/legacy/` in the production export.
+
+Read [Next.js operations](docs/NEXTJS-OPERATIONS.md) for data migration, backups, production headers, offline updates, detector integration, and rollback, and [rewrite status](docs/NEXTJS-REWRITE-STATUS.md) for actual validation and remaining acceptance steps. Browser data is origin-specific: use the original hostname/port or a full workspace backup when moving installations. The legacy instructions below describe the original editor; its asset-only build command is now `npm run build:legacy`.
+
 ## Highlights
 
 - Coordinate-based F4 canvas measuring `210 x 330 mm`
@@ -147,12 +155,12 @@ PDF.js remains fully functional when the Python service is not running. PyMuPDF 
 
 After uploading a PDF, use **Pindai Ulang Field** and choose one of these modes:
 
-| Mode | Behaviour |
-| --- | --- |
-| **Otomatis** | Runs PDF.js first, then sends only unresolved pages to PyMuPDF; image-only pages can continue to PaddleOCR |
-| **PDF.js saja** | Runs entirely in the browser without the Python service |
-| **PyMuPDF** | Forces every page through the local PyMuPDF service and disables OCR |
-| **PaddleOCR** | Forces OCR on every page; useful for scans but slower |
+| Mode            | Behaviour                                                                                                  |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Otomatis**    | Runs PDF.js first, then sends only unresolved pages to PyMuPDF; image-only pages can continue to PaddleOCR |
+| **PDF.js saja** | Runs entirely in the browser without the Python service                                                    |
+| **PyMuPDF**     | Forces every page through the local PyMuPDF service and disables OCR                                       |
+| **PaddleOCR**   | Forces OCR on every page; useful for scans but slower                                                      |
 
 A successful manual scan replaces the previous candidate list and opens it for review through **Tinjau Kandidat**. A failed service check does not delete existing candidates.
 
@@ -219,20 +227,20 @@ Use **Print** for the browser print workflow or **Export to HTML** to download a
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-| --- | --- |
-| `Ctrl/Cmd + Z` | Undo |
-| `Ctrl + Y` or `Cmd + Shift + Z` | Redo |
-| `Arrow keys` | Move selected elements by 0.1 mm |
-| `Shift + Arrow keys` | Move selected elements by 1 mm |
-| `Ctrl/Cmd + A` | Select all elements on the active page |
-| `Ctrl/Cmd + D` | Duplicate selected elements |
-| `Alt + L` | Lock or unlock selected elements |
-| `Alt + A` / `Alt + H` / `Alt + D` | Align left / horizontal center / right |
-| `Alt + W` / `Alt + V` / `Alt + S` | Align top / vertical center / bottom |
-| `Alt + Shift + H` / `Alt + Shift + V` | Distribute horizontally / vertically |
-| `Delete` / `Backspace` | Delete selected elements |
-| `Escape` | Clear selection or close the active dialog/fullscreen view |
+| Shortcut                              | Action                                                     |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `Ctrl/Cmd + Z`                        | Undo                                                       |
+| `Ctrl + Y` or `Cmd + Shift + Z`       | Redo                                                       |
+| `Arrow keys`                          | Move selected elements by 0.1 mm                           |
+| `Shift + Arrow keys`                  | Move selected elements by 1 mm                             |
+| `Ctrl/Cmd + A`                        | Select all elements on the active page                     |
+| `Ctrl/Cmd + D`                        | Duplicate selected elements                                |
+| `Alt + L`                             | Lock or unlock selected elements                           |
+| `Alt + A` / `Alt + H` / `Alt + D`     | Align left / horizontal center / right                     |
+| `Alt + W` / `Alt + V` / `Alt + S`     | Align top / vertical center / bottom                       |
+| `Alt + Shift + H` / `Alt + Shift + V` | Distribute horizontally / vertically                       |
+| `Delete` / `Backspace`                | Delete selected elements                                   |
+| `Escape`                              | Clear selection or close the active dialog/fullscreen view |
 
 Keyboard shortcuts are ignored while typing in an input, textarea, inline text editor, or the JSON editor.
 
@@ -274,20 +282,20 @@ The document root is an array of debtor records. Each debtor contains ordered pa
 
 ### Item properties
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `type` | `"text"` or `"image"` | Defaults to text when omitted |
-| `text` | string | Text content or an image data URL |
-| `x`, `y` | number | Position in millimetres |
-| `width`, `height` | number | Optional text box size; required for images |
-| `font_family` | string | One of the supported font-family values |
-| `font_size` | number | Text size from 4 to 72 pt |
-| `color` | hex string | Text colour in `#rrggbb` format |
-| `bg_color` | hex string | Text highlight colour in `#rrggbb` format |
-| `bold`, `italic`, `underline` | boolean | Text formatting flags |
-| `rotation` | number | Rotation from -360 to 360 degrees |
-| `z_index` | integer | Layer value from -1000 to 1000 |
-| `locked` | boolean | Prevents drag and resize interactions |
+| Property                      | Type                  | Description                                 |
+| ----------------------------- | --------------------- | ------------------------------------------- |
+| `type`                        | `"text"` or `"image"` | Defaults to text when omitted               |
+| `text`                        | string                | Text content or an image data URL           |
+| `x`, `y`                      | number                | Position in millimetres                     |
+| `width`, `height`             | number                | Optional text box size; required for images |
+| `font_family`                 | string                | One of the supported font-family values     |
+| `font_size`                   | number                | Text size from 4 to 72 pt                   |
+| `color`                       | hex string            | Text colour in `#rrggbb` format             |
+| `bg_color`                    | hex string            | Text highlight colour in `#rrggbb` format   |
+| `bold`, `italic`, `underline` | boolean               | Text formatting flags                       |
+| `rotation`                    | number                | Rotation from -360 to 360 degrees           |
+| `z_index`                     | integer               | Layer value from -1000 to 1000              |
+| `locked`                      | boolean               | Prevents drag and resize interactions       |
 
 Supported fonts are Arial, Courier New, Times New Roman, Georgia, Verdana, and Plus Jakarta Sans using the exact values generated by the editor.
 
@@ -344,23 +352,23 @@ Kartesian/
 
 ## Available Commands
 
-| Command | Description |
-| --- | --- |
-| `npm run build` | Copy vendor assets and compile Tailwind CSS |
-| `npm run build:css` | Compile and minify Tailwind CSS |
-| `npm run build:vendor` | Copy pinned browser dependencies into `assets/vendor` |
-| `npm run dev:css` | Watch and rebuild Tailwind CSS |
-| `npm run test:unit` | Run unit and regression checks |
-| `npm run test:detector` | Run dependency-free tests for the Python detector helpers |
-| `npm run detector:install` | Install the PyMuPDF local fallback |
-| `npm run detector:install:ocr` | Install PyMuPDF and the optional PaddleOCR fallback |
-| `npm run detector:start` | Start the local detector on `127.0.0.1:8765` |
-| `npm run test:e2e` | Run the Playwright browser suite |
-| `npm run test:e2e:headed` | Run Playwright with a visible browser |
-| `npm run test:visual` | Run the visual baseline test |
-| `npm run test` | Run unit and E2E tests |
-| `npm run check` | Build the project and run the complete quality gate |
-| `npm run audit` | Check npm dependencies for high-severity vulnerabilities |
+| Command                        | Description                                               |
+| ------------------------------ | --------------------------------------------------------- |
+| `npm run build`                | Copy vendor assets and compile Tailwind CSS               |
+| `npm run build:css`            | Compile and minify Tailwind CSS                           |
+| `npm run build:vendor`         | Copy pinned browser dependencies into `assets/vendor`     |
+| `npm run dev:css`              | Watch and rebuild Tailwind CSS                            |
+| `npm run test:unit`            | Run unit and regression checks                            |
+| `npm run test:detector`        | Run dependency-free tests for the Python detector helpers |
+| `npm run detector:install`     | Install the PyMuPDF local fallback                        |
+| `npm run detector:install:ocr` | Install PyMuPDF and the optional PaddleOCR fallback       |
+| `npm run detector:start`       | Start the local detector on `127.0.0.1:8765`              |
+| `npm run test:e2e`             | Run the Playwright browser suite                          |
+| `npm run test:e2e:headed`      | Run Playwright with a visible browser                     |
+| `npm run test:visual`          | Run the visual baseline test                              |
+| `npm run test`                 | Run unit and E2E tests                                    |
+| `npm run check`                | Build the project and run the complete quality gate       |
+| `npm run audit`                | Check npm dependencies for high-severity vulnerabilities  |
 
 Playwright uses the locally installed Microsoft Edge channel by default outside CI. Set `PW_BROWSER` to `chromium`, `firefox`, or `webkit` to select another installed Playwright engine.
 
@@ -407,15 +415,15 @@ npm run test:e2e -- --update-snapshots
 
 ## Application Limits
 
-| Resource | Limit |
-| --- | ---: |
-| Debtors | 100 |
-| Pages per debtor | 100 |
-| Items per page | 1,000 |
-| Total document items | 5,000 |
-| Image upload | 2 MB |
-| Settings import | 5 MB |
-| PDF upload | 25 MB / 50 pages |
+| Resource             |             Limit |
+| -------------------- | ----------------: |
+| Debtors              |               100 |
+| Pages per debtor     |               100 |
+| Items per page       |             1,000 |
+| Total document items |             5,000 |
+| Image upload         |              2 MB |
+| Settings import      |              5 MB |
+| PDF upload           |  25 MB / 50 pages |
 | PDF canvas rendering | 20,000,000 pixels |
 
 ## Troubleshooting

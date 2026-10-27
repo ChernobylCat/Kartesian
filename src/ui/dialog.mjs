@@ -4,14 +4,14 @@ const FOCUSABLE_SELECTOR = [
   'input:not([disabled])',
   'select:not([disabled])',
   'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])'
+  '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
 export function getFocusableElements(container) {
   if (!container) return [];
-  return [...container.querySelectorAll(FOCUSABLE_SELECTOR)].filter(element => (
-    !element.hidden && element.getAttribute('aria-hidden') !== 'true'
-  ));
+  return [...container.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true',
+  );
 }
 
 export function createDialogLifecycle({
@@ -19,7 +19,7 @@ export function createDialogLifecycle({
   dialog,
   initialFocus = null,
   returnFocus = null,
-  onEscape = () => {}
+  onEscape = () => {},
 }) {
   if (!dialog) throw new Error('Elemen dialog wajib tersedia.');
   const previousFocus = returnFocus ?? documentRef.activeElement;
@@ -73,6 +73,6 @@ export function createDialogLifecycle({
           previousFocus.closest?.('[tabindex]')?.focus();
         }
       }
-    }
+    },
   };
 }

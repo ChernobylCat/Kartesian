@@ -1,930 +1,1306 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
-    <meta name="theme-color" content="#1d4ed8">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" href="./assets/icons/app-icon.svg" type="image/svg+xml">
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:8765 http://localhost:8765 http://127.0.0.1:18765; worker-src 'self' blob:">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./assets/icons/app-icon.svg" type="image/svg+xml" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:8765 http://localhost:8765 http://127.0.0.1:18765; worker-src 'self' blob:"
+    />
     <title>KBFMF | Bidik Koordinat</title>
     <style>
-        /* ==========================================================================
+      /* ==========================================================================
            ENGINE LAYOUT: token tema, kanvas koordinat, dan aturan cetak.
            UI aplikasi dikompilasi dari src/input.css dengan TailwindCSS.
            ========================================================================== */
-        :root {
-            --offset-x: 0.0mm;
-            --offset-y: 0.0mm;
+      :root {
+        --offset-x: 0mm;
+        --offset-y: 0mm;
 
-            /* Light Theme Tokens */
-            --bg-gradient: radial-gradient(circle at 50% 50%, #f8fafc, #f1f5f9);
-            --panel-bg: rgba(255, 255, 255, 0.85);
-            --panel-border: rgba(255, 255, 255, 0.5);
-            --text-main: #334155;
-            --text-heading: #0f172a;
-            --card-bg: #f8fafc;
-            --card-border: #e2e8f0;
-            --input-bg: #ffffff;
-            --input-border: #cbd5e1;
-            --btn-outline-bg: #ffffff;
-            --btn-outline-border: #cbd5e1;
-            --btn-outline-text: #475569;
-            --btn-outline-hover-bg: #f8fafc;
-            --btn-outline-hover-text: #0f172a;
-            --btn-outline-hover-border: #94a3b8;
-            --editor-bg: #fafafa;
-            --editor-border: #cbd5e1;
-            --guide-bg: #fffbeb;
-            --guide-border: #d97706;
-            --guide-text: #451a03;
-            --guide-title: #b45309;
-            --switch-text: #334155;
+        /* Light Theme Tokens */
+        --bg-gradient: radial-gradient(circle at 50% 50%, #f8fafc, #f1f5f9);
+        --panel-bg: rgba(255, 255, 255, 0.85);
+        --panel-border: rgba(255, 255, 255, 0.5);
+        --text-main: #334155;
+        --text-heading: #0f172a;
+        --card-bg: #f8fafc;
+        --card-border: #e2e8f0;
+        --input-bg: #ffffff;
+        --input-border: #cbd5e1;
+        --btn-outline-bg: #ffffff;
+        --btn-outline-border: #cbd5e1;
+        --btn-outline-text: #475569;
+        --btn-outline-hover-bg: #f8fafc;
+        --btn-outline-hover-text: #0f172a;
+        --btn-outline-hover-border: #94a3b8;
+        --editor-bg: #fafafa;
+        --editor-border: #cbd5e1;
+        --guide-bg: #fffbeb;
+        --guide-border: #d97706;
+        --guide-text: #451a03;
+        --guide-title: #b45309;
+        --switch-text: #334155;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body.dark {
+        /* Dark Theme Tokens */
+        --bg-gradient: radial-gradient(circle at 50% 50%, #0f172a, #020617);
+        --panel-bg: rgba(15, 23, 42, 0.88);
+        --panel-border: rgba(255, 255, 255, 0.08);
+        --text-main: #94a3b8;
+        --text-heading: #f8fafc;
+        --card-bg: #1e293b;
+        --card-border: #334155;
+        --input-bg: #0f172a;
+        --input-border: #475569;
+        --btn-outline-bg: rgba(255, 255, 255, 0.06);
+        --btn-outline-border: rgba(255, 255, 255, 0.15);
+        --btn-outline-text: #cbd5e1;
+        --btn-outline-hover-bg: rgba(255, 255, 255, 0.15);
+        --btn-outline-hover-text: #ffffff;
+        --btn-outline-hover-border: rgba(255, 255, 255, 0.35);
+        --editor-bg: #0f172a;
+        --editor-border: rgba(255, 255, 255, 0.15);
+        --guide-bg: #1e1b4b;
+        --guide-border: #6366f1;
+        --guide-text: #e0e7ff;
+        --guide-title: #a5b4fc;
+        --switch-text: #94a3b8;
+      }
+
+      .preview-invalid .data-item,
+      .preview-invalid .page-badge button {
+        pointer-events: none;
+      }
+
+      .data-item {
+        --item-rotation: 0deg;
+        transform: translate(var(--offset-x), var(--offset-y)) rotate(var(--item-rotation));
+        transform-origin: center;
+        transition: transform 0.1s ease;
+      }
+
+      /* Offset printer tidak menggeser posisi teks saat menyunting di canvas preview. */
+      @media screen {
+        .data-item.text-item {
+          transform: rotate(var(--item-rotation));
         }
+      }
 
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-        }
+      .data-item.locked-item {
+        cursor: not-allowed;
+      }
+      .data-item.locked-item::after {
+        content: '🔒';
+        position: absolute;
+        top: -18px;
+        left: 0;
+        font: 11px sans-serif;
+      }
+      .data-item.locked-item.selected-item .resize-handle,
+      .data-item.locked-item.selected-item .clone-item-btn,
+      .data-item.locked-item.selected-item .delete-item-btn {
+        display: none !important;
+      }
 
-        body.dark {
-            /* Dark Theme Tokens */
-            --bg-gradient: radial-gradient(circle at 50% 50%, #0f172a, #020617);
-            --panel-bg: rgba(15, 23, 42, 0.88);
-            --panel-border: rgba(255, 255, 255, 0.08);
-            --text-main: #94a3b8;
-            --text-heading: #f8fafc;
-            --card-bg: #1e293b;
-            --card-border: #334155;
-            --input-bg: #0f172a;
-            --input-border: #475569;
-            --btn-outline-bg: rgba(255, 255, 255, 0.06);
-            --btn-outline-border: rgba(255, 255, 255, 0.15);
-            --btn-outline-text: #cbd5e1;
-            --btn-outline-hover-bg: rgba(255, 255, 255, 0.15);
-            --btn-outline-hover-text: #ffffff;
-            --btn-outline-hover-border: rgba(255, 255, 255, 0.35);
-            --editor-bg: #0f172a;
-            --editor-border: rgba(255, 255, 255, 0.15);
-            --guide-bg: #1e1b4b;
-            --guide-border: #6366f1;
-            --guide-text: #e0e7ff;
-            --guide-title: #a5b4fc;
-            --switch-text: #94a3b8;
-        }
+      .data-item:hover {
+        outline: 1.5px solid #007bff;
+        outline-offset: 2px;
+      }
 
-        .preview-invalid .data-item,
-        .preview-invalid .page-badge button {
-            pointer-events: none;
-        }
+      .data-item:not(.text-item.selected-item):hover .delete-item-btn,
+      .data-item:not(.text-item.selected-item):focus-within .delete-item-btn,
+      .image-item.selected-item .delete-item-btn {
+        display: flex !important;
+      }
 
-        .data-item {
-            --item-rotation: 0deg;
-            transform: translate(var(--offset-x), var(--offset-y)) rotate(var(--item-rotation));
-            transform-origin: center;
-            transition: transform 0.1s ease;
-        }
+      .delete-item-btn {
+        position: absolute;
+        top: -26px;
+        right: -10px;
+        width: 18px;
+        height: 18px;
+        background-color: #ef4444;
+        color: white;
+        border-radius: 50%;
+        font-size: 11px;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+        transition: all 0.1s ease;
+        border: none;
+        padding: 0;
+        line-height: 1;
+      }
 
-        /* Offset printer tidak menggeser posisi teks saat menyunting di canvas preview. */
-        @media screen {
-            .data-item.text-item {
-                transform: rotate(var(--item-rotation));
-            }
-        }
+      .delete-item-btn:hover {
+        background-color: #dc2626;
+        transform: scale(1.1);
+      }
 
-        .data-item.locked-item { cursor: not-allowed; }
-        .data-item.locked-item::after {
-            content: "🔒";
-            position: absolute;
-            top: -18px;
-            left: 0;
-            font: 11px sans-serif;
-        }
-        .data-item.locked-item.selected-item .resize-handle,
-        .data-item.locked-item.selected-item .clone-item-btn,
-        .data-item.locked-item.selected-item .delete-item-btn { display: none !important; }
+      .data-item.draggable {
+        cursor: move;
+        user-select: none;
+        touch-action: none;
+        /* Cegah scrolling default pada mobile saat drag */
+      }
 
-        .data-item:hover {
-            outline: 1.5px solid #007bff;
-            outline-offset: 2px;
-        }
+      .data-item.dragging {
+        opacity: 0.75;
+        outline: 2px dashed #007bff;
+        outline-offset: 2px;
+        background-color: rgba(0, 123, 255, 0.05);
+        z-index: 100;
+      }
 
-        .data-item:not(.text-item.selected-item):hover .delete-item-btn,
-        .data-item:not(.text-item.selected-item):focus-within .delete-item-btn,
-        .image-item.selected-item .delete-item-btn {
-            display: flex !important;
-        }
+      /* Delapan gagang resize: empat sisi dan empat sudut. */
+      .resize-handle {
+        position: absolute;
+        background-color: #10b981;
+        border: 1.5px solid white;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
+        opacity: 0;
+        z-index: 15;
+        transition:
+          opacity 0.2s ease,
+          transform 0.1s ease;
+      }
 
-        .delete-item-btn {
-            position: absolute;
-            top: -26px;
-            right: -10px;
-            width: 18px;
-            height: 18px;
-            background-color: #ef4444;
-            color: white;
-            border-radius: 50%;
-            font-size: 11px;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            transition: all 0.1s ease;
-            border: none;
-            padding: 0;
-            line-height: 1;
-        }
+      .resize-n,
+      .resize-s {
+        left: calc(50% - 9px);
+        width: 18px;
+        height: 7px;
+        border-radius: 4px;
+        cursor: ns-resize;
+      }
+      .resize-n {
+        top: -4px;
+      }
+      .resize-s {
+        bottom: -4px;
+      }
 
-        .delete-item-btn:hover {
-            background-color: #dc2626;
-            transform: scale(1.1);
-        }
+      .resize-e,
+      .resize-w {
+        top: calc(50% - 9px);
+        width: 7px;
+        height: 18px;
+        border-radius: 4px;
+        cursor: ew-resize;
+      }
+      .resize-e {
+        right: -4px;
+      }
+      .resize-w {
+        left: -4px;
+      }
 
-        .data-item.draggable {
-            cursor: move;
-            user-select: none;
-            touch-action: none;
-            /* Cegah scrolling default pada mobile saat drag */
-        }
+      .resize-ne,
+      .resize-se,
+      .resize-sw,
+      .resize-nw {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .resize-ne {
+        top: -5px;
+        right: -5px;
+        cursor: nesw-resize;
+      }
+      .resize-se {
+        right: -5px;
+        bottom: -5px;
+        cursor: nwse-resize;
+      }
+      .resize-sw {
+        bottom: -5px;
+        left: -5px;
+        cursor: nesw-resize;
+      }
+      .resize-nw {
+        top: -5px;
+        left: -5px;
+        cursor: nwse-resize;
+      }
 
-        .data-item.dragging {
-            opacity: 0.75;
-            outline: 2px dashed #007bff;
-            outline-offset: 2px;
-            background-color: rgba(0, 123, 255, 0.05);
-            z-index: 100;
-        }
+      .resize-handle:hover {
+        transform: scale(1.3);
+        background-color: #059669;
+      }
 
-        /* Delapan gagang resize: empat sisi dan empat sudut. */
-        .resize-handle {
-            position: absolute;
-            background-color: #10b981;
-            border: 1.5px solid white;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
-            opacity: 0;
-            z-index: 15;
-            transition: opacity 0.2s ease, transform 0.1s ease;
-        }
+      .data-item:focus-within .resize-handle,
+      .data-item.selected-item .resize-handle {
+        opacity: 1;
+      }
 
-        .resize-n,
-        .resize-s {
-            left: calc(50% - 9px);
-            width: 18px;
-            height: 7px;
-            border-radius: 4px;
-            cursor: ns-resize;
-        }
-        .resize-n { top: -4px; }
-        .resize-s { bottom: -4px; }
+      .data-item.resizing .clone-item-btn,
+      .data-item.resizing .delete-item-btn,
+      .data-item.resizing .resize-handle:not(.active-resize-handle) {
+        display: none !important;
+      }
 
-        .resize-e,
-        .resize-w {
-            top: calc(50% - 9px);
-            width: 7px;
-            height: 18px;
-            border-radius: 4px;
-            cursor: ew-resize;
-        }
-        .resize-e { right: -4px; }
-        .resize-w { left: -4px; }
+      .sized-text-item .text-content {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
 
-        .resize-ne,
-        .resize-se,
-        .resize-sw,
-        .resize-nw {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        .resize-ne { top: -5px; right: -5px; cursor: nesw-resize; }
-        .resize-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
-        .resize-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
-        .resize-nw { top: -5px; left: -5px; cursor: nwse-resize; }
+      /* Status Teks Sedang Diedit */
+      .data-item.editing {
+        outline: 2px dashed #6366f1 !important;
+        /* Indigo */
+        outline-offset: 4px;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        cursor: text !important;
+        z-index: 150;
+      }
 
-        .resize-handle:hover {
-            transform: scale(1.3);
-            background-color: #059669;
-        }
+      /* Container Utama Halaman Preview */
+      .print-container {
+        display: flex;
+        flex-direction: column;
+        gap: 80px;
+        align-items: center;
+        margin-bottom: 50px;
+      }
 
-        .data-item:focus-within .resize-handle,
-        .data-item.selected-item .resize-handle {
-            opacity: 1;
-        }
+      /* Template Lembar Kerja F4 (210mm x 330mm) */
+      .print-page {
+        position: relative;
+        width: 210mm;
+        height: 330mm;
+        background-color: #ffffff;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: none;
+        outline: 1px dashed #cbd5e1;
+        overflow: visible;
+        /* agar badge di atas tidak tertutup */
+      }
 
-        .data-item.resizing .clone-item-btn,
-        .data-item.resizing .delete-item-btn,
-        .data-item.resizing .resize-handle:not(.active-resize-handle) {
-            display: none !important;
-        }
+      .page-badge {
+        position: absolute;
+        top: -46px;
+        left: 0;
+        right: 0;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #f8fafc;
+        padding: 0 16px;
+        height: 38px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 200;
+      }
 
-        .sized-text-item .text-content {
-            display: block;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
+      .page-badge span {
+        color: #cbd5e1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      }
 
-        /* Status Teks Sedang Diedit */
-        .data-item.editing {
-            outline: 2px dashed #6366f1 !important;
-            /* Indigo */
-            outline-offset: 4px;
-            background-color: rgba(255, 255, 255, 0.95) !important;
-            cursor: text !important;
-            z-index: 150;
-        }
+      .page-badge button {
+        border: 1px solid transparent;
+        color: white;
+        padding: 4px 8px;
+        font-size: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        outline: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
 
-        /* Container Utama Halaman Preview */
-        .print-container {
-            display: flex;
-            flex-direction: column;
-            gap: 80px;
-            align-items: center;
-            margin-bottom: 50px;
-        }
+      .page-badge button.btn-badge-text {
+        background: rgba(99, 102, 241, 0.25);
+        border-color: rgba(99, 102, 241, 0.4);
+      }
 
-        /* Template Lembar Kerja F4 (210mm x 330mm) */
-        .print-page {
-            position: relative;
-            width: 210mm;
-            height: 330mm;
-            background-color: #ffffff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            border: none;
-            outline: 1px dashed #cbd5e1;
-            overflow: visible;
-            /* agar badge di atas tidak tertutup */
-        }
+      .page-badge button.btn-badge-text:hover {
+        background: rgba(99, 102, 241, 0.5);
+        border-color: rgba(99, 102, 241, 0.7);
+        transform: translateY(-1px) scale(1.03);
+        box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+      }
 
-        .page-badge {
-            position: absolute;
-            top: -46px;
-            left: 0;
-            right: 0;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            color: #f8fafc;
-            padding: 0 16px;
-            height: 38px;
-            font-size: 11px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 200;
-        }
+      .page-badge button.btn-badge-img {
+        background: rgba(16, 185, 129, 0.25);
+        border-color: rgba(16, 185, 129, 0.4);
+      }
 
-        .page-badge span {
-            color: #cbd5e1;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-        }
+      .page-badge button.btn-badge-img:hover {
+        background: rgba(16, 185, 129, 0.5);
+        border-color: rgba(16, 185, 129, 0.7);
+        transform: translateY(-1px) scale(1.03);
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+      }
 
-        .page-badge button {
-            border: 1px solid transparent;
-            color: white;
-            padding: 4px 8px;
-            font-size: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 700;
-            transition: all 0.2s ease;
-            outline: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
+      /* Styles untuk overlay guide gambar */
+      .page-overlay-guide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        pointer-events: none;
+        /* Supaya teks di atasnya tetap dapat diklik/diseleksi */
+        z-index: 0;
+        opacity: 0.5;
+        /* Dinamis */
+        display: block;
+        /* Dinamis */
+        transition: opacity 0.2s ease;
+      }
 
-        .page-badge button.btn-badge-text {
-            background: rgba(99, 102, 241, 0.25);
-            border-color: rgba(99, 102, 241, 0.4);
-        }
+      /* Style Umum Objek Teks Cetak */
+      .print-item {
+        position: absolute;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 9pt;
+        font-weight: bold;
+        color: #000000;
+        z-index: 1;
+        /* Pastikan di atas overlay guide */
+      }
 
-        .page-badge button.btn-badge-text:hover {
-            background: rgba(99, 102, 241, 0.5);
-            border-color: rgba(99, 102, 241, 0.7);
-            transform: translateY(-1px) scale(1.03);
-            box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
-        }
-
-        .page-badge button.btn-badge-img {
-            background: rgba(16, 185, 129, 0.25);
-            border-color: rgba(16, 185, 129, 0.4);
-        }
-
-        .page-badge button.btn-badge-img:hover {
-            background: rgba(16, 185, 129, 0.5);
-            border-color: rgba(16, 185, 129, 0.7);
-            transform: translateY(-1px) scale(1.03);
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
-        }
-
-        /* Styles untuk overlay guide gambar */
-        .page-overlay-guide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: fill;
-            pointer-events: none;
-            /* Supaya teks di atasnya tetap dapat diklik/diseleksi */
-            z-index: 0;
-            opacity: 0.5;
-            /* Dinamis */
-            display: block;
-            /* Dinamis */
-            transition: opacity 0.2s ease;
-        }
-
-        /* Style Umum Objek Teks Cetak */
-        .print-item {
-            position: absolute;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 9pt;
-            font-weight: bold;
-            color: #000000;
-            z-index: 1;
-            /* Pastikan di atas overlay guide */
-        }
-
-        /* ==========================================================================
+      /* ==========================================================================
            INDICATOR / MARKER KALIBRASI DI 4 SUDUT (Hardcoded 10mm dari tepi)
            ========================================================================== */
-        .cal-mark {
-            color: #ef4444;
-            /* Warna merah agar kontras saat tes kalibrasi */
-            font-size: 10pt;
-            line-height: 1.2;
-            z-index: 2;
-            /* Di atas segalanya */
+      .cal-mark {
+        color: #ef4444;
+        /* Warna merah agar kontras saat tes kalibrasi */
+        font-size: 10pt;
+        line-height: 1.2;
+        z-index: 2;
+        /* Di atas segalanya */
+      }
+
+      /* Sembunyikan marker kalibrasi saat pratinjau aktif */
+      .hide-cal-on-preview .cal-mark {
+        display: none !important;
+      }
+
+      /* Top Left: 10mm dari atas, 10mm dari kiri */
+      .cal-tl {
+        top: 10mm;
+        left: 10mm;
+      }
+
+      /* Top Right: 10mm dari atas, 10mm dari kanan */
+      .cal-tr {
+        top: 10mm;
+        right: 10mm;
+        text-align: right;
+      }
+
+      /* Bottom Left: 10mm dari bawah, 10mm dari kiri */
+      .cal-bl {
+        bottom: 10mm;
+        left: 10mm;
+      }
+
+      /* Bottom Right: 10mm dari bawah, 10mm dari kanan */
+      .cal-br {
+        bottom: 10mm;
+        right: 10mm;
+        text-align: right;
+      }
+
+      @media (hover: none) {
+        .data-item .delete-item-btn,
+        .data-item .clone-item-btn {
+          display: flex !important;
         }
 
-        /* Sembunyikan marker kalibrasi saat pratinjau aktif */
-        .hide-cal-on-preview .cal-mark {
-            display: none !important;
+        .data-item .resize-handle {
+          opacity: 1;
         }
+      }
 
-        /* Top Left: 10mm dari atas, 10mm dari kiri */
-        .cal-tl {
-            top: 10mm;
-            left: 10mm;
-        }
-
-        /* Top Right: 10mm dari atas, 10mm dari kanan */
-        .cal-tr {
-            top: 10mm;
-            right: 10mm;
-            text-align: right;
-        }
-
-        /* Bottom Left: 10mm dari bawah, 10mm dari kiri */
-        .cal-bl {
-            bottom: 10mm;
-            left: 10mm;
-        }
-
-        /* Bottom Right: 10mm dari bawah, 10mm dari kanan */
-        .cal-br {
-            bottom: 10mm;
-            right: 10mm;
-            text-align: right;
-        }
-
-        @media (hover: none) {
-            .data-item .delete-item-btn,
-            .data-item .clone-item-btn {
-                display: flex !important;
-            }
-
-            .data-item .resize-handle {
-                opacity: 1;
-            }
-        }
-
-        /* ==========================================================================
+      /* ==========================================================================
            2. STYLE KHUSUS SAAT DI-PRINT (Masuk ke Printer)
            ========================================================================== */
-        @media print {
-            @page {
-                size: 210mm 330mm;
-                margin: 0;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            body {
-                background-color: transparent;
-                background: none !important;
-            }
-
-            .print-container {
-                gap: 0 !important;
-            }
-
-            .print-page {
-                border: none !important;
-                outline: none !important;
-                box-shadow: none !important;
-                margin: 0 !important;
-                width: 210mm;
-                height: 330mm;
-                overflow: hidden !important;
-                page-break-after: always;
-                break-after: page;
-            }
-
-            .print-page:last-child {
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            /* Sembunyikan marker kalibrasi saat checkbox aktif */
-            .hide-cal-on-print .cal-mark {
-                display: none !important;
-            }
-
-            /* Selalu sembunyikan gambar panduan overlay saat cetak asli, kecuali jika di-toggle cetak */
-            .page-overlay-guide {
-                display: none !important;
-            }
-
-            .print-overlay-visible .page-overlay-guide {
-                display: block !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+      @media print {
+        @page {
+          size: 210mm 330mm;
+          margin: 0;
         }
 
-        /* Garis Pemandu Magnetik */
-        .magnetic-guide {
-            position: absolute;
-            background-color: #6366f1;
-            /* Indigo Snapping Guides */
-            z-index: 99;
-            pointer-events: none;
-            display: none;
+        .no-print {
+          display: none !important;
         }
 
-        .magnetic-guide.vertical {
-            width: 1px;
-            top: 0;
-            bottom: 0;
+        body {
+          background-color: transparent;
+          background: none !important;
         }
 
-        .magnetic-guide.horizontal {
-            height: 1px;
-            left: 0;
-            right: 0;
+        .print-container {
+          gap: 0 !important;
         }
 
-        /* Status Terpilih untuk Mikro-Kalibrasi (Keyboard Nudging) */
-        .data-item.selected-item {
-            outline: 2px solid #3b82f6 !important;
-            outline-offset: 1px;
+        .print-page {
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+          margin: 0 !important;
+          width: 210mm;
+          height: 330mm;
+          overflow: hidden !important;
+          page-break-after: always;
+          break-after: page;
         }
 
-        .print-page.marquee-active {
-            cursor: crosshair;
-            user-select: none;
+        .print-page:last-child {
+          page-break-after: avoid;
+          break-after: avoid;
         }
 
-        .marquee-selection-box {
-            position: absolute;
-            z-index: 2000;
-            pointer-events: none;
-            border: 1.5px solid #2563eb;
-            border-radius: 3px;
-            background: rgba(59, 130, 246, 0.12);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 3px 12px rgba(37, 99, 235, 0.16);
+        /* Sembunyikan marker kalibrasi saat checkbox aktif */
+        .hide-cal-on-print .cal-mark {
+          display: none !important;
         }
 
-        .marquee-selection-box::after {
-            content: 'Di dalam';
-            position: absolute;
-            top: -24px;
-            left: -1px;
-            padding: 3px 7px;
-            border-radius: 5px;
-            background: #1d4ed8;
-            color: #ffffff;
-            font: 600 9px/1.2 Arial, sans-serif;
-            white-space: nowrap;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+        /* Selalu sembunyikan gambar panduan overlay saat cetak asli, kecuali jika di-toggle cetak */
+        .page-overlay-guide {
+          display: none !important;
         }
 
-        .marquee-selection-box[data-selection-mode="intersect"] {
-            border-style: dashed;
-            border-color: #7c3aed;
-            background: rgba(124, 58, 237, 0.10);
+        .print-overlay-visible .page-overlay-guide {
+          display: block !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
+      }
 
-        .marquee-selection-box[data-selection-mode="intersect"]::after {
-            content: 'Tersentuh';
-            background: #6d28d9;
-        }
+      /* Garis Pemandu Magnetik */
+      .magnetic-guide {
+        position: absolute;
+        background-color: #6366f1;
+        /* Indigo Snapping Guides */
+        z-index: 99;
+        pointer-events: none;
+        display: none;
+      }
 
-        .marquee-selection-box[data-selection-operation="add"] {
-            border-color: #059669;
-            background: rgba(16, 185, 129, 0.11);
-        }
+      .magnetic-guide.vertical {
+        width: 1px;
+        top: 0;
+        bottom: 0;
+      }
 
-        .marquee-selection-box[data-selection-operation="add"]::after {
-            background: #047857;
-        }
+      .magnetic-guide.horizontal {
+        height: 1px;
+        left: 0;
+        right: 0;
+      }
 
-        .marquee-selection-box[data-selection-operation="toggle"] {
-            border-color: #d97706;
-            background: rgba(245, 158, 11, 0.11);
-        }
+      /* Status Terpilih untuk Mikro-Kalibrasi (Keyboard Nudging) */
+      .data-item.selected-item {
+        outline: 2px solid #3b82f6 !important;
+        outline-offset: 1px;
+      }
 
-        .marquee-selection-box[data-selection-operation="toggle"]::after {
-            background: #b45309;
-        }
+      .print-page.marquee-active {
+        cursor: crosshair;
+        user-select: none;
+      }
 
-        .data-item.marquee-candidate {
-            outline: 2px dashed #10b981 !important;
-            outline-offset: 3px;
-        }
+      .marquee-selection-box {
+        position: absolute;
+        z-index: 2000;
+        pointer-events: none;
+        border: 1.5px solid #2563eb;
+        border-radius: 3px;
+        background: rgba(59, 130, 246, 0.12);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+          0 3px 12px rgba(37, 99, 235, 0.16);
+      }
 
-        .data-item.marquee-remove-candidate {
-            outline: 2px dashed #ef4444 !important;
-            outline-offset: 3px;
-            opacity: 0.65;
-        }
+      .marquee-selection-box::after {
+        content: 'Di dalam';
+        position: absolute;
+        top: -24px;
+        left: -1px;
+        padding: 3px 7px;
+        border-radius: 5px;
+        background: #1d4ed8;
+        color: #ffffff;
+        font:
+          600 9px/1.2 Arial,
+          sans-serif;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+      }
 
-        /* Tombol Clone Elemen Cetak */
-        .clone-item-btn {
-            position: absolute;
-            top: -26px;
-            right: 12px;
-            /* Ditempatkan di sebelah tombol hapus bulat merah */
-            width: 18px;
-            height: 18px;
-            background-color: #10b981;
-            /* Emerald Green */
-            color: white;
-            border-radius: 50%;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            transition: all 0.1s ease;
-            border: none;
-            padding: 0;
-            line-height: 1;
-        }
+      .marquee-selection-box[data-selection-mode='intersect'] {
+        border-style: dashed;
+        border-color: #7c3aed;
+        background: rgba(124, 58, 237, 0.1);
+      }
 
-        .clone-item-btn:hover {
-            background-color: #059669;
-            transform: scale(1.1);
-        }
+      .marquee-selection-box[data-selection-mode='intersect']::after {
+        content: 'Tersentuh';
+        background: #6d28d9;
+      }
 
-        .data-item:not(.text-item.selected-item):hover .clone-item-btn,
-        .data-item:not(.text-item.selected-item):focus-within .clone-item-btn,
-        .image-item.selected-item .clone-item-btn {
-            display: flex !important;
-        }
+      .marquee-selection-box[data-selection-operation='add'] {
+        border-color: #059669;
+        background: rgba(16, 185, 129, 0.11);
+      }
 
+      .marquee-selection-box[data-selection-operation='add']::after {
+        background: #047857;
+      }
+
+      .marquee-selection-box[data-selection-operation='toggle'] {
+        border-color: #d97706;
+        background: rgba(245, 158, 11, 0.11);
+      }
+
+      .marquee-selection-box[data-selection-operation='toggle']::after {
+        background: #b45309;
+      }
+
+      .data-item.marquee-candidate {
+        outline: 2px dashed #10b981 !important;
+        outline-offset: 3px;
+      }
+
+      .data-item.marquee-remove-candidate {
+        outline: 2px dashed #ef4444 !important;
+        outline-offset: 3px;
+        opacity: 0.65;
+      }
+
+      /* Tombol Clone Elemen Cetak */
+      .clone-item-btn {
+        position: absolute;
+        top: -26px;
+        right: 12px;
+        /* Ditempatkan di sebelah tombol hapus bulat merah */
+        width: 18px;
+        height: 18px;
+        background-color: #10b981;
+        /* Emerald Green */
+        color: white;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+        transition: all 0.1s ease;
+        border: none;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .clone-item-btn:hover {
+        background-color: #059669;
+        transform: scale(1.1);
+      }
+
+      .data-item:not(.text-item.selected-item):hover .clone-item-btn,
+      .data-item:not(.text-item.selected-item):focus-within .clone-item-btn,
+      .image-item.selected-item .clone-item-btn {
+        display: flex !important;
+      }
     </style>
-    <link rel="stylesheet" href="./assets/vendor/driver.css">
-    <link rel="stylesheet" href="./assets/app.css">
+    <link rel="stylesheet" href="./assets/vendor/driver.css" />
+    <link rel="stylesheet" href="./assets/app.css" />
     <!-- Ace Editor library for premium JSON code editing -->
     <script defer src="./assets/vendor/ace.js"></script>
     <!-- Lucide Icons library for clean, modern SVG icons -->
     <script defer src="./assets/vendor/lucide.min.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <script src="./src/theme-bootstrap.js"></script>
 
     <main class="admin-panel no-print" aria-label="Editor Bidik Koordinat">
-
-
-        <div class="layout-split">
-            <div class="input-area">
-                <div id="editorContainer" class="editor-container" aria-labelledby="editorTitle">
-                    <p id="editorTitle" class="editor-label">Welcome to Bidik Koordinat</p>
-                    <hr class="my-2.5 border-0 border-t border-[var(--card-border)]">
-                    <div class="editor-header">
-                        <div class="editor-toolbar">
-                            <button id="btnUndo" class="btn btn-outline btn-sm" disabled
-                                aria-label="Undo perubahan"><i data-lucide="undo-2"></i></button>
-                            <button id="btnRedo" class="btn btn-outline btn-sm" disabled
-                                aria-label="Redo perubahan"><i data-lucide="redo-2"></i></button>
-                            <div class="mx-1 h-4 w-px bg-[var(--card-border)]"></div>
-                            <button id="btnAddText" class="btn btn-outline btn-sm"><i
-                                    data-lucide="plus"></i> Tambah Teks</button>
-                            <button id="btnAddImage" class="btn btn-outline btn-sm"><i
-                                    data-lucide="image"></i> Tambah Gambar</button>
-                            <button id="btnFormatJson" class="btn btn-outline btn-sm"><i
-                                    data-lucide="brush"></i> Format JSON</button>
-                            <button id="btnLoadDemo" class="btn btn-outline btn-sm"><i
-                                    data-lucide="rotate-ccw"></i> Contoh Data</button>
-                            <button id="btnResetData" class="btn btn-outline btn-sm btn-danger"><i
-                                    data-lucide="trash-2"></i> Reset Data</button>
-                            <button id="btnFullscreen" class="btn btn-outline btn-sm"><i data-lucide="maximize-2"></i> Fullscreen</button>
-                        </div>
-                        <span id="saveStatus" class="save-status" role="status" aria-live="polite"
-                            aria-atomic="true" data-state="idle">Siap</span>
-                    </div>
-                    <div id="jsonInputEditor" role="region" aria-label="Editor JSON dokumen"></div>
-                    <textarea id="jsonInput" class="hidden"></textarea>
-                    <input type="file" id="imageUploadInput" accept="image/*" class="hidden"
-                        aria-label="Pilih gambar untuk diunggah">
-                    <div id="jsonValidationStatus" role="status" aria-live="polite"
-                        class="mt-1.5 hidden rounded-md px-3 py-1.5 text-xs font-medium">
-                    </div>
-                </div>
-            </div>
-
-            <div class="guide-area">
-                <h4><i data-lucide="lightbulb" class="text-yellow-500 [stroke-width:2]"></i> Cara Kalibrasi & Cetak:</h4>
-                <p>1. Cetak halaman ke kertas kosong. Pengaturan dialog cetak browser:</p>
-                <ul class="mt-1 mb-2.5 pl-5 text-xs">
-                    <li>Margin: <b>None</b> (Tanpa Margin)</li>
-                    <li>Headers & Footers: <b>Off</b> (Nonaktif)</li>
-                </ul>
-                <p>2. Ambil penggaris fisik, ukur jarak kotak <b>[TL]</b> ke ujung kiri & atas kertas hasil cetak.</p>
-                <p>3. Jika terukur 12mm (seharusnya 10mm), berarti ada pergeseran printer +2mm horisontal. Masukkan
-                    nilai <b>-2.0</b> pada Offset X.</p>
-                <p>4. Gunakan tombol Ekspor/Impor di bawah untuk mengamankan konfigurasi Anda.</p>
-                <button id="btnShowHelp" class="btn btn-outline btn-sm mt-2.5 w-full">
-                    <i data-lucide="help-circle"></i> Panduan Fitur Lengkap
+      <div class="layout-split">
+        <div class="input-area">
+          <div id="editorContainer" class="editor-container" aria-labelledby="editorTitle">
+            <p id="editorTitle" class="editor-label">Welcome to Bidik Koordinat</p>
+            <hr class="my-2.5 border-0 border-t border-[var(--card-border)]" />
+            <div class="editor-header">
+              <div class="editor-toolbar">
+                <button
+                  id="btnUndo"
+                  class="btn btn-outline btn-sm"
+                  disabled
+                  aria-label="Undo perubahan"
+                >
+                  <i data-lucide="undo-2"></i>
                 </button>
-                <button id="btnStartOnboarding" class="btn btn-outline btn-sm mt-2 w-full">
-                    <i data-lucide="sparkles"></i> Tur Interaktif
+                <button
+                  id="btnRedo"
+                  class="btn btn-outline btn-sm"
+                  disabled
+                  aria-label="Redo perubahan"
+                >
+                  <i data-lucide="redo-2"></i>
                 </button>
+                <div class="mx-1 h-4 w-px bg-[var(--card-border)]"></div>
+                <button id="btnAddText" class="btn btn-outline btn-sm">
+                  <i data-lucide="plus"></i> Tambah Teks
+                </button>
+                <button id="btnAddImage" class="btn btn-outline btn-sm">
+                  <i data-lucide="image"></i> Tambah Gambar
+                </button>
+                <button id="btnFormatJson" class="btn btn-outline btn-sm">
+                  <i data-lucide="brush"></i> Format JSON
+                </button>
+                <button id="btnLoadDemo" class="btn btn-outline btn-sm">
+                  <i data-lucide="rotate-ccw"></i> Contoh Data
+                </button>
+                <button id="btnResetData" class="btn btn-outline btn-sm btn-danger">
+                  <i data-lucide="trash-2"></i> Reset Data
+                </button>
+                <button id="btnFullscreen" class="btn btn-outline btn-sm">
+                  <i data-lucide="maximize-2"></i> Fullscreen
+                </button>
+              </div>
+              <span
+                id="saveStatus"
+                class="save-status"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                data-state="idle"
+                >Siap</span
+              >
             </div>
+            <div id="jsonInputEditor" role="region" aria-label="Editor JSON dokumen"></div>
+            <textarea id="jsonInput" class="hidden"></textarea>
+            <input
+              type="file"
+              id="imageUploadInput"
+              accept="image/*"
+              class="hidden"
+              aria-label="Pilih gambar untuk diunggah"
+            />
+            <div
+              id="jsonValidationStatus"
+              role="status"
+              aria-live="polite"
+              class="mt-1.5 hidden rounded-md px-3 py-1.5 text-xs font-medium"
+            ></div>
+          </div>
         </div>
 
-        <section id="propertyPanel" class="property-panel" aria-labelledby="propertyPanelTitle" hidden>
-            <div class="property-panel-header">
-                <div><h2 id="propertyPanelTitle">Properti Elemen</h2><p id="propertySelectionSummary">1 elemen dipilih</p></div>
-                <button id="btnCloseProperties" type="button" class="btn btn-outline btn-sm" aria-label="Tutup panel properti">×</button>
-            </div>
-            <div class="property-grid">
-                <label>X (mm)<input data-property="x" type="number" min="0" max="210" step="0.1"></label>
-                <label>Y (mm)<input data-property="y" type="number" min="0" max="330" step="0.1"></label>
-                <label>Lebar (mm)<input data-property="width" type="number" min="0.1" max="210" step="0.1"></label>
-                <label>Tinggi (mm)<input data-property="height" type="number" min="0.1" max="330" step="0.1"></label>
-                <label>Font<select data-property="font_family">
-                    <option value="Arial, sans-serif">Arial</option><option value="Courier New, Courier, monospace">Courier New</option>
-                    <option value="Times New Roman, Times, serif">Times New Roman</option><option value="Georgia, serif">Georgia</option>
-                    <option value="Verdana, sans-serif">Verdana</option><option value="Plus Jakarta Sans, sans-serif">Plus Jakarta Sans</option>
-                </select></label>
-                <label>Ukuran (pt)<input data-property="font_size" type="number" min="4" max="72" step="0.1"></label>
-                <label>Warna<input data-property="color" type="color"></label>
-                <label>Rotasi (°)<input data-property="rotation" type="number" min="-360" max="360" step="1"></label>
-                <label>Layer<input data-property="z_index" type="number" min="-1000" max="1000" step="1"></label>
-                <label class="property-lock"><input data-property="locked" type="checkbox"> Kunci posisi</label>
-            </div>
-            <div class="alignment-tools" role="toolbar" aria-label="Perataan elemen">
-                <button data-align-action="left" title="Rata kiri (Alt+A)" aria-keyshortcuts="Alt+A">Kiri</button><button data-align-action="hcenter" title="Rata tengah horizontal (Alt+H)" aria-keyshortcuts="Alt+H">Tengah X</button>
-                <button data-align-action="right" title="Rata kanan (Alt+D)" aria-keyshortcuts="Alt+D">Kanan</button><button data-align-action="top" title="Rata atas (Alt+W)" aria-keyshortcuts="Alt+W">Atas</button>
-                <button data-align-action="vcenter" title="Rata tengah vertikal (Alt+V)" aria-keyshortcuts="Alt+V">Tengah Y</button><button data-align-action="bottom" title="Rata bawah (Alt+S)" aria-keyshortcuts="Alt+S">Bawah</button>
-                <button data-align-action="distribute-h" title="Distribusi horizontal (Alt+Shift+H)" aria-keyshortcuts="Alt+Shift+H">Sebar X</button><button data-align-action="distribute-v" title="Distribusi vertikal (Alt+Shift+V)" aria-keyshortcuts="Alt+Shift+V">Sebar Y</button>
-            </div>
-        </section>
+        <div class="guide-area">
+          <h4>
+            <i data-lucide="lightbulb" class="text-yellow-500 [stroke-width:2]"></i> Cara Kalibrasi
+            & Cetak:
+          </h4>
+          <p>1. Cetak halaman ke kertas kosong. Pengaturan dialog cetak browser:</p>
+          <ul class="mt-1 mb-2.5 pl-5 text-xs">
+            <li>Margin: <b>None</b> (Tanpa Margin)</li>
+            <li>Headers & Footers: <b>Off</b> (Nonaktif)</li>
+          </ul>
+          <p>
+            2. Ambil penggaris fisik, ukur jarak kotak <b>[TL]</b> ke ujung kiri & atas kertas hasil
+            cetak.
+          </p>
+          <p>
+            3. Jika terukur 12mm (seharusnya 10mm), berarti ada pergeseran printer +2mm horisontal.
+            Masukkan nilai <b>-2.0</b> pada Offset X.
+          </p>
+          <p>4. Gunakan tombol Ekspor/Impor di bawah untuk mengamankan konfigurasi Anda.</p>
+          <button id="btnShowHelp" class="btn btn-outline btn-sm mt-2.5 w-full">
+            <i data-lucide="help-circle"></i> Panduan Fitur Lengkap
+          </button>
+          <button id="btnStartOnboarding" class="btn btn-outline btn-sm mt-2 w-full">
+            <i data-lucide="sparkles"></i> Tur Interaktif
+          </button>
+        </div>
+      </div>
 
-        <!-- Section Kalibrasi & Backup Pengaturan -->
-        <div class="overlay-card mt-[15px]">
-            <div class="flex w-full gap-2.5">
-                <div class="control-group w-full">
-                    <label for="offsetX">Offset Kalibrasi X (Horisontal):</label>
-                    <div class="flex items-center gap-2">
-                        <input type="number" id="offsetX" value="0.0" min="-50" max="50" step="0.1" class="w-full"
-                            aria-label="Offset kalibrasi horisontal X">
-                        <span class="text-[13px] font-semibold text-slate-500">mm</span>
-                    </div>
-                </div>
+      <section
+        id="propertyPanel"
+        class="property-panel"
+        aria-labelledby="propertyPanelTitle"
+        hidden
+      >
+        <div class="property-panel-header">
+          <div>
+            <h2 id="propertyPanelTitle">Properti Elemen</h2>
+            <p id="propertySelectionSummary">1 elemen dipilih</p>
+          </div>
+          <button
+            id="btnCloseProperties"
+            type="button"
+            class="btn btn-outline btn-sm"
+            aria-label="Tutup panel properti"
+          >
+            ×
+          </button>
+        </div>
+        <div class="property-grid">
+          <label
+            >X (mm)<input data-property="x" type="number" min="0" max="210" step="0.1"
+          /></label>
+          <label
+            >Y (mm)<input data-property="y" type="number" min="0" max="330" step="0.1"
+          /></label>
+          <label
+            >Lebar (mm)<input data-property="width" type="number" min="0.1" max="210" step="0.1"
+          /></label>
+          <label
+            >Tinggi (mm)<input data-property="height" type="number" min="0.1" max="330" step="0.1"
+          /></label>
+          <label
+            >Font<select data-property="font_family">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Courier New, Courier, monospace">Courier New</option>
+              <option value="Times New Roman, Times, serif">Times New Roman</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+              <option value="Plus Jakarta Sans, sans-serif">Plus Jakarta Sans</option>
+            </select></label
+          >
+          <label
+            >Ukuran (pt)<input data-property="font_size" type="number" min="4" max="72" step="0.1"
+          /></label>
+          <label>Warna<input data-property="color" type="color" /></label>
+          <label
+            >Rotasi (°)<input data-property="rotation" type="number" min="-360" max="360" step="1"
+          /></label>
+          <label
+            >Layer<input data-property="z_index" type="number" min="-1000" max="1000" step="1"
+          /></label>
+          <label class="property-lock"
+            ><input data-property="locked" type="checkbox" /> Kunci posisi</label
+          >
+        </div>
+        <div class="alignment-tools" role="toolbar" aria-label="Perataan elemen">
+          <button data-align-action="left" title="Rata kiri (Alt+A)" aria-keyshortcuts="Alt+A">
+            Kiri</button
+          ><button
+            data-align-action="hcenter"
+            title="Rata tengah horizontal (Alt+H)"
+            aria-keyshortcuts="Alt+H"
+          >
+            Tengah X
+          </button>
+          <button data-align-action="right" title="Rata kanan (Alt+D)" aria-keyshortcuts="Alt+D">
+            Kanan</button
+          ><button data-align-action="top" title="Rata atas (Alt+W)" aria-keyshortcuts="Alt+W">
+            Atas
+          </button>
+          <button
+            data-align-action="vcenter"
+            title="Rata tengah vertikal (Alt+V)"
+            aria-keyshortcuts="Alt+V"
+          >
+            Tengah Y</button
+          ><button data-align-action="bottom" title="Rata bawah (Alt+S)" aria-keyshortcuts="Alt+S">
+            Bawah
+          </button>
+          <button
+            data-align-action="distribute-h"
+            title="Distribusi horizontal (Alt+Shift+H)"
+            aria-keyshortcuts="Alt+Shift+H"
+          >
+            Sebar X</button
+          ><button
+            data-align-action="distribute-v"
+            title="Distribusi vertikal (Alt+Shift+V)"
+            aria-keyshortcuts="Alt+Shift+V"
+          >
+            Sebar Y
+          </button>
+        </div>
+      </section>
 
-                <div class="control-group w-full">
-                    <label for="offsetY">Offset Kalibrasi Y (Vertikal):</label>
-                    <div class="flex items-center gap-2">
-                        <input type="number" id="offsetY" value="0.0" min="-50" max="50" step="0.1" class="w-full"
-                            aria-label="Offset kalibrasi vertikal Y">
-                        <span class="text-[13px] font-semibold text-slate-500">mm</span>
-                    </div>
-                </div>
+      <!-- Section Kalibrasi & Backup Pengaturan -->
+      <div class="overlay-card mt-[15px]">
+        <div class="flex w-full gap-2.5">
+          <div class="control-group w-full">
+            <label for="offsetX">Offset Kalibrasi X (Horisontal):</label>
+            <div class="flex items-center gap-2">
+              <input
+                type="number"
+                id="offsetX"
+                value="0.0"
+                min="-50"
+                max="50"
+                step="0.1"
+                class="w-full"
+                aria-label="Offset kalibrasi horisontal X"
+              />
+              <span class="text-[13px] font-semibold text-slate-500">mm</span>
             </div>
+          </div>
 
-            <div class="control-group w-full flex-row">
-                <button id="btnToggleTheme" class="btn btn-outline w-full px-4 py-2 text-[13px]"
-                    aria-label="Ganti Tema Gelap/Terang">
-                    <i data-lucide="moon"></i> Mode Gelap
-                </button>
-                <button id="btnExportSettings" class="btn btn-outline w-full px-4 py-2 text-[13px]"
-                    aria-label="Ekspor data pengaturan kalibrasi ke file JSON">
-                    <i data-lucide="download"></i> Ekspor Pengaturan
-                </button>
-                <button id="btnImportSettings" class="btn btn-outline w-full px-4 py-2 text-[13px]"
-                    aria-label="Impor data pengaturan kalibrasi dari file JSON">
-                    <i data-lucide="upload"></i> Impor Pengaturan
-                </button>
-                <input type="file" id="importFile" accept=".json" class="hidden"
-                    aria-label="Impor berkas pengaturan JSON">
+          <div class="control-group w-full">
+            <label for="offsetY">Offset Kalibrasi Y (Vertikal):</label>
+            <div class="flex items-center gap-2">
+              <input
+                type="number"
+                id="offsetY"
+                value="0.0"
+                min="-50"
+                max="50"
+                step="0.1"
+                class="w-full"
+                aria-label="Offset kalibrasi vertikal Y"
+              />
+              <span class="text-[13px] font-semibold text-slate-500">mm</span>
             </div>
+          </div>
         </div>
 
-        <!-- Section Pengaturan Gambar Panduan (Overlay Guide) -->
-        <div class="overlay-card">
-            <div class="control-group">
-                <label for="overlayDocSelect">Panduan Dokumen PDF:</label>
-                <select id="overlayDocSelect" aria-label="Pilih dokumen panduan PDF">
-                    <option value="none">-- Tanpa Gambar Panduan --</option>
-                    <option value="doc_1" selected>Perjanjian Pembiayaan (doc_1)</option>
-                </select>
-            </div>
+        <div class="control-group w-full flex-row">
+          <button
+            id="btnToggleTheme"
+            class="btn btn-outline w-full px-4 py-2 text-[13px]"
+            aria-label="Ganti Tema Gelap/Terang"
+          >
+            <i data-lucide="moon"></i> Mode Gelap
+          </button>
+          <button
+            id="btnExportSettings"
+            class="btn btn-outline w-full px-4 py-2 text-[13px]"
+            aria-label="Ekspor data pengaturan kalibrasi ke file JSON"
+          >
+            <i data-lucide="download"></i> Ekspor Pengaturan
+          </button>
+          <button
+            id="btnImportSettings"
+            class="btn btn-outline w-full px-4 py-2 text-[13px]"
+            aria-label="Impor data pengaturan kalibrasi dari file JSON"
+          >
+            <i data-lucide="upload"></i> Impor Pengaturan
+          </button>
+          <input
+            type="file"
+            id="importFile"
+            accept=".json"
+            class="hidden"
+            aria-label="Impor berkas pengaturan JSON"
+          />
+        </div>
+      </div>
 
-            <!-- Kontrol Impor PDF Langsung -->
-            <div class="control-group flex-row gap-2 self-end">
-                <button id="btnUploadPdf" class="btn btn-outline px-3 py-2 text-[13px]"
-                    aria-label="Unggah file PDF baru">
-                    <i data-lucide="file-up"></i> Unggah PDF Baru
-                </button>
-                <button class="btn btn-outline hidden border-red-300 px-3 py-2 text-[13px] text-red-500" id="btnDeletePdf"
-                    aria-label="Hapus PDF unggahan">
-                    <i data-lucide="trash-2"></i> Hapus PDF
-                </button>
-                <button id="btnReviewPdfFields" class="btn btn-outline px-3 py-2 text-[13px]" hidden
-                    aria-label="Tinjau kandidat field hasil pemindaian PDF">
-                    <i data-lucide="scan-search"></i> Tinjau Kandidat (<span data-field-count>0</span>)
-                </button>
-                <input type="file" id="pdfUploadInput" accept=".pdf" class="hidden"
-                    aria-label="Pilih file PDF">
-            </div>
-
-            <div id="pdfFieldScanControls" class="control-group pdf-field-scan-controls" hidden>
-                <label for="pdfFieldScanMode">Pemindai Field:</label>
-                <div class="flex flex-wrap items-center gap-2">
-                    <select id="pdfFieldScanMode" aria-label="Pilih metode pemindaian field PDF">
-                        <option value="auto">Otomatis</option>
-                        <option value="pdfjs">PDF.js saja</option>
-                        <option value="pymupdf">PyMuPDF</option>
-                        <option value="paddleocr">PaddleOCR</option>
-                    </select>
-                    <button id="btnScanPdfFields" class="btn btn-outline px-3 py-2 text-[13px]"
-                        aria-label="Pindai ulang field PDF dengan metode terpilih">
-                        <i data-lucide="scan-line"></i> Pindai Ulang Field
-                    </button>
-                </div>
-                <small id="pdfDetectorStatus" class="pdf-detector-status" role="status" aria-live="polite">
-                    PDF.js siap di browser.
-                </small>
-            </div>
-
-            <div class="control-group">
-                <label>Tampilkan Panduan:</label>
-                <label class="switch-container">
-                    <input type="checkbox" id="overlayToggle" checked>
-                    <span>Aktif di Layar</span>
-                </label>
-            </div>
-
-            <div class="control-group">
-                <label for="overlayOpacity">Opasitas Panduan:</label>
-                <div class="slider-wrapper">
-                    <input type="range" id="overlayOpacity" min="5" max="100" value="50"
-                        aria-label="Transparansi panduan dokumen">
-                    <span id="opacityVal" class="opacity-badge">50%</span>
-                </div>
-            </div>
-
-            <!-- Indikator Pemrosesan PDF -->
-            <div id="pdfUploadStatus" role="status" aria-live="polite" aria-atomic="true"
-                class="ml-2.5 hidden self-center text-xs font-medium text-sky-600">
-            </div>
+      <!-- Section Pengaturan Gambar Panduan (Overlay Guide) -->
+      <div class="overlay-card">
+        <div class="control-group">
+          <label for="overlayDocSelect">Panduan Dokumen PDF:</label>
+          <select id="overlayDocSelect" aria-label="Pilih dokumen panduan PDF">
+            <option value="none">-- Tanpa Gambar Panduan --</option>
+            <option value="doc_1" selected>Dokumen Showcase · 1 halaman (doc_1)</option>
+          </select>
         </div>
 
-        <div class="action-bar">
-            <div>
-                <button id="btnRenderPreview" class="btn btn-primary">1. Render Preview</button>
-                <button id="btnPrint" class="btn btn-success">2. Cetak ke Printer</button>
-                <button id="btnExportHtml" class="btn btn-export"><i data-lucide="file-down"></i> 3. Export ke
-                    HTML</button>
-            </div>
-
-            <div class="print-options-grid" role="group" aria-label="Opsi pratinjau dan pencetakan">
-                <label class="print-option-card">
-                    <input type="checkbox" id="hideCalCheck"
-                        aria-label="Sembunyikan Marker Kalibrasi saat dicetak asli">
-                    <span class="print-option-icon" aria-hidden="true"><i data-lucide="printer"></i></span>
-                    <span class="print-option-copy">
-                        <strong>Marker saat cetak</strong>
-                        <small>Sembunyikan tanda kalibrasi dari hasil final.</small>
-                    </span>
-                    <span class="print-option-switch" aria-hidden="true"></span>
-                </label>
-                <label class="print-option-card">
-                    <input type="checkbox" id="hideCalPreviewCheck"
-                        aria-label="Sembunyikan Marker Kalibrasi pada pratinjau layar">
-                    <span class="print-option-icon" aria-hidden="true"><i data-lucide="eye-off"></i></span>
-                    <span class="print-option-copy">
-                        <strong>Marker di preview</strong>
-                        <small>Bersihkan tampilan layar dari tanda kalibrasi.</small>
-                    </span>
-                    <span class="print-option-switch" aria-hidden="true"></span>
-                </label>
-                <label class="print-option-card">
-                    <input type="checkbox" id="printOverlayCheck"
-                        aria-label="Cetak Dokumen Latar Belakang (PDF)">
-                    <span class="print-option-icon" aria-hidden="true"><i data-lucide="layers-3"></i></span>
-                    <span class="print-option-copy">
-                        <strong>Latar PDF</strong>
-                        <small>Sertakan dokumen panduan pada hasil cetak.</small>
-                    </span>
-                    <span class="print-option-switch" aria-hidden="true"></span>
-                </label>
-                <label class="print-option-card">
-                    <input type="checkbox" id="enableSnapCheck" checked aria-label="Aktifkan Snapping Magnetik">
-                    <span class="print-option-icon" aria-hidden="true"><i data-lucide="magnet"></i></span>
-                    <span class="print-option-copy">
-                        <strong>Snapping magnetik</strong>
-                        <small>Bantu elemen menempel presisi ke elemen lain.</small>
-                    </span>
-                    <span class="print-option-switch" aria-hidden="true"></span>
-                </label>
-            </div>
+        <!-- Kontrol Impor PDF Langsung -->
+        <div class="control-group flex-row gap-2 self-end">
+          <button
+            id="btnUploadPdf"
+            class="btn btn-outline px-3 py-2 text-[13px]"
+            aria-label="Unggah file PDF baru"
+          >
+            <i data-lucide="file-up"></i> Unggah PDF Baru
+          </button>
+          <button
+            class="btn btn-outline hidden border-red-300 px-3 py-2 text-[13px] text-red-500"
+            id="btnDeletePdf"
+            aria-label="Hapus PDF unggahan"
+          >
+            <i data-lucide="trash-2"></i> Hapus PDF
+          </button>
+          <button
+            id="btnReviewPdfFields"
+            class="btn btn-outline px-3 py-2 text-[13px]"
+            hidden
+            aria-label="Tinjau kandidat field hasil pemindaian PDF"
+          >
+            <i data-lucide="scan-search"></i> Tinjau Kandidat (<span data-field-count>0</span>)
+          </button>
+          <input
+            type="file"
+            id="pdfUploadInput"
+            accept=".pdf"
+            class="hidden"
+            aria-label="Pilih file PDF"
+          />
         </div>
+
+        <div id="pdfFieldScanControls" class="control-group pdf-field-scan-controls" hidden>
+          <label for="pdfFieldScanMode">Pemindai Field:</label>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="pdfFieldScanMode" aria-label="Pilih metode pemindaian field PDF">
+              <option value="auto">Otomatis</option>
+              <option value="pdfjs">PDF.js saja</option>
+              <option value="pymupdf">PyMuPDF</option>
+              <option value="paddleocr">PaddleOCR</option>
+            </select>
+            <button
+              id="btnScanPdfFields"
+              class="btn btn-outline px-3 py-2 text-[13px]"
+              aria-label="Pindai ulang field PDF dengan metode terpilih"
+            >
+              <i data-lucide="scan-line"></i> Pindai Ulang Field
+            </button>
+          </div>
+          <small
+            id="pdfDetectorStatus"
+            class="pdf-detector-status"
+            role="status"
+            aria-live="polite"
+          >
+            PDF.js siap di browser.
+          </small>
+        </div>
+
+        <div class="control-group">
+          <label>Tampilkan Panduan:</label>
+          <label class="switch-container">
+            <input type="checkbox" id="overlayToggle" checked />
+            <span>Aktif di Layar</span>
+          </label>
+        </div>
+
+        <div class="control-group">
+          <label for="overlayOpacity">Opasitas Panduan:</label>
+          <div class="slider-wrapper">
+            <input
+              type="range"
+              id="overlayOpacity"
+              min="5"
+              max="100"
+              value="50"
+              aria-label="Transparansi panduan dokumen"
+            />
+            <span id="opacityVal" class="opacity-badge">50%</span>
+          </div>
+        </div>
+
+        <!-- Indikator Pemrosesan PDF -->
+        <div
+          id="pdfUploadStatus"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          class="ml-2.5 hidden self-center text-xs font-medium text-sky-600"
+        ></div>
+      </div>
+
+      <div class="action-bar">
+        <div>
+          <button id="btnRenderPreview" class="btn btn-primary">1. Render Preview</button>
+          <button id="btnPrint" class="btn btn-success">2. Cetak ke Printer</button>
+          <button id="btnExportHtml" class="btn btn-export">
+            <i data-lucide="file-down"></i> 3. Export ke HTML
+          </button>
+        </div>
+
+        <div class="print-options-grid" role="group" aria-label="Opsi pratinjau dan pencetakan">
+          <label class="print-option-card">
+            <input
+              type="checkbox"
+              id="hideCalCheck"
+              aria-label="Sembunyikan Marker Kalibrasi saat dicetak asli"
+            />
+            <span class="print-option-icon" aria-hidden="true"><i data-lucide="printer"></i></span>
+            <span class="print-option-copy">
+              <strong>Marker saat cetak</strong>
+              <small>Sembunyikan tanda kalibrasi dari hasil final.</small>
+            </span>
+            <span class="print-option-switch" aria-hidden="true"></span>
+          </label>
+          <label class="print-option-card">
+            <input
+              type="checkbox"
+              id="hideCalPreviewCheck"
+              aria-label="Sembunyikan Marker Kalibrasi pada pratinjau layar"
+            />
+            <span class="print-option-icon" aria-hidden="true"><i data-lucide="eye-off"></i></span>
+            <span class="print-option-copy">
+              <strong>Marker di preview</strong>
+              <small>Bersihkan tampilan layar dari tanda kalibrasi.</small>
+            </span>
+            <span class="print-option-switch" aria-hidden="true"></span>
+          </label>
+          <label class="print-option-card">
+            <input
+              type="checkbox"
+              id="printOverlayCheck"
+              aria-label="Cetak Dokumen Latar Belakang (PDF)"
+            />
+            <span class="print-option-icon" aria-hidden="true"><i data-lucide="layers-3"></i></span>
+            <span class="print-option-copy">
+              <strong>Latar PDF</strong>
+              <small>Sertakan dokumen panduan pada hasil cetak.</small>
+            </span>
+            <span class="print-option-switch" aria-hidden="true"></span>
+          </label>
+          <label class="print-option-card">
+            <input
+              type="checkbox"
+              id="enableSnapCheck"
+              checked
+              aria-label="Aktifkan Snapping Magnetik"
+            />
+            <span class="print-option-icon" aria-hidden="true"><i data-lucide="magnet"></i></span>
+            <span class="print-option-copy">
+              <strong>Snapping magnetik</strong>
+              <small>Bantu elemen menempel presisi ke elemen lain.</small>
+            </span>
+            <span class="print-option-switch" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
     </main>
 
-    <div id="printContainer" class="print-container" role="region" aria-label="Pratinjau halaman cetak">
-    </div>
+    <div
+      id="printContainer"
+      class="print-container"
+      role="region"
+      aria-label="Pratinjau halaman cetak"
+    ></div>
 
     <script type="module" src="./src/app.mjs"></script>
 
     <!-- Bilah Pemformatan Teks Melayang (Rich Text Formatting Toolbar) -->
-    <div id="textFormatToolbar" class="format-toolbar no-print" role="toolbar"
-        aria-label="Pemformatan teks terpilih">
-        <div class="format-toolbar-main">
-            <select id="toolbarFontFamily" aria-label="Jenis font">
-                <option value="Courier New, Courier, monospace">Courier New</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="Times New Roman, Times, serif">Times New Roman</option>
-                <option value="Georgia, serif">Georgia</option>
-                <option value="Verdana, sans-serif">Verdana</option>
-                <option value="Plus Jakarta Sans, sans-serif">Plus Jakarta Sans</option>
-            </select>
-            <div class="toolbar-divider"></div>
-            <button type="button" id="btnBold" class="toolbar-btn" title="Tebal (B)" aria-label="Tebal (B)"><i data-lucide="bold"></i></button>
-            <button type="button" id="btnItalic" class="toolbar-btn" title="Miring (I)" aria-label="Miring (I)"><i data-lucide="italic"></i></button>
-            <button type="button" id="btnUnderline" class="toolbar-btn" title="Garis Bawah (U)" aria-label="Garis Bawah (U)"><i data-lucide="underline"></i></button>
-            <div class="toolbar-divider"></div>
-            <div class="color-picker-wrapper" title="Warna Teks"><i data-lucide="baseline"></i><input type="color" id="textColorPicker" aria-label="Warna teks"></div>
-            <div class="color-picker-wrapper" title="Warna Sorotan"><i data-lucide="highlighter"></i><input type="color" id="highlightColorPicker" aria-label="Warna sorotan"></div>
-            <button type="button" id="btnClearHighlight" class="toolbar-btn" title="Hapus Sorotan" aria-label="Hapus Sorotan"><i data-lucide="eraser"></i></button>
-            <div class="toolbar-divider"></div>
-            <button type="button" id="btnToggleQuickProperties" class="toolbar-btn" title="Properti presisi"
-                aria-label="Tampilkan properti presisi" aria-expanded="false" aria-controls="toolbarQuickProperties">
-                <i data-lucide="sliders-horizontal"></i>
-            </button>
-            <div class="toolbar-divider"></div>
-            <button type="button" id="btnToolbarDuplicate" class="toolbar-btn" title="Duplikasi elemen (Ctrl+D)"
-                aria-label="Duplikasi elemen terpilih"><i data-lucide="copy"></i></button>
-            <button type="button" id="btnToolbarDelete" class="toolbar-btn toolbar-btn-danger" title="Hapus elemen (Delete)"
-                aria-label="Hapus elemen terpilih"><i data-lucide="trash-2"></i></button>
+    <div
+      id="textFormatToolbar"
+      class="format-toolbar no-print"
+      role="toolbar"
+      aria-label="Pemformatan teks terpilih"
+    >
+      <div class="format-toolbar-main">
+        <select id="toolbarFontFamily" aria-label="Jenis font">
+          <option value="Courier New, Courier, monospace">Courier New</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="Times New Roman, Times, serif">Times New Roman</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="Plus Jakarta Sans, sans-serif">Plus Jakarta Sans</option>
+        </select>
+        <div class="toolbar-divider"></div>
+        <button
+          type="button"
+          id="btnBold"
+          class="toolbar-btn"
+          title="Tebal (B)"
+          aria-label="Tebal (B)"
+        >
+          <i data-lucide="bold"></i>
+        </button>
+        <button
+          type="button"
+          id="btnItalic"
+          class="toolbar-btn"
+          title="Miring (I)"
+          aria-label="Miring (I)"
+        >
+          <i data-lucide="italic"></i>
+        </button>
+        <button
+          type="button"
+          id="btnUnderline"
+          class="toolbar-btn"
+          title="Garis Bawah (U)"
+          aria-label="Garis Bawah (U)"
+        >
+          <i data-lucide="underline"></i>
+        </button>
+        <div class="toolbar-divider"></div>
+        <div class="color-picker-wrapper" title="Warna Teks">
+          <i data-lucide="baseline"></i
+          ><input type="color" id="textColorPicker" aria-label="Warna teks" />
         </div>
-        <div id="toolbarQuickProperties" class="toolbar-quick-properties" hidden>
-            <label><span>X</span><input id="toolbarPropX" data-toolbar-property="x" type="number" min="0" max="210" step="0.1"><small>mm</small></label>
-            <label><span>Y</span><input id="toolbarPropY" data-toolbar-property="y" type="number" min="0" max="330" step="0.1"><small>mm</small></label>
-            <label><span>W</span><input id="toolbarPropWidth" data-toolbar-property="width" type="number" min="0.1" max="210" step="0.1"><small>mm</small></label>
-            <label><span>H</span><input id="toolbarPropHeight" data-toolbar-property="height" type="number" min="0.1" max="330" step="0.1"><small>mm</small></label>
-            <label><span>Font</span><input id="toolbarPropFontSize" data-toolbar-property="font_size" type="number" min="4" max="72" step="0.1"><small>pt</small></label>
-            <label><span>Rot</span><input id="toolbarPropRotation" data-toolbar-property="rotation" type="number" min="-360" max="360" step="1"><small>°</small></label>
-            <label><span>Layer</span><input id="toolbarPropZIndex" data-toolbar-property="z_index" type="number" min="-1000" max="1000" step="1"></label>
-            <button type="button" id="btnToolbarLock" class="toolbar-property-button" aria-label="Kunci posisi" aria-pressed="false"><i data-lucide="lock-keyhole"></i><span>Lock</span></button>
+        <div class="color-picker-wrapper" title="Warna Sorotan">
+          <i data-lucide="highlighter"></i
+          ><input type="color" id="highlightColorPicker" aria-label="Warna sorotan" />
         </div>
+        <button
+          type="button"
+          id="btnClearHighlight"
+          class="toolbar-btn"
+          title="Hapus Sorotan"
+          aria-label="Hapus Sorotan"
+        >
+          <i data-lucide="eraser"></i>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button
+          type="button"
+          id="btnToggleQuickProperties"
+          class="toolbar-btn"
+          title="Properti presisi"
+          aria-label="Tampilkan properti presisi"
+          aria-expanded="false"
+          aria-controls="toolbarQuickProperties"
+        >
+          <i data-lucide="sliders-horizontal"></i>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button
+          type="button"
+          id="btnToolbarDuplicate"
+          class="toolbar-btn"
+          title="Duplikasi elemen (Ctrl+D)"
+          aria-label="Duplikasi elemen terpilih"
+        >
+          <i data-lucide="copy"></i>
+        </button>
+        <button
+          type="button"
+          id="btnToolbarDelete"
+          class="toolbar-btn toolbar-btn-danger"
+          title="Hapus elemen (Delete)"
+          aria-label="Hapus elemen terpilih"
+        >
+          <i data-lucide="trash-2"></i>
+        </button>
+      </div>
+      <div id="toolbarQuickProperties" class="toolbar-quick-properties" hidden>
+        <label
+          ><span>X</span
+          ><input
+            id="toolbarPropX"
+            data-toolbar-property="x"
+            type="number"
+            min="0"
+            max="210"
+            step="0.1"
+          /><small>mm</small></label
+        >
+        <label
+          ><span>Y</span
+          ><input
+            id="toolbarPropY"
+            data-toolbar-property="y"
+            type="number"
+            min="0"
+            max="330"
+            step="0.1"
+          /><small>mm</small></label
+        >
+        <label
+          ><span>W</span
+          ><input
+            id="toolbarPropWidth"
+            data-toolbar-property="width"
+            type="number"
+            min="0.1"
+            max="210"
+            step="0.1"
+          /><small>mm</small></label
+        >
+        <label
+          ><span>H</span
+          ><input
+            id="toolbarPropHeight"
+            data-toolbar-property="height"
+            type="number"
+            min="0.1"
+            max="330"
+            step="0.1"
+          /><small>mm</small></label
+        >
+        <label
+          ><span>Font</span
+          ><input
+            id="toolbarPropFontSize"
+            data-toolbar-property="font_size"
+            type="number"
+            min="4"
+            max="72"
+            step="0.1"
+          /><small>pt</small></label
+        >
+        <label
+          ><span>Rot</span
+          ><input
+            id="toolbarPropRotation"
+            data-toolbar-property="rotation"
+            type="number"
+            min="-360"
+            max="360"
+            step="1"
+          /><small>°</small></label
+        >
+        <label
+          ><span>Layer</span
+          ><input
+            id="toolbarPropZIndex"
+            data-toolbar-property="z_index"
+            type="number"
+            min="-1000"
+            max="1000"
+            step="1"
+        /></label>
+        <button
+          type="button"
+          id="btnToolbarLock"
+          class="toolbar-property-button"
+          aria-label="Kunci posisi"
+          aria-pressed="false"
+        >
+          <i data-lucide="lock-keyhole"></i><span>Lock</span>
+        </button>
+      </div>
     </div>
     <!-- Toast notification container -->
-    <div id="toastContainer" class="toast-container no-print" role="region" aria-label="Notifikasi"></div>
+    <div
+      id="toastContainer"
+      class="toast-container no-print"
+      role="region"
+      aria-label="Notifikasi"
+    ></div>
     <div id="vGuide" class="magnetic-guide vertical no-print" aria-hidden="true"></div>
     <div id="hGuide" class="magnetic-guide horizontal no-print" aria-hidden="true"></div>
-    <div id="canvasContextMenu" class="context-menu no-print" role="menu" aria-label="Aksi elemen" hidden>
-        <button role="menuitem" data-context-action="duplicate">Duplikasi <kbd>Ctrl+D</kbd></button>
-        <button role="menuitem" data-context-action="lock">Kunci / buka <kbd>Alt+L</kbd></button>
-        <button role="menuitem" data-context-action="front">Bawa ke depan</button>
-        <button role="menuitem" data-context-action="back">Kirim ke belakang</button>
-        <button role="menuitem" data-context-action="delete" class="danger">Hapus <kbd>Delete</kbd></button>
+    <div
+      id="canvasContextMenu"
+      class="context-menu no-print"
+      role="menu"
+      aria-label="Aksi elemen"
+      hidden
+    >
+      <button role="menuitem" data-context-action="duplicate">Duplikasi <kbd>Ctrl+D</kbd></button>
+      <button role="menuitem" data-context-action="lock">Kunci / buka <kbd>Alt+L</kbd></button>
+      <button role="menuitem" data-context-action="front">Bawa ke depan</button>
+      <button role="menuitem" data-context-action="back">Kirim ke belakang</button>
+      <button role="menuitem" data-context-action="delete" class="danger">
+        Hapus <kbd>Delete</kbd>
+      </button>
     </div>
-</body>
-
+  </body>
 </html>

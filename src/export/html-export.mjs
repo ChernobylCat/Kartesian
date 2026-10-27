@@ -4,9 +4,16 @@ import { escapeHtml } from '../core/utils.mjs';
 export function sanitizeExportFileName(jsonText) {
   try {
     const data = JSON.parse(jsonText);
-    const debtor = Array.isArray(data) ? data[0]?.debitur : null;
-    if (typeof debtor !== 'string') return 'export';
-    return debtor.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_') || 'export';
+    const documentTitle = Array.isArray(data)
+      ? data[0]?.title || data[0]?.name || data[0]?.debitur
+      : null;
+    if (typeof documentTitle !== 'string') return 'export';
+    return (
+      documentTitle
+        .replace(/[^a-zA-Z0-9_\-\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '_') || 'export'
+    );
   } catch {
     return 'export';
   }
@@ -21,13 +28,16 @@ export function blobToDataUrl(blob, FileReaderCtor = FileReader) {
   });
 }
 
-export async function makeImagePortable(src, {
-  baseUrl = document.baseURI,
-  documentRef = document,
-  fetchFn = fetch,
-  FileReaderCtor = FileReader,
-  ImageCtor = Image
-} = {}) {
+export async function makeImagePortable(
+  src,
+  {
+    baseUrl = document.baseURI,
+    documentRef = document,
+    fetchFn = fetch,
+    FileReaderCtor = FileReader,
+    ImageCtor = Image,
+  } = {},
+) {
   if (!src || src.startsWith('data:image/')) return src;
   const absoluteUrl = new URL(src, baseUrl).href;
 
@@ -55,11 +65,10 @@ export async function makeImagePortable(src, {
   }
 }
 
-export async function serializeRenderedPages(pages, {
-  hideCalibration = false,
-  includeOverlay = false,
-  portableImage = makeImagePortable
-} = {}) {
+export async function serializeRenderedPages(
+  pages,
+  { hideCalibration = false, includeOverlay = false, portableImage = makeImagePortable } = {},
+) {
   let pagesHtml = '';
   const portableImageCache = new Map();
 
@@ -80,14 +89,14 @@ export async function serializeRenderedPages(pages, {
     }
 
     if (!hideCalibration) {
-      page.querySelectorAll('.cal-mark').forEach(mark => {
+      page.querySelectorAll('.cal-mark').forEach((mark) => {
         const style = mark.getAttribute('style') || '';
         const classes = mark.className.replace('print-item', '').replace('cal-mark', '').trim();
         itemsHtml += `<div class="print-item cal-mark ${escapeHtml(classes)}" style="${escapeHtml(style)}">${mark.innerHTML}</div>\n`;
       });
     }
 
-    page.querySelectorAll('.data-item').forEach(item => {
+    page.querySelectorAll('.data-item').forEach((item) => {
       const style = item.getAttribute('style') || '';
       const image = item.querySelector('img');
       if (image) {
@@ -113,7 +122,7 @@ export function buildStandaloneExportHtml({
   offsetX = 0,
   offsetY = 0,
   paperWidth = APP_CONFIG.PAPER_WIDTH_MM,
-  paperHeight = APP_CONFIG.PAPER_HEIGHT_MM
+  paperHeight = APP_CONFIG.PAPER_HEIGHT_MM,
 }) {
   return `<!DOCTYPE html>
 <html lang="id">
@@ -174,11 +183,11 @@ ${pagesHtml}
 </html>`;
 }
 
-export function downloadHtml(html, fileName, {
-  BlobCtor = Blob,
-  URLApi = URL,
-  documentRef = document
-} = {}) {
+export function downloadHtml(
+  html,
+  fileName,
+  { BlobCtor = Blob, URLApi = URL, documentRef = document } = {},
+) {
   const blob = new BlobCtor([html], { type: 'text/html;charset=utf-8' });
   const url = URLApi.createObjectURL(blob);
   const anchor = documentRef.createElement('a');

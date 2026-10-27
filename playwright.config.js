@@ -13,7 +13,7 @@ if (isGitHubActions) {
 if (isCI) {
   reporters.push(
     ['junit', { outputFile: 'test-results/junit.xml' }],
-    ['html', { outputFolder: 'playwright-report', open: 'never' }]
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
   );
 }
 
@@ -26,7 +26,7 @@ module.exports = defineConfig({
   workers: 1,
   timeout: 30_000,
   expect: {
-    timeout: 5_000
+    timeout: 5_000,
   },
   reporter: reporters,
   use: {
@@ -35,6 +35,6 @@ module.exports = defineConfig({
     ...(useLocalEdge ? { channel: 'msedge' } : {}),
     headless: true,
     screenshot: 'only-on-failure',
-    trace: 'retain-on-failure'
-  }
+    trace: 'retain-on-failure',
+  },
 });

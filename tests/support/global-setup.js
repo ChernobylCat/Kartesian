@@ -5,7 +5,7 @@ module.exports = async function globalSetup() {
 
   return async () => {
     await new Promise((resolve, reject) => {
-      server.close(error => error ? reject(error) : resolve());
+      server.close((error) => (error ? reject(error) : resolve()));
       server.closeIdleConnections?.();
     });
   };

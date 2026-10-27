@@ -3,7 +3,10 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 
-const validTextFixture = fs.readFileSync(path.resolve(__dirname, '..', 'fixtures', 'valid-text.json'), 'utf8');
+const validTextFixture = fs.readFileSync(
+  path.resolve(__dirname, '..', 'fixtures', 'valid-text.json'),
+  'utf8',
+);
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('kartesian_onboarding_complete_v1', 'true'));
@@ -14,7 +17,7 @@ function createMinimalPdf() {
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> /Contents 4 0 R >>',
-    '<< /Length 0 >>\nstream\n\nendstream'
+    '<< /Length 0 >>\nstream\n\nendstream',
   ];
   let source = '%PDF-1.4\n';
   const offsets = [0];
@@ -25,7 +28,7 @@ function createMinimalPdf() {
   const xrefOffset = Buffer.byteLength(source);
   source += `xref\n0 ${objects.length + 1}\n`;
   source += '0000000000 65535 f \n';
-  offsets.slice(1).forEach(offset => {
+  offsets.slice(1).forEach((offset) => {
     source += `${String(offset).padStart(10, '0')} 00000 n \n`;
   });
   source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
@@ -42,7 +45,7 @@ function createDetectableFieldsPdf() {
     `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}endstream`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
     '<< /Fields [7 0 R] >>',
-    '<< /Type /Annot /Subtype /Widget /FT /Tx /T (tanggal_lahir) /Rect [160 650 400 680] /P 3 0 R >>'
+    '<< /Type /Annot /Subtype /Widget /FT /Tx /T (tanggal_lahir) /Rect [160 650 400 680] /P 3 0 R >>',
   ];
   let source = '%PDF-1.4\n';
   const offsets = [0];
@@ -53,7 +56,7 @@ function createDetectableFieldsPdf() {
   const xrefOffset = Buffer.byteLength(source);
   source += `xref\n0 ${objects.length + 1}\n`;
   source += '0000000000 65535 f \n';
-  offsets.slice(1).forEach(offset => {
+  offsets.slice(1).forEach((offset) => {
     source += `${String(offset).padStart(10, '0')} 00000 n \n`;
   });
   source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
@@ -62,21 +65,27 @@ function createDetectableFieldsPdf() {
 }
 
 function createKeyValueTablePdf() {
-  const content = [
-    'BT /F1 4 Tf 25 175 Td (Nama:) Tj ET',
-    'BT /F1 4 Tf 25 169 Td (Nomor KTP:) Tj ET',
-    '20 180 m 80 180 l S', '85 180 m 180 180 l S',
-    '20 174 m 80 174 l S', '85 174 m 180 174 l S',
-    '20 168 m 80 168 l S', '85 168 m 180 168 l S',
-    '20 168 m 20 180 l S', '80 168 m 80 180 l S',
-    '85 168 m 85 180 l S', '180 168 m 180 180 l S'
-  ].join('\n') + '\n';
+  const content =
+    [
+      'BT /F1 4 Tf 25 175 Td (Nama:) Tj ET',
+      'BT /F1 4 Tf 25 169 Td (Nomor KTP:) Tj ET',
+      '20 180 m 80 180 l S',
+      '85 180 m 180 180 l S',
+      '20 174 m 80 174 l S',
+      '85 174 m 180 174 l S',
+      '20 168 m 80 168 l S',
+      '85 168 m 180 168 l S',
+      '20 168 m 20 180 l S',
+      '80 168 m 80 180 l S',
+      '85 168 m 85 180 l S',
+      '180 168 m 180 180 l S',
+    ].join('\n') + '\n';
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
     `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}endstream`,
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
   ];
   let source = '%PDF-1.4\n';
   const offsets = [0];
@@ -86,7 +95,7 @@ function createKeyValueTablePdf() {
   });
   const xrefOffset = Buffer.byteLength(source);
   source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.slice(1).forEach(offset => {
+  offsets.slice(1).forEach((offset) => {
     source += `${String(offset).padStart(10, '0')} 00000 n \n`;
   });
   source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
@@ -105,11 +114,13 @@ async function loadDocument(page, json, expectedPageCount = 1) {
   await page.locator('#importFile').setInputFiles({
     name: 'document-fixture-settings.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify({
-      schemaVersion: 1,
-      jsonInput: json,
-      overlayDoc: 'none'
-    }))
+    buffer: Buffer.from(
+      JSON.stringify({
+        schemaVersion: 1,
+        jsonInput: json,
+        overlayDoc: 'none',
+      }),
+    ),
   });
   await expect(page.locator('.toast-success')).toContainText('Pengaturan berhasil diimpor');
   await expect(page.locator('.print-page')).toHaveCount(expectedPageCount);
@@ -121,12 +132,14 @@ async function setEditorText(page, value) {
     await textarea.fill(value);
     return;
   }
-  await page.evaluate(nextValue => {
+  await page.evaluate((nextValue) => {
     window.ace.edit('jsonInputEditor').setValue(nextValue, -1);
   }, value);
 }
 
-test('panel properti, multi-select, alignment, shortcut, dan context menu bekerja', async ({ page }) => {
+test('panel properti, multi-select, alignment, shortcut, dan context menu bekerja', async ({
+  page,
+}) => {
   await openReadyApp(page);
   const items = page.locator('.print-page').first().locator('.data-item');
   await items.nth(0).click();
@@ -140,7 +153,9 @@ test('panel properti, multi-select, alignment, shortcut, dan context menu bekerj
   await expect(page.locator('#propertySelectionSummary')).toContainText('2 elemen');
   await expect(page.getByTitle('Rata kiri (Alt+A)')).toHaveAttribute('aria-keyshortcuts', 'Alt+A');
   await page.keyboard.press('Alt+a');
-  const positions = await items.evaluateAll(nodes => nodes.slice(0, 2).map(node => node.style.left));
+  const positions = await items.evaluateAll((nodes) =>
+    nodes.slice(0, 2).map((node) => node.style.left),
+  );
   expect(positions[0]).toBe(positions[1]);
 
   await page.keyboard.press('Alt+l');
@@ -151,26 +166,37 @@ test('panel properti, multi-select, alignment, shortcut, dan context menu bekerj
   await expect(page.locator('.print-page').first().locator('.data-item')).toHaveCount(5);
 });
 
-test('marquee box memilih banyak elemen dengan contain, intersect, add, dan toggle', async ({ page }) => {
+test('marquee box memilih banyak elemen dengan contain, intersect, add, dan toggle', async ({
+  page,
+}) => {
   await openReadyApp(page);
-  await loadDocument(page, JSON.stringify([{
-    debitur: 'Marquee Fixture',
-    pages: [{
-      page_number: 1,
-      items: [
-        { text: 'Satu', x: 40, y: 80, width: 22, height: 8, font_size: 10 },
-        { text: 'Dua', x: 80, y: 80, width: 22, height: 8, font_size: 10 },
-        { text: 'Tiga', x: 140, y: 130, width: 22, height: 8, font_size: 10 }
-      ]
-    }]
-  }]));
+  await loadDocument(
+    page,
+    JSON.stringify([
+      {
+        debitur: 'Marquee Fixture',
+        pages: [
+          {
+            page_number: 1,
+            items: [
+              { text: 'Satu', x: 40, y: 80, width: 22, height: 8, font_size: 10 },
+              { text: 'Dua', x: 80, y: 80, width: 22, height: 8, font_size: 10 },
+              { text: 'Tiga', x: 140, y: 130, width: 22, height: 8, font_size: 10 },
+            ],
+          },
+        ],
+      },
+    ]),
+  );
 
   const items = page.locator('.print-page').first().locator('.data-item');
   await items.first().scrollIntoViewIfNeeded();
-  let boxes = await items.evaluateAll(elements => elements.map(element => {
-    const rect = element.getBoundingClientRect();
-    return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-  }));
+  let boxes = await items.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    }),
+  );
 
   await page.mouse.move(boxes[0].left - 10, boxes[0].top - 10);
   await page.mouse.down();
@@ -185,10 +211,12 @@ test('marquee box memilih banyak elemen dengan contain, intersect, add, dan togg
   await expect(page.locator('#propertySelectionSummary')).toContainText('2 elemen');
 
   await items.nth(2).scrollIntoViewIfNeeded();
-  boxes = await items.evaluateAll(elements => elements.map(element => {
-    const rect = element.getBoundingClientRect();
-    return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-  }));
+  boxes = await items.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    }),
+  );
   await page.keyboard.down('Shift');
   await page.mouse.move(boxes[2].left - 10, boxes[2].top - 10);
   await page.mouse.down();
@@ -199,10 +227,12 @@ test('marquee box memilih banyak elemen dengan contain, intersect, add, dan togg
   await expect(page.locator('.selected-item')).toHaveCount(3);
 
   await items.first().scrollIntoViewIfNeeded();
-  boxes = await items.evaluateAll(elements => elements.map(element => {
-    const rect = element.getBoundingClientRect();
-    return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-  }));
+  boxes = await items.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    }),
+  );
   await page.keyboard.down('Control');
   await page.mouse.move(boxes[0].left - 10, boxes[0].top - 10);
   await page.mouse.down();
@@ -215,7 +245,11 @@ test('marquee box memilih banyak elemen dengan contain, intersect, add, dan togg
 
   await page.mouse.move(boxes[0].right + 10, boxes[0].bottom + 6);
   await page.mouse.down();
-  await page.mouse.move((boxes[0].left + boxes[0].right) / 2, (boxes[0].top + boxes[0].bottom) / 2, { steps: 5 });
+  await page.mouse.move(
+    (boxes[0].left + boxes[0].right) / 2,
+    (boxes[0].top + boxes[0].bottom) / 2,
+    { steps: 5 },
+  );
   await expect(marquee).toHaveAttribute('data-selection-mode', 'intersect');
   await expect(page.locator('.marquee-candidate')).toHaveCount(1);
   await page.mouse.up();
@@ -243,7 +277,7 @@ test('tur onboarding dapat dijalankan dan diselesaikan', async ({ page }) => {
       targetWidth: target.width,
       targetHeight: target.height,
       containerWidth: container.width,
-      containerHeight: container.height
+      containerHeight: container.height,
     };
   });
   expect(tourTargetGeometry.targetWidth).toBeLessThan(tourTargetGeometry.containerWidth);
@@ -259,15 +293,29 @@ test('tur onboarding dapat dijalankan dan diselesaikan', async ({ page }) => {
   await popover.locator('.driver-popover-next-btn').click();
   await expect(popover).toHaveCount(0);
   await expect(page.locator('#propertyPanel')).toBeHidden();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('kartesian_onboarding_complete_v1'))).toBe('true');
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('kartesian_onboarding_complete_v1')))
+    .toBe('true');
 });
 
-test('PWA memiliki manifest dan service worker siap untuk offline', async ({ page, context, browserName }) => {
+test('PWA memiliki manifest dan service worker siap untuk offline', async ({
+  page,
+  context,
+  browserName,
+}) => {
   await openReadyApp(page);
-  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.ready.then(() => true))).toBe(true);
-  expect(await page.locator('link[rel="manifest"]').getAttribute('href')).toBe('./manifest.webmanifest');
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.ready.then(() => true)))
+    .toBe(true);
+  expect(await page.locator('link[rel="manifest"]').getAttribute('href')).toBe(
+    './manifest.webmanifest',
+  );
   if (browserName === 'webkit') {
-    expect(await page.evaluate(() => caches.keys().then(keys => keys.some(key => key.startsWith('kartesian-'))))).toBe(true);
+    expect(
+      await page.evaluate(() =>
+        caches.keys().then((keys) => keys.some((key) => key.startsWith('kartesian-'))),
+      ),
+    ).toBe(true);
     return;
   }
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -289,15 +337,15 @@ test('memuat UI, Tailwind, editor, dan preview awal', async ({ page }) => {
   await expect(page.getByRole('button', { name: /3\. Export ke HTML/ })).toBeEnabled();
 
   const stylesheetState = await page.evaluate(() => ({
-    loaded: [...document.styleSheets].some(sheet => sheet.href?.endsWith('/assets/app.css')),
+    loaded: [...document.styleSheets].some((sheet) => sheet.href?.endsWith('/assets/app.css')),
     panelDisplay: getComputedStyle(document.querySelector('.admin-panel')).display,
-    layoutDirection: getComputedStyle(document.querySelector('.layout-split')).flexDirection
+    layoutDirection: getComputedStyle(document.querySelector('.layout-split')).flexDirection,
   }));
 
   expect(stylesheetState).toEqual({
     loaded: true,
     panelDisplay: 'block',
-    layoutDirection: 'row'
+    layoutDirection: 'row',
   });
 });
 
@@ -310,10 +358,13 @@ test('opsi cetak menggunakan kartu toggle yang aksesibel dan responsif', async (
   const snapping = page.getByRole('checkbox', { name: 'Aktifkan Snapping Magnetik' });
   await expect(snapping).toBeChecked();
   const card = snapping.locator('..');
-  const activeBackground = await card.evaluate(element => getComputedStyle(element).backgroundColor);
+  const activeBackground = await card.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
   await card.click();
   await expect(snapping).not.toBeChecked();
-  await expect.poll(() => card.evaluate(element => getComputedStyle(element).backgroundColor))
+  await expect
+    .poll(() => card.evaluate((element) => getComputedStyle(element).backgroundColor))
     .not.toBe(activeBackground);
   await snapping.focus();
   await expect(snapping).toBeFocused();
@@ -346,13 +397,13 @@ test('overlay controller merender ulang panduan dan menormalisasi opacity', asyn
   await expect(firstOverlay).toHaveAttribute('src', /assets\/doc_1/);
 
   const opacity = page.locator('#overlayOpacity');
-  await opacity.evaluate(element => {
+  await opacity.evaluate((element) => {
     element.value = '52';
     element.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await expect(opacity).toHaveValue('50');
   await expect(page.locator('#opacityVal')).toHaveText('50%');
-  await expect.poll(() => firstOverlay.evaluate(element => element.style.opacity)).toBe('0.5');
+  await expect.poll(() => firstOverlay.evaluate((element) => element.style.opacity)).toBe('0.5');
 
   await page.getByRole('checkbox', { name: 'Aktif di Layar' }).uncheck();
   await expect(firstOverlay).toBeHidden();
@@ -366,19 +417,29 @@ test('PDF lokal dirender, disimpan, dan dipulihkan setelah reload', async ({ pag
   await page.locator('#pdfUploadInput').setInputFiles({
     name: 'minimal.pdf',
     mimeType: 'application/pdf',
-    buffer: createMinimalPdf()
+    buffer: createMinimalPdf(),
   });
   await expect(page.locator('#overlayDocSelect')).toHaveValue('uploaded_pdf', { timeout: 15_000 });
-  await expect(page.locator('.page-overlay-guide').first()).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
-  await expect.poll(() => page.evaluate(() => {
-    const raw = localStorage.getItem('overlay_print_pro_settings');
-    return raw ? JSON.parse(raw).overlayDoc : null;
-  })).toBe('uploaded_pdf');
+  await expect(page.locator('.page-overlay-guide').first()).toHaveAttribute(
+    'src',
+    /^data:image\/jpeg;base64,/,
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem('overlay_print_pro_settings');
+        return raw ? JSON.parse(raw).overlayDoc : null;
+      }),
+    )
+    .toBe('uploaded_pdf');
 
   await page.reload();
   await expect(page.locator('#jsonValidationStatus')).toContainText('Peringatan Kecocokan Halaman');
   await expect(page.locator('#overlayDocSelect')).toHaveValue('uploaded_pdf');
-  await expect(page.locator('.page-overlay-guide').first()).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
+  await expect(page.locator('.page-overlay-guide').first()).toHaveAttribute(
+    'src',
+    /^data:image\/jpeg;base64,/,
+  );
 });
 
 test('halaman tanpa kandidat PDF.js memakai fallback service lokal', async ({ page }) => {
@@ -391,7 +452,7 @@ test('halaman tanpa kandidat PDF.js memakai fallback service lokal', async ({ pa
     const corsHeaders = {
       'Access-Control-Allow-Origin': 'http://127.0.0.1:4173',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type',
     };
     if (request.method === 'OPTIONS') {
       response.writeHead(204, corsHeaders);
@@ -403,7 +464,7 @@ test('halaman tanpa kandidat PDF.js memakai fallback service lokal', async ({ pa
       response.writeHead(200, {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
+        'Content-Length': Buffer.byteLength(body),
       });
       response.end(body);
       return;
@@ -414,21 +475,23 @@ test('halaman tanpa kandidat PDF.js memakai fallback service lokal', async ({ pa
       const body = JSON.stringify({
         engines: [forceOcr ? 'paddleocr' : 'pymupdf'],
         warnings: [],
-        candidates: [{
-          pageNumber: 1,
-          source: forceOcr ? 'paddleocr' : 'pymupdf-vector',
-          label: forceOcr ? 'Alamat OCR' : 'Nama Debitur',
-          x: 30,
-          y: 45,
-          width: 75,
-          height: 5,
-          confidence: 0.82
-        }]
+        candidates: [
+          {
+            pageNumber: 1,
+            source: forceOcr ? 'paddleocr' : 'pymupdf-vector',
+            label: forceOcr ? 'Alamat OCR' : 'Nama Debitur',
+            x: 30,
+            y: 45,
+            width: 75,
+            height: 5,
+            confidence: 0.82,
+          },
+        ],
       });
       response.writeHead(200, {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
+        'Content-Length': Buffer.byteLength(body),
       });
       response.end(body);
     });
@@ -443,47 +506,61 @@ test('halaman tanpa kandidat PDF.js memakai fallback service lokal', async ({ pa
     await page.locator('#pdfUploadInput').setInputFiles({
       name: 'fallback.pdf',
       mimeType: 'application/pdf',
-      buffer: createMinimalPdf()
+      buffer: createMinimalPdf(),
     });
 
     await expect.poll(() => detectorRequests).toContainEqual(expect.stringContaining('/v1/detect'));
-    await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('1', { timeout: 15_000 });
+    await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('1', {
+      timeout: 15_000,
+    });
     await expect(page.locator('#pdfFieldScanControls')).toBeVisible();
     await page.reload();
     await expect(page.locator('#btnScanPdfFields')).toBeEnabled();
     await page.locator('#pdfFieldScanMode').selectOption('paddleocr');
     await page.locator('#btnScanPdfFields').click();
-    await expect(page.locator('#pdfDetectorStatus')).toContainText('PaddleOCR menemukan 1 kandidat');
+    await expect(page.locator('#pdfDetectorStatus')).toContainText(
+      'PaddleOCR menemukan 1 kandidat',
+    );
     await expect.poll(() => detectorRequests).toContainEqual(expect.stringContaining('mode=ocr'));
     await page.locator('#btnReviewPdfFields').click();
     await expect(page.locator('.field-review-meta')).toContainText('Hasil OCR');
     await expect(page.locator('[data-field-placeholder]')).toHaveValue('{{alamat_ocr}}');
   } finally {
-    await new Promise(resolve => detectorServer.close(resolve));
+    await new Promise((resolve) => detectorServer.close(resolve));
   }
 });
 
-test('field PDF digital dipindai, direview, dipersist, dan diterapkan ke seluruh debitur', async ({ page }) => {
+test('field PDF digital dipindai, direview, dipersist, dan diterapkan ke seluruh dokumen', async ({
+  page,
+}) => {
   await openReadyApp(page);
-  await loadDocument(page, JSON.stringify([
-    { debitur: 'Debitur Satu', pages: [{ page_number: 1, items: [] }] },
-    { debitur: 'Debitur Dua', pages: [{ page_number: 1, items: [] }] }
-  ]), 2);
+  await loadDocument(
+    page,
+    JSON.stringify([
+      { title: 'Debitur Satu', pages: [{ page_number: 1, items: [] }] },
+      { title: 'Debitur Dua', pages: [{ page_number: 1, items: [] }] },
+    ]),
+    2,
+  );
 
   await page.locator('#pdfUploadInput').setInputFiles({
     name: 'detectable-fields.pdf',
     mimeType: 'application/pdf',
-    buffer: createDetectableFieldsPdf()
+    buffer: createDetectableFieldsPdf(),
   });
   await expect(page.locator('#overlayDocSelect')).toHaveValue('uploaded_pdf', { timeout: 15_000 });
   const reviewButton = page.locator('#btnReviewPdfFields');
   await expect(reviewButton).toBeVisible();
   await expect(reviewButton.locator('[data-field-count]')).toHaveText('2');
   await expect(page.locator('.pdf-field-suggestion')).toHaveCount(4);
-  await expect.poll(() => page.evaluate(() => {
-    const raw = localStorage.getItem('overlay_print_pro_settings');
-    return raw ? JSON.parse(raw).overlayDoc : null;
-  })).toBe('uploaded_pdf');
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem('overlay_print_pro_settings');
+        return raw ? JSON.parse(raw).overlayDoc : null;
+      }),
+    )
+    .toBe('uploaded_pdf');
 
   await page.reload();
   await expect(page.locator('#jsonValidationStatus')).toContainText('Format JSON & Skema Valid');
@@ -497,41 +574,57 @@ test('field PDF digital dipindai, direview, dipersist, dan diterapkan ke seluruh
   await expect(page.locator('.field-review-row')).toHaveCount(2);
   await page.getByRole('button', { name: 'Batal', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Tinjau kandidat field PDF' })).toBeHidden();
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value).flatMap(debtor => debtor.pages[0].items).length;
-  })).toBe(0);
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value).flatMap((docEntry) => docEntry.pages[0].items).length;
+      }),
+    )
+    .toBe(0);
 
   await page.locator('#btnReviewPdfFields').click();
   await page.getByRole('button', { name: 'Terapkan Terpilih' }).click();
   await expect(page.locator('.toast-success')).toContainText('4 placeholder berhasil diterapkan');
   await expect(page.locator('#btnReviewPdfFields')).toBeHidden();
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    const data = JSON.parse(element.value);
-    return data.map(debtor => debtor.pages[0].items.map(item => item.text));
-  })).toEqual([
-    ['{{nama}}', '{{tanggal_lahir}}'],
-    ['{{nama}}', '{{tanggal_lahir}}']
-  ]);
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        const data = JSON.parse(element.value);
+        return data.map((docEntry) => docEntry.pages[0].items.map((item) => item.text));
+      }),
+    )
+    .toEqual([
+      ['{{nama}}', '{{tanggal_lahir}}'],
+      ['{{nama}}', '{{tanggal_lahir}}'],
+    ]);
 
   await page.locator('#btnUndo').click();
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value).map(debtor => debtor.pages[0].items.length);
-  })).toEqual([0, 0]);
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value).map((docEntry) => docEntry.pages[0].items.length);
+      }),
+    )
+    .toEqual([0, 0]);
 });
 
 test('tabel key-value PDF membuat kandidat hanya pada sel kanan yang kosong', async ({ page }) => {
   await openReadyApp(page);
-  await loadDocument(page, JSON.stringify([
-    { debitur: 'Debitur Satu', pages: [{ page_number: 1, items: [] }] }
-  ]), 1);
+  await loadDocument(
+    page,
+    JSON.stringify([{ debitur: 'Debitur Satu', pages: [{ page_number: 1, items: [] }] }]),
+    1,
+  );
 
   await page.locator('#pdfUploadInput').setInputFiles({
     name: 'key-value-table.pdf',
     mimeType: 'application/pdf',
-    buffer: createKeyValueTablePdf()
+    buffer: createKeyValueTablePdf(),
   });
 
-  await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('2', { timeout: 15_000 });
+  await expect(page.locator('#btnReviewPdfFields [data-field-count]')).toHaveText('2', {
+    timeout: 15_000,
+  });
   await expect(page.locator('.pdf-field-suggestion')).toHaveCount(2);
   await page.locator('#btnReviewPdfFields').click();
   await expect(page.locator('.field-review-row')).toHaveCount(2);
@@ -540,10 +633,16 @@ test('tabel key-value PDF membuat kandidat hanya pada sel kanan yang kosong', as
   await expect(page.locator('[data-field-placeholder]').last()).toHaveValue('{{nomor_ktp}}');
 
   await page.getByRole('button', { name: 'Terapkan Terpilih' }).click();
-  await expect(page.locator('.toast-success').filter({ hasText: '2 placeholder berhasil diterapkan' })).toBeVisible();
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items.map(item => item.text);
-  })).toEqual(['{{nama}}', '{{nomor_ktp}}']);
+  await expect(
+    page.locator('.toast-success').filter({ hasText: '2 placeholder berhasil diterapkan' }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items.map((item) => item.text);
+      }),
+    )
+    .toEqual(['{{nama}}', '{{nomor_ktp}}']);
 });
 
 test('menyimpan preferensi tema gelap setelah reload', async ({ page }) => {
@@ -555,7 +654,9 @@ test('menyimpan preferensi tema gelap setelah reload', async ({ page }) => {
 
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/dark/);
-  await expect(page.getByRole('button', { name: 'Ganti Tema Gelap/Terang' })).toContainText('Mode Terang');
+  await expect(page.getByRole('button', { name: 'Ganti Tema Gelap/Terang' })).toContainText(
+    'Mode Terang',
+  );
 });
 
 test('settings controller menyimpan offset dan flag kalibrasi setelah reload', async ({ page }) => {
@@ -564,14 +665,21 @@ test('settings controller menyimpan offset dan flag kalibrasi setelah reload', a
   await page.locator('#offsetX').fill('2.5');
   await expect(page.locator('#saveStatus')).toHaveAttribute('data-state', 'pending');
   await page.locator('#offsetY').fill('-1.5');
-  await page.getByRole('checkbox', { name: 'Sembunyikan Marker Kalibrasi pada pratinjau layar' }).check();
-  await expect.poll(() => page.evaluate(() => ({
-    x: document.documentElement.style.getPropertyValue('--offset-x'),
-    y: document.documentElement.style.getPropertyValue('--offset-y')
-  }))).toEqual({ x: '2.5mm', y: '-1.5mm' });
+  await page
+    .getByRole('checkbox', { name: 'Sembunyikan Marker Kalibrasi pada pratinjau layar' })
+    .check();
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        x: document.documentElement.style.getPropertyValue('--offset-x'),
+        y: document.documentElement.style.getPropertyValue('--offset-y'),
+      })),
+    )
+    .toEqual({ x: '2.5mm', y: '-1.5mm' });
   await expect(page.locator('#printContainer')).toHaveClass(/hide-cal-on-preview/);
 
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('overlay_print_pro_settings')))
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('overlay_print_pro_settings')))
     .not.toBeNull();
   await expect(page.locator('#saveStatus')).toHaveAttribute('data-state', 'saved');
   await expect(page.locator('#saveStatus')).toHaveText('Tersimpan lokal');
@@ -580,7 +688,9 @@ test('settings controller menyimpan offset dan flag kalibrasi setelah reload', a
   await expect(page.locator('#jsonValidationStatus')).toContainText('Format JSON & Skema Valid');
   await expect(page.locator('#offsetX')).toHaveValue('2.5');
   await expect(page.locator('#offsetY')).toHaveValue('-1.5');
-  await expect(page.getByRole('checkbox', { name: 'Sembunyikan Marker Kalibrasi pada pratinjau layar' })).toBeChecked();
+  await expect(
+    page.getByRole('checkbox', { name: 'Sembunyikan Marker Kalibrasi pada pratinjau layar' }),
+  ).toBeChecked();
   await expect(page.locator('#printContainer')).toHaveClass(/hide-cal-on-preview/);
 });
 
@@ -593,10 +703,14 @@ test('offset kalibrasi tidak menggeser elemen teks pada canvas preview', async (
 
   await page.locator('#offsetX').fill('12.5');
   await page.locator('#offsetY').fill('-8.5');
-  await expect.poll(() => page.evaluate(() => ({
-    x: document.documentElement.style.getPropertyValue('--offset-x'),
-    y: document.documentElement.style.getPropertyValue('--offset-y')
-  }))).toEqual({ x: '12.5mm', y: '-8.5mm' });
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        x: document.documentElement.style.getPropertyValue('--offset-x'),
+        y: document.documentElement.style.getPropertyValue('--offset-y'),
+      })),
+    )
+    .toEqual({ x: '12.5mm', y: '-8.5mm' });
 
   const after = await textItem.boundingBox();
   expect(after).not.toBeNull();
@@ -613,7 +727,7 @@ test('fullscreen editor dan modal bantuan dapat dikendalikan dengan keyboard', a
 
   const [editorBox, viewport] = await Promise.all([
     editor.boundingBox(),
-    page.evaluate(() => ({ width: innerWidth, height: innerHeight }))
+    page.evaluate(() => ({ width: innerWidth, height: innerHeight })),
   ]);
   expect(Math.round(editorBox.width)).toBe(viewport.width);
   expect(Math.round(editorBox.height)).toBe(viewport.height);
@@ -626,7 +740,9 @@ test('fullscreen editor dan modal bantuan dapat dikendalikan dengan keyboard', a
   await helpButton.click();
   const helpDialog = page.getByRole('dialog', { name: 'Panduan Fitur & Pintasan Keyboard' });
   await expect(helpDialog).toHaveAttribute('aria-modal', 'true');
-  await expect(page.getByRole('heading', { name: 'Panduan Fitur & Pintasan Keyboard' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Panduan Fitur & Pintasan Keyboard' }),
+  ).toBeVisible();
   await expect(page.locator('.help-modal')).toContainText('🛠️ Fitur & Cara Penggunaan');
   await expect(page.locator('.help-modal')).toContainText('⌨️ Pintasan Keyboard');
   await expect(page.locator('.help-modal')).toContainText('⚙️ Penyelaras & Kalibrasi');
@@ -644,7 +760,7 @@ test('tambah teks, undo, dan redo memperbarui preview', async ({ page }) => {
   const items = page.locator('.data-item');
   const initialCount = await items.count();
 
-  page.once('dialog', dialog => dialog.accept('1'));
+  page.once('dialog', (dialog) => dialog.accept('1'));
   await page.getByRole('button', { name: /Tambah Teks/ }).click();
   await expect(items).toHaveCount(initialCount + 1);
 
@@ -672,7 +788,10 @@ test('inline editing, drag, dan resize menyimpan perubahan visual', async ({ pag
   item = page.locator('.data-item').first();
   await expect(item.locator('.text-content')).toHaveText('Teks Hasil Edit');
 
-  const positionBefore = await item.evaluate(element => ({ left: element.style.left, top: element.style.top }));
+  const positionBefore = await item.evaluate((element) => ({
+    left: element.style.left,
+    top: element.style.top,
+  }));
   await item.scrollIntoViewIfNeeded();
   await item.hover({ position: { x: 2, y: 2 } });
   const itemBox = await item.boundingBox();
@@ -680,13 +799,14 @@ test('inline editing, drag, dan resize menyimpan perubahan visual', async ({ pag
   await page.mouse.down();
   await page.mouse.move(itemBox.x + 42, itemBox.y + 32, { steps: 8 });
   await page.mouse.up();
-  await expect.poll(() => item.evaluate(element => ({ left: element.style.left, top: element.style.top })))
+  await expect
+    .poll(() => item.evaluate((element) => ({ left: element.style.left, top: element.style.top })))
     .not.toEqual(positionBefore);
 
-  const sizeBefore = await item.evaluate(element => ({
+  const sizeBefore = await item.evaluate((element) => ({
     width: element.offsetWidth,
     height: element.offsetHeight,
-    fontSize: parseFloat(getComputedStyle(element).fontSize)
+    fontSize: parseFloat(getComputedStyle(element).fontSize),
   }));
   await item.hover();
   await expect(item.locator('.resize-handle')).toHaveCount(8);
@@ -694,12 +814,16 @@ test('inline editing, drag, dan resize menyimpan perubahan visual', async ({ pag
   const handleBox = await resizeHandle.boundingBox();
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(handleBox.x + handleBox.width / 2 + 12, handleBox.y + handleBox.height / 2 + 14, { steps: 4 });
+  await page.mouse.move(
+    handleBox.x + handleBox.width / 2 + 12,
+    handleBox.y + handleBox.height / 2 + 14,
+    { steps: 4 },
+  );
   await page.mouse.up();
-  const sizeAfter = await item.evaluate(element => ({
+  const sizeAfter = await item.evaluate((element) => ({
     width: element.offsetWidth,
     height: element.offsetHeight,
-    fontSize: parseFloat(getComputedStyle(element).fontSize)
+    fontSize: parseFloat(getComputedStyle(element).fontSize),
   }));
   expect(sizeAfter.width).toBeGreaterThan(sizeBefore.width);
   expect(sizeAfter.height).toBeGreaterThan(sizeBefore.height);
@@ -719,22 +843,40 @@ test('delapan arah resize mendukung sisi, sudut, rasio, pusat, dan rotasi', asyn
   let item = page.locator('.data-item').first();
   await item.click();
   await expect(item.locator('.resize-handle')).toHaveCount(8);
-  expect(await item.locator('.resize-handle').evaluateAll(handles => handles.map(handle => handle.dataset.resizeDirection).sort()))
-    .toEqual(['e', 'n', 'ne', 'nw', 's', 'se', 'sw', 'w']);
+  expect(
+    await item
+      .locator('.resize-handle')
+      .evaluateAll((handles) => handles.map((handle) => handle.dataset.resizeDirection).sort()),
+  ).toEqual(['e', 'n', 'ne', 'nw', 's', 'se', 'sw', 'w']);
 
   await page.locator('[data-property="rotation"]').fill('30');
   await page.locator('[data-property="rotation"]').press('Enter');
   item = page.locator('.data-item').first();
-  const before = await item.evaluate(element => ({ left: element.offsetLeft, top: element.offsetTop, width: element.offsetWidth, height: element.offsetHeight }));
+  const before = await item.evaluate((element) => ({
+    left: element.offsetLeft,
+    top: element.offsetTop,
+    width: element.offsetWidth,
+    height: element.offsetHeight,
+  }));
   const sideHandle = item.locator('.resize-e');
   await sideHandle.hover();
   const sideBox = await sideHandle.boundingBox();
   await page.mouse.down();
-  await page.mouse.move(sideBox.x + sideBox.width / 2 + 18, sideBox.y + sideBox.height / 2, { steps: 5 });
+  await page.mouse.move(sideBox.x + sideBox.width / 2 + 18, sideBox.y + sideBox.height / 2, {
+    steps: 5,
+  });
   await page.mouse.up();
-  const afterSide = await item.evaluate(element => ({ left: element.offsetLeft, top: element.offsetTop, width: element.offsetWidth, height: element.offsetHeight }));
+  const afterSide = await item.evaluate((element) => ({
+    left: element.offsetLeft,
+    top: element.offsetTop,
+    width: element.offsetWidth,
+    height: element.offsetHeight,
+  }));
   expect(afterSide.width).not.toBe(before.width);
-  expect({ left: afterSide.left, top: afterSide.top }).not.toEqual({ left: before.left, top: before.top });
+  expect({ left: afterSide.left, top: afterSide.top }).not.toEqual({
+    left: before.left,
+    top: before.top,
+  });
 
   const ratioBefore = afterSide.width / afterSide.height;
   const cornerHandle = item.locator('.resize-se');
@@ -742,27 +884,40 @@ test('delapan arah resize mendukung sisi, sudut, rasio, pusat, dan rotasi', asyn
   const cornerBox = await cornerHandle.boundingBox();
   await page.keyboard.down('Shift');
   await page.mouse.down();
-  await page.mouse.move(cornerBox.x + cornerBox.width / 2 + 20, cornerBox.y + cornerBox.height / 2 + 12, { steps: 5 });
+  await page.mouse.move(
+    cornerBox.x + cornerBox.width / 2 + 20,
+    cornerBox.y + cornerBox.height / 2 + 12,
+    { steps: 5 },
+  );
   await page.mouse.up();
   await page.keyboard.up('Shift');
-  const afterRatio = await item.evaluate(element => ({ width: element.offsetWidth, height: element.offsetHeight }));
-  expect(Math.abs(afterRatio.width / afterRatio.height - ratioBefore) / ratioBefore).toBeLessThan(0.05);
+  const afterRatio = await item.evaluate((element) => ({
+    width: element.offsetWidth,
+    height: element.offsetHeight,
+  }));
+  expect(Math.abs(afterRatio.width / afterRatio.height - ratioBefore) / ratioBefore).toBeLessThan(
+    0.05,
+  );
 
-  const centerBefore = await item.evaluate(element => ({
+  const centerBefore = await item.evaluate((element) => ({
     x: element.offsetLeft + element.offsetWidth / 2,
-    y: element.offsetTop + element.offsetHeight / 2
+    y: element.offsetTop + element.offsetHeight / 2,
   }));
   const centerHandle = item.locator('.resize-e');
   await centerHandle.hover();
   const centerHandleBox = await centerHandle.boundingBox();
   await page.keyboard.down('Alt');
   await page.mouse.down();
-  await page.mouse.move(centerHandleBox.x + centerHandleBox.width / 2 + 12, centerHandleBox.y + centerHandleBox.height / 2, { steps: 4 });
+  await page.mouse.move(
+    centerHandleBox.x + centerHandleBox.width / 2 + 12,
+    centerHandleBox.y + centerHandleBox.height / 2,
+    { steps: 4 },
+  );
   await page.mouse.up();
   await page.keyboard.up('Alt');
-  const centerAfter = await item.evaluate(element => ({
+  const centerAfter = await item.evaluate((element) => ({
     x: element.offsetLeft + element.offsetWidth / 2,
-    y: element.offsetTop + element.offsetHeight / 2
+    y: element.offsetTop + element.offsetHeight / 2,
   }));
   expect(Math.abs(centerAfter.x - centerBefore.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(centerAfter.y - centerBefore.y)).toBeLessThanOrEqual(1);
@@ -779,16 +934,19 @@ test('selection dan keyboard nudge memperbarui elemen lalu dapat dibersihkan', a
   await expect(item).toHaveClass(/selected-item/);
   await expect(page.locator('#textFormatToolbar')).toHaveClass(/show/);
 
-  const leftBefore = await item.evaluate(element => parseFloat(element.style.left));
+  const leftBefore = await item.evaluate((element) => parseFloat(element.style.left));
   await page.keyboard.press('ArrowRight');
-  await expect.poll(() => item.evaluate(element => parseFloat(element.style.left)))
+  await expect
+    .poll(() => item.evaluate((element) => parseFloat(element.style.left)))
     .toBeCloseTo(leftBefore + 0.1, 5);
 
   await page.keyboard.press('Control+z');
-  await expect.poll(() => item.evaluate(element => parseFloat(element.style.left)))
+  await expect
+    .poll(() => item.evaluate((element) => parseFloat(element.style.left)))
     .toBeCloseTo(leftBefore, 5);
   await page.keyboard.press('Control+y');
-  await expect.poll(() => item.evaluate(element => parseFloat(element.style.left)))
+  await expect
+    .poll(() => item.evaluate((element) => parseFloat(element.style.left)))
     .toBeCloseTo(leftBefore + 0.1, 5);
 
   await item.click();
@@ -813,7 +971,7 @@ test('floating toolbar menyinkronkan properti presisi elemen teks', async ({ pag
   await expect(page.locator('#toolbarPropY')).toHaveValue('30');
   await expect(page.locator('#toolbarPropFontSize')).toHaveValue('10');
 
-  const livePosition = await page.locator('#toolbarPropX').evaluate(async input => {
+  const livePosition = await page.locator('#toolbarPropX').evaluate(async (input) => {
     const item = document.querySelector('.data-item');
     item.dataset.performanceIdentity = 'toolbar-live-preview';
     for (const value of ['21', '24', '25.5']) {
@@ -824,35 +982,44 @@ test('floating toolbar menyinkronkan properti presisi elemen teks', async ({ pag
     await new Promise(requestAnimationFrame);
     return {
       left: item.style.left,
-      modelX: JSON.parse(document.querySelector('#jsonInput').value)[0].pages[0].items[0].x
+      modelX: JSON.parse(document.querySelector('#jsonInput').value)[0].pages[0].items[0].x,
     };
   });
   expect(livePosition).toEqual({ left: '25.5mm', modelX: 20 });
   await expect(item).toHaveAttribute('data-performance-identity', 'toolbar-live-preview');
   await page.locator('#toolbarPropX').dispatchEvent('change');
   item = page.locator('.data-item').first();
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].x;
-  })).toBe(25.5);
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items[0].x;
+      }),
+    )
+    .toBe(25.5);
   await expect(item).toHaveAttribute('data-performance-identity', 'toolbar-live-preview');
   await expect(page.locator('#toolbarPropX')).toHaveValue('25.5');
   await expect(page.locator('#propertyPanel [data-property="x"]')).toHaveValue('25.5');
 
-  const liveFontSize = await page.locator('#toolbarPropFontSize').evaluate(async input => {
+  const liveFontSize = await page.locator('#toolbarPropFontSize').evaluate(async (input) => {
     input.value = '14.5';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
     return {
       fontSize: document.querySelector('.data-item').style.fontSize,
-      modelFontSize: JSON.parse(document.querySelector('#jsonInput').value)[0].pages[0].items[0].font_size
+      modelFontSize: JSON.parse(document.querySelector('#jsonInput').value)[0].pages[0].items[0]
+        .font_size,
     };
   });
   expect(liveFontSize).toEqual({ fontSize: '14.5pt', modelFontSize: 10 });
   await page.locator('#toolbarPropFontSize').dispatchEvent('change');
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].font_size;
-  })).toBe(14.5);
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items[0].font_size;
+      }),
+    )
+    .toBe(14.5);
 
   await page.locator('#toolbarPropRotation').fill('20');
   await page.locator('#toolbarPropRotation').press('Enter');
@@ -866,7 +1033,9 @@ test('floating toolbar menyinkronkan properti presisi elemen teks', async ({ pag
   await expect(page.locator('#propertyPanel [data-property="locked"]')).toBeChecked();
 });
 
-test('floating toolbar tetap tersembunyi selama dan setelah elemen teks di-drag', async ({ page }) => {
+test('floating toolbar tetap tersembunyi selama dan setelah elemen teks di-drag', async ({
+  page,
+}) => {
   await openReadyApp(page);
   await loadDocument(page, validTextFixture);
   await page.getByRole('checkbox', { name: 'Aktifkan Snapping Magnetik' }).uncheck();
@@ -894,15 +1063,19 @@ test('floating toolbar tetap tersembunyi selama dan setelah elemen teks di-drag'
   await expect(item).toHaveClass(/selected-item/);
 });
 
-test('live formatting mem-patch elemen tanpa full render lalu commit secara debounce', async ({ page }) => {
+test('live formatting mem-patch elemen tanpa full render lalu commit secara debounce', async ({
+  page,
+}) => {
   await openReadyApp(page);
   await loadDocument(page, validTextFixture);
 
   const item = page.locator('.data-item').first();
   await item.click();
-  await item.evaluate(element => { element.dataset.performanceIdentity = 'preserved'; });
-  await page.locator('#textColorPicker').evaluate(input => {
-    ['#334455', '#778899', '#abcdef'].forEach(value => {
+  await item.evaluate((element) => {
+    element.dataset.performanceIdentity = 'preserved';
+  });
+  await page.locator('#textColorPicker').evaluate((input) => {
+    ['#334455', '#778899', '#abcdef'].forEach((value) => {
       input.value = value;
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
@@ -910,27 +1083,43 @@ test('live formatting mem-patch elemen tanpa full render lalu commit secara debo
 
   await expect(page.locator('#saveStatus')).toHaveText('Mengedit…');
   await expect(item).toHaveCSS('color', 'rgb(171, 205, 239)');
-  expect(await page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].color;
-  })).toBe('#112233');
+  expect(
+    await page.locator('#jsonInput').evaluate((element) => {
+      return JSON.parse(element.value)[0].pages[0].items[0].color;
+    }),
+  ).toBe('#112233');
 
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].color;
-  })).toBe('#abcdef');
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items[0].color;
+      }),
+    )
+    .toBe('#abcdef');
   await expect(item).toHaveAttribute('data-performance-identity', 'preserved');
   await expect(page.locator('#propertyPanel [data-property="color"]')).toHaveValue('#abcdef');
 
   await page.keyboard.press('Control+z');
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].color;
-  })).toBe('#112233');
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items[0].color;
+      }),
+    )
+    .toBe('#112233');
   await page.keyboard.press('Control+y');
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].color;
-  })).toBe('#abcdef');
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items[0].color;
+      }),
+    )
+    .toBe('#abcdef');
 
   await item.click();
-  await item.evaluate(element => { element.dataset.performanceIdentity = 'property-preserved'; });
+  await item.evaluate((element) => {
+    element.dataset.performanceIdentity = 'property-preserved';
+  });
   await page.locator('#propertyPanel [data-property="x"]').fill('27.5');
   await page.locator('#propertyPanel [data-property="x"]').press('Enter');
   await expect(item).toHaveAttribute('data-performance-identity', 'property-preserved');
@@ -945,9 +1134,13 @@ test('format, clone, dan delete item menggunakan canvas command layer', async ({
   let items = page.locator('.data-item');
   await items.first().click();
   await page.getByRole('button', { name: 'Tebal (B)' }).click();
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    return JSON.parse(element.value)[0].pages[0].items[0].bold;
-  })).toBe(false);
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        return JSON.parse(element.value)[0].pages[0].items[0].bold;
+      }),
+    )
+    .toBe(false);
   await expect(items.first()).toHaveCSS('font-weight', '400');
 
   await page.getByRole('button', { name: 'Miring (I)' }).click();
@@ -958,10 +1151,19 @@ test('format, clone, dan delete item menggunakan canvas command layer', async ({
   await expect(items.first()).toHaveCSS('text-decoration-line', 'underline');
   await expect(items.first()).toHaveCSS('color', 'rgb(0, 170, 85)');
   await expect(items.first()).toHaveCSS('background-color', 'rgb(255, 238, 0)');
-  await expect.poll(() => page.locator('#jsonInput').evaluate(element => {
-    const item = JSON.parse(element.value)[0].pages[0].items[0];
-    return { italic: item.italic, underline: item.underline, color: item.color, bg_color: item.bg_color };
-  })).toEqual({ italic: true, underline: true, color: '#00aa55', bg_color: '#ffee00' });
+  await expect
+    .poll(() =>
+      page.locator('#jsonInput').evaluate((element) => {
+        const item = JSON.parse(element.value)[0].pages[0].items[0];
+        return {
+          italic: item.italic,
+          underline: item.underline,
+          color: item.color,
+          bg_color: item.bg_color,
+        };
+      }),
+    )
+    .toEqual({ italic: true, underline: true, color: '#00aa55', bg_color: '#ffee00' });
 
   const toolbar = page.locator('#textFormatToolbar');
   await expect(toolbar).toHaveClass(/show/);
@@ -970,14 +1172,18 @@ test('format, clone, dan delete item menggunakan canvas command layer', async ({
 
   const toolbarBox = await toolbar.boundingBox();
   const itemBox = await items.first().boundingBox();
-  expect(toolbarBox.y + toolbarBox.height <= itemBox.y || toolbarBox.y >= itemBox.y + itemBox.height).toBe(true);
+  expect(
+    toolbarBox.y + toolbarBox.height <= itemBox.y || toolbarBox.y >= itemBox.y + itemBox.height,
+  ).toBe(true);
   await expect(toolbar).toHaveCSS('position', 'fixed');
   await expect(toolbar).toHaveCSS('z-index', '9000');
 
   const toolbarDuplicateButton = page.getByRole('button', { name: 'Duplikasi elemen terpilih' });
-  const hitTarget = await toolbarDuplicateButton.evaluate(element => {
+  const hitTarget = await toolbarDuplicateButton.evaluate((element) => {
     const rect = element.getBoundingClientRect();
-    return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.closest('button')?.id;
+    return document
+      .elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      ?.closest('button')?.id;
   });
   expect(hitTarget).toBe('btnToolbarDuplicate');
   await toolbarDuplicateButton.click();
@@ -1004,13 +1210,20 @@ test('format, clone, dan delete item menggunakan canvas command layer', async ({
 test('renderer memperlakukan markup pada teks sebagai teks biasa', async ({ page }) => {
   await openReadyApp(page);
   const hostileText = '<img src=x onerror="window.__rendererInjected=true">';
-  await loadDocument(page, JSON.stringify([{
-    debitur: 'Security Fixture',
-    pages: [{
-      page_number: 1,
-      items: [{ text: hostileText, x: 20, y: 30 }]
-    }]
-  }]));
+  await loadDocument(
+    page,
+    JSON.stringify([
+      {
+        debitur: 'Security Fixture',
+        pages: [
+          {
+            page_number: 1,
+            items: [{ text: hostileText, x: 20, y: 30 }],
+          },
+        ],
+      },
+    ]),
+  );
 
   await expect(page.locator('.data-item .text-content')).toHaveText(hostileText);
   await expect(page.locator('.data-item img')).toHaveCount(0);
@@ -1036,13 +1249,13 @@ test('pengaturan dapat diekspor dan diimpor kembali', async ({ page }) => {
     hideCalCheck: true,
     hideCalPreviewCheck: false,
     printOverlayCheck: false,
-    enableSnapCheck: false
+    enableSnapCheck: false,
   };
 
   await page.locator('#importFile').setInputFiles({
     name: 'fixture-settings.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(importedSettings))
+    buffer: Buffer.from(JSON.stringify(importedSettings)),
   });
 
   await expect(page.locator('.toast-success')).toContainText('Pengaturan berhasil diimpor');
@@ -1082,19 +1295,24 @@ test('aturan print menyembunyikan panel aplikasi dan mempertahankan halaman', as
 
   await page.emulateMedia({ media: 'print' });
   await expect(page.locator('.admin-panel')).toBeHidden();
-  const printStyle = await page.locator('.print-page').first().evaluate(element => ({
-    width: getComputedStyle(element).width,
-    height: getComputedStyle(element).height,
-    boxShadow: getComputedStyle(element).boxShadow
-  }));
-  expect(parseFloat(printStyle.width)).toBeCloseTo(210 * 96 / 25.4, 0);
-  expect(parseFloat(printStyle.height)).toBeCloseTo(330 * 96 / 25.4, 0);
+  const printStyle = await page
+    .locator('.print-page')
+    .first()
+    .evaluate((element) => ({
+      width: getComputedStyle(element).width,
+      height: getComputedStyle(element).height,
+      boxShadow: getComputedStyle(element).boxShadow,
+    }));
+  expect(parseFloat(printStyle.width)).toBeCloseTo((210 * 96) / 25.4, 0);
+  expect(parseFloat(printStyle.height)).toBeCloseTo((330 * 96) / 25.4, 0);
   expect(printStyle.boxShadow).toBe('none');
 });
 
-test('landmark, status, toolbar, dan reduced motion memiliki kontrak aksesibilitas', async ({ page }) => {
+test('landmark, status, toolbar, dan reduced motion memiliki kontrak aksesibilitas', async ({
+  page,
+}) => {
   const pageErrors = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   await openReadyApp(page);
 
   await expect(page.getByRole('main', { name: 'Editor Bidik Koordinat' })).toBeVisible();
@@ -1104,9 +1322,10 @@ test('landmark, status, toolbar, dan reduced motion memiliki kontrak aksesibilit
   await expect(page.locator('#toastContainer')).toHaveAttribute('aria-label', 'Notifikasi');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const transitionDuration = await page.locator('.btn').first().evaluate(
-    element => getComputedStyle(element).transitionDuration
-  );
+  const transitionDuration = await page
+    .locator('.btn')
+    .first()
+    .evaluate((element) => getComputedStyle(element).transitionDuration);
   expect(parseFloat(transitionDuration)).toBeLessThanOrEqual(0.01);
   expect(pageErrors).toEqual([]);
 });
@@ -1116,6 +1335,6 @@ test('baseline visual panel aplikasi tetap stabil', async ({ page }) => {
   await openReadyApp(page);
   await expect(page.locator('.admin-panel')).toHaveScreenshot('admin-panel-light.png', {
     animations: 'disabled',
-    maxDiffPixelRatio: 0.01
+    maxDiffPixelRatio: 0.01,
   });
 });

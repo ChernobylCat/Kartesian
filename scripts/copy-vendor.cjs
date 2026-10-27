@@ -16,7 +16,7 @@ const files = [
   ['node_modules/ace-builds/LICENSE', 'ACE-LICENSE.txt'],
   ['node_modules/pdfjs-dist/LICENSE', 'PDFJS-LICENSE.txt'],
   ['node_modules/lucide/LICENSE', 'LUCIDE-LICENSE.txt'],
-  ['node_modules/driver.js/license', 'DRIVERJS-LICENSE.txt']
+  ['node_modules/driver.js/license', 'DRIVERJS-LICENSE.txt'],
 ];
 
 fs.mkdirSync(vendorDirectory, { recursive: true });

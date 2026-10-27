@@ -1,18 +1,19 @@
 export function escapeHtml(value) {
   if (typeof value !== 'string') return '';
-  return value.replace(/[&<>"']/g, character => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  })[character]);
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[character],
+  );
 }
 
-export function debounce(fn, delay, {
-  setTimer = setTimeout,
-  clearTimer = clearTimeout
-} = {}) {
+export function debounce(fn, delay, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   let timer = null;
   let lastArgs = null;
   let lastThis = null;

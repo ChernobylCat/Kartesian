@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+assets
+public
+package-lock.json
+pnpm-lock.yaml
+.venv
+.venv-ocr
+playwright-report
+test-results

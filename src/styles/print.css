@@ -1,0 +1,80 @@
+.print-surface {
+  display: none;
+}
+@page {
+  size: 210mm 330mm;
+  margin: 0;
+}
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #111827 !important;
+  }
+  .editor-app,
+  .toast,
+  dialog,
+  .no-print {
+    display: none !important;
+  }
+  .print-surface {
+    display: block !important;
+  }
+  .output-page {
+    position: relative;
+    width: 210mm;
+    height: 330mm;
+    overflow: hidden;
+    background: white;
+    break-after: page;
+    page-break-after: always;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .output-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .output-item {
+    position: absolute;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    transform-origin: center;
+  }
+  .output-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .output-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+  }
+  .output-cal {
+    position: absolute;
+    font: 6pt Arial;
+    color: #888;
+  }
+  .output-cal.tl {
+    left: 10mm;
+    top: 10mm;
+  }
+  .output-cal.tr {
+    right: 10mm;
+    top: 10mm;
+  }
+  .output-cal.bl {
+    left: 10mm;
+    bottom: 10mm;
+  }
+  .output-cal.br {
+    right: 10mm;
+    bottom: 10mm;
+  }
+}

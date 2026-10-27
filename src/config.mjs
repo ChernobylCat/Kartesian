@@ -1,7 +1,7 @@
 export const APP_CONFIG = Object.freeze({
   PAPER_WIDTH_MM: 210,
   PAPER_HEIGHT_MM: 330,
-  DOC_1_PAGE_COUNT: 9,
+  DOC_1_PAGE_COUNT: 1,
 
   PDF_RENDER_SCALE: 1.5,
   PDF_RENDER_FORMAT: 'image/jpeg',
@@ -20,7 +20,9 @@ export const APP_CONFIG = Object.freeze({
   LOCAL_FIELD_SERVICE_URL: 'http://127.0.0.1:8765',
   LOCAL_FIELD_SERVICE_HEALTH_TIMEOUT_MS: 2_000,
   LOCAL_FIELD_SERVICE_SCAN_TIMEOUT_MS: 120_000,
+  MAX_DOCUMENTS: 100,
   MAX_DEBTORS: 100,
+  MAX_PAGES_PER_DOCUMENT: 100,
   MAX_PAGES_PER_DEBTOR: 100,
   MAX_ITEMS_PER_PAGE: 1000,
   MAX_TOTAL_ITEMS: 5000,
@@ -33,7 +35,7 @@ export const APP_CONFIG = Object.freeze({
   STORE_NAME: 'pdf_overlays',
 
   SETTINGS_KEY: 'overlay_print_pro_settings',
-  SETTINGS_SCHEMA_VERSION: 1
+  SETTINGS_SCHEMA_VERSION: 1,
 });
 
 export const ALLOWED_FONT_FAMILIES = new Set([
@@ -42,5 +44,5 @@ export const ALLOWED_FONT_FAMILIES = new Set([
   'Times New Roman, Times, serif',
   'Georgia, serif',
   'Verdana, sans-serif',
-  'Plus Jakarta Sans, sans-serif'
+  'Plus Jakarta Sans, sans-serif',
 ]);

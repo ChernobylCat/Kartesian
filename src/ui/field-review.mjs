@@ -29,14 +29,14 @@ export function createFieldReviewController({
   onDismiss = async () => {},
   confirmDismiss = () => Promise.resolve(false),
   showToast = () => {},
-  isPreviewVisible = () => true
+  isPreviewVisible = () => true,
 } = {}) {
   let candidates = [];
   let lifecycle = null;
   let dialogLifecycle = null;
   let activeOverlay = null;
 
-  const element = id => documentRef.getElementById(id);
+  const element = (id) => documentRef.getElementById(id);
 
   function closeDialog() {
     activeOverlay?.remove();
@@ -55,16 +55,17 @@ export function createFieldReviewController({
   }
 
   function renderPreview() {
-    documentRef.querySelectorAll('.pdf-field-suggestion-layer').forEach(layer => layer.remove());
+    documentRef.querySelectorAll('.pdf-field-suggestion-layer').forEach((layer) => layer.remove());
     if (!candidates.length || !isPreviewVisible()) return;
-    documentRef.querySelectorAll('.print-page').forEach(page => {
-      const pageNumber = Number.parseInt(page.querySelector('.page-overlay-guide')?.dataset.pdfPage, 10) || 1;
-      const pageCandidates = candidates.filter(candidate => candidate.pageNumber === pageNumber);
+    documentRef.querySelectorAll('.print-page').forEach((page) => {
+      const pageNumber =
+        Number.parseInt(page.querySelector('.page-overlay-guide')?.dataset.pdfPage, 10) || 1;
+      const pageCandidates = candidates.filter((candidate) => candidate.pageNumber === pageNumber);
       if (!pageCandidates.length) return;
       const layer = documentRef.createElement('div');
       layer.className = 'pdf-field-suggestion-layer no-print';
       layer.setAttribute('aria-hidden', 'true');
-      pageCandidates.forEach(candidate => {
+      pageCandidates.forEach((candidate) => {
         const box = documentRef.createElement('div');
         box.className = `pdf-field-suggestion pdf-field-confidence-${confidenceLabel(candidate.confidence).toLowerCase()}`;
         box.style.left = `${candidate.x}mm`;
@@ -130,12 +131,13 @@ export function createFieldReviewController({
     title.textContent = 'Tinjau kandidat field PDF';
     const description = documentRef.createElement('p');
     description.id = 'fieldReviewDescription';
-    description.textContent = 'Pilih dan ubah placeholder sebelum diterapkan ke halaman yang sama pada seluruh debitur.';
+    description.textContent =
+      'Pilih dan ubah placeholder sebelum diterapkan ke halaman yang sama pada seluruh dokumen.';
 
     const list = documentRef.createElement('div');
     list.className = 'field-review-list';
     let currentPage = null;
-    candidates.forEach(candidate => {
+    candidates.forEach((candidate) => {
       if (candidate.pageNumber !== currentPage) {
         currentPage = candidate.pageNumber;
         const pageHeading = documentRef.createElement('h4');
@@ -167,20 +169,22 @@ export function createFieldReviewController({
     documentRef.body.appendChild(overlay);
     activeOverlay = overlay;
 
-    const setBusy = busy => {
-      [cancelButton, dismissButton, applyButton].forEach(button => { button.disabled = busy; });
+    const setBusy = (busy) => {
+      [cancelButton, dismissButton, applyButton].forEach((button) => {
+        button.disabled = busy;
+      });
       applyButton.textContent = busy ? 'Menerapkan…' : 'Terapkan Terpilih';
     };
 
     cancelButton.addEventListener('click', closeDialog);
-    overlay.addEventListener('click', event => {
+    overlay.addEventListener('click', (event) => {
       if (event.target === overlay) closeDialog();
     });
     dismissButton.addEventListener('click', async () => {
-      if (!await confirmDismiss('Abaikan seluruh kandidat hasil scan PDF ini?')) return;
+      if (!(await confirmDismiss('Abaikan seluruh kandidat hasil scan PDF ini?'))) return;
       setBusy(true);
       try {
-        await onDismiss(candidates.map(candidate => candidate.id));
+        await onDismiss(candidates.map((candidate) => candidate.id));
         closeDialog();
         showToast('Kandidat field diabaikan.', 'info');
       } catch (error) {
@@ -189,12 +193,16 @@ export function createFieldReviewController({
       }
     });
     applyButton.addEventListener('click', async () => {
-      const selected = candidates.filter(candidate => {
-        return card.querySelector(`[data-field-select="${candidate.id}"]`)?.checked;
-      }).map(candidate => ({
-        ...candidate,
-        placeholder: card.querySelector(`[data-field-placeholder="${candidate.id}"]`)?.value.trim() || candidate.placeholder
-      }));
+      const selected = candidates
+        .filter((candidate) => {
+          return card.querySelector(`[data-field-select="${candidate.id}"]`)?.checked;
+        })
+        .map((candidate) => ({
+          ...candidate,
+          placeholder:
+            card.querySelector(`[data-field-placeholder="${candidate.id}"]`)?.value.trim() ||
+            candidate.placeholder,
+        }));
       if (!selected.length) {
         showToast('Pilih minimal satu kandidat field.', 'warning');
         return;
@@ -207,7 +215,7 @@ export function createFieldReviewController({
           result.addedCount > 0
             ? `${result.addedCount} placeholder berhasil diterapkan.`
             : 'Semua placeholder terpilih sudah ada pada dokumen.',
-          result.addedCount > 0 ? 'success' : 'info'
+          result.addedCount > 0 ? 'success' : 'info',
         );
       } catch (error) {
         setBusy(false);
@@ -220,12 +228,14 @@ export function createFieldReviewController({
       dialog: card,
       initialFocus: list.querySelector('input'),
       returnFocus: element('btnReviewPdfFields'),
-      onEscape: closeDialog
+      onEscape: closeDialog,
     });
   }
 
   function setCandidates(nextCandidates = []) {
-    candidates = Array.isArray(nextCandidates) ? nextCandidates.map(candidate => ({ ...candidate })) : [];
+    candidates = Array.isArray(nextCandidates)
+      ? nextCandidates.map((candidate) => ({ ...candidate }))
+      : [];
     updateButton();
     renderPreview();
     if (!candidates.length) closeDialog();
@@ -234,7 +244,9 @@ export function createFieldReviewController({
   function init() {
     lifecycle?.abort();
     lifecycle = new AbortController();
-    element('btnReviewPdfFields')?.addEventListener('click', openDialog, { signal: lifecycle.signal });
+    element('btnReviewPdfFields')?.addEventListener('click', openDialog, {
+      signal: lifecycle.signal,
+    });
     updateButton();
     renderPreview();
   }
@@ -243,7 +255,7 @@ export function createFieldReviewController({
     closeDialog();
     lifecycle?.abort();
     lifecycle = null;
-    documentRef.querySelectorAll('.pdf-field-suggestion-layer').forEach(layer => layer.remove());
+    documentRef.querySelectorAll('.pdf-field-suggestion-layer').forEach((layer) => layer.remove());
   }
 
   return { destroy, init, openDialog, renderPreview, setCandidates };

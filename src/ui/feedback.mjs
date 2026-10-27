@@ -27,7 +27,7 @@ export function showToast(message, type = 'info', duration = 3500, documentRef =
 }
 
 export function showConfirm(message, title = 'Konfirmasi', documentRef = document) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const sequence = ++dialogSequence;
     const overlay = documentRef.createElement('div');
     overlay.className = 'modal-overlay';
@@ -58,7 +58,7 @@ export function showConfirm(message, title = 'Konfirmasi', documentRef = documen
 
     let settled = false;
     let dialogLifecycle = null;
-    const finish = result => {
+    const finish = (result) => {
       if (settled) return;
       settled = true;
       overlay.remove();
@@ -68,14 +68,14 @@ export function showConfirm(message, title = 'Konfirmasi', documentRef = documen
 
     confirmButton.addEventListener('click', () => finish(true));
     cancelButton.addEventListener('click', () => finish(false));
-    overlay.addEventListener('click', event => {
+    overlay.addEventListener('click', (event) => {
       if (event.target === overlay) finish(false);
     });
     dialogLifecycle = createDialogLifecycle({
       documentRef,
       dialog: card,
       initialFocus: cancelButton,
-      onEscape: () => finish(false)
+      onEscape: () => finish(false),
     });
   });
 }

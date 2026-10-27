@@ -7,7 +7,7 @@ export class PdfOverlayStorage {
     indexedDb = globalThis.indexedDB,
     dbName = APP_CONFIG.DB_NAME,
     dbVersion = APP_CONFIG.DB_VERSION,
-    storeName = APP_CONFIG.STORE_NAME
+    storeName = APP_CONFIG.STORE_NAME,
   } = {}) {
     this.indexedDb = indexedDb;
     this.dbName = dbName;
@@ -19,7 +19,7 @@ export class PdfOverlayStorage {
   async getDatabase() {
     if (!this.indexedDb) throw new Error('IndexedDB tidak tersedia.');
     if (!this.connectionPromise) {
-      this.connectionPromise = this.openDatabase().catch(error => {
+      this.connectionPromise = this.openDatabase().catch((error) => {
         this.connectionPromise = null;
         throw error;
       });
@@ -30,13 +30,13 @@ export class PdfOverlayStorage {
   openDatabase() {
     return new Promise((resolve, reject) => {
       const request = this.indexedDb.open(this.dbName, this.dbVersion);
-      request.onupgradeneeded = event => {
+      request.onupgradeneeded = (event) => {
         const database = event.target.result;
         if (!database.objectStoreNames.contains(this.storeName)) {
           database.createObjectStore(this.storeName, { keyPath: 'id' });
         }
       };
-      request.onsuccess = event => {
+      request.onsuccess = (event) => {
         const database = event.target.result;
         database.onversionchange = () => {
           database.close();
@@ -44,8 +44,9 @@ export class PdfOverlayStorage {
         };
         resolve(database);
       };
-      request.onerror = event => reject(event.target.error);
-      request.onblocked = () => reject(new Error('Database overlay sedang digunakan oleh tab lain.'));
+      request.onerror = (event) => reject(event.target.error);
+      request.onblocked = () =>
+        reject(new Error('Database overlay sedang digunakan oleh tab lain.'));
     });
   }
 
@@ -59,11 +60,13 @@ export class PdfOverlayStorage {
         candidates,
         pdfData,
         fileName: String(fileName || ''),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
       transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error || new Error('Gagal menyimpan PDF ke IndexedDB.'));
-      transaction.onabort = () => reject(transaction.error || new Error('Transaksi penyimpanan PDF dibatalkan.'));
+      transaction.onerror = () =>
+        reject(transaction.error || new Error('Gagal menyimpan PDF ke IndexedDB.'));
+      transaction.onabort = () =>
+        reject(transaction.error || new Error('Transaksi penyimpanan PDF dibatalkan.'));
     });
   }
 
@@ -72,16 +75,21 @@ export class PdfOverlayStorage {
     return new Promise((resolve, reject) => {
       const transaction = database.transaction([this.storeName], 'readonly');
       const request = transaction.objectStore(this.storeName).get(ACTIVE_PDF_ID);
-      request.onsuccess = event => {
+      request.onsuccess = (event) => {
         const record = event.target.result;
-        resolve(record ? {
-          pages: Array.isArray(record.pages) ? record.pages : [],
-          candidates: Array.isArray(record.candidates) ? record.candidates : [],
-          pdfData: record.pdfData || record.pdfBlob || null,
-          fileName: typeof record.fileName === 'string' ? record.fileName : ''
-        } : null);
+        resolve(
+          record
+            ? {
+                pages: Array.isArray(record.pages) ? record.pages : [],
+                candidates: Array.isArray(record.candidates) ? record.candidates : [],
+                pdfData: record.pdfData || record.pdfBlob || null,
+                fileName: typeof record.fileName === 'string' ? record.fileName : '',
+              }
+            : null,
+        );
       };
-      request.onerror = () => reject(request.error || new Error('Gagal membaca PDF dari IndexedDB.'));
+      request.onerror = () =>
+        reject(request.error || new Error('Gagal membaca PDF dari IndexedDB.'));
     });
   }
 
@@ -94,7 +102,7 @@ export class PdfOverlayStorage {
     if (!payload) throw new Error('PDF aktif tidak ditemukan.');
     return this.savePages(payload.pages, candidates, {
       pdfData: payload.pdfData,
-      fileName: payload.fileName
+      fileName: payload.fileName,
     });
   }
 
@@ -104,7 +112,8 @@ export class PdfOverlayStorage {
       const transaction = database.transaction([this.storeName], 'readwrite');
       const request = transaction.objectStore(this.storeName).delete(ACTIVE_PDF_ID);
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error || new Error('Gagal menghapus PDF dari IndexedDB.'));
+      request.onerror = () =>
+        reject(request.error || new Error('Gagal menghapus PDF dari IndexedDB.'));
     });
   }
 }

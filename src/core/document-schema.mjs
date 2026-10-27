@@ -10,7 +10,10 @@ export function isPlainObject(value) {
 }
 
 export function toFiniteNumber(value, label) {
-  if (typeof value !== 'number' && (typeof value !== 'string' || !/^-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()))) {
+  if (
+    typeof value !== 'number' &&
+    (typeof value !== 'string' || !/^-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()))
+  ) {
     throw new Error(`${label} harus berupa angka yang valid.`);
   }
 
@@ -30,28 +33,42 @@ export function validateDocumentData(parsed) {
     throw new Error('Format root JSON harus berupa Array [ ].');
   }
   if (parsed.length === 0) {
-    throw new Error('Data harus berisi minimal 1 debitur.');
+    throw new Error('Data harus berisi minimal 1 dokumen.');
   }
-  if (parsed.length > APP_CONFIG.MAX_DEBTORS) {
-    throw new Error(`Data melebihi batas ${APP_CONFIG.MAX_DEBTORS} debitur.`);
+  if (parsed.length > (APP_CONFIG.MAX_DOCUMENTS || APP_CONFIG.MAX_DEBTORS)) {
+    throw new Error(
+      `Data melebihi batas ${APP_CONFIG.MAX_DOCUMENTS || APP_CONFIG.MAX_DEBTORS} dokumen.`,
+    );
   }
 
   let totalItems = 0;
-  parsed.forEach((debtor, debtorIndex) => {
-    const debtorLabel = `Debitur ke-${debtorIndex + 1}`;
-    if (!isPlainObject(debtor)) throw new Error(`${debtorLabel} harus berupa objek { }.`);
-    if (typeof debtor.debitur !== 'string' || !debtor.debitur.trim()) {
-      throw new Error(`${debtorLabel} harus memiliki nama "debitur" berupa teks.`);
+  parsed.forEach((docEntry, docIndex) => {
+    const docLabel = `Dokumen ke-${docIndex + 1}`;
+    if (!isPlainObject(docEntry)) throw new Error(`${docLabel} harus berupa objek { }.`);
+    const documentName =
+      typeof docEntry.title === 'string' && docEntry.title.trim()
+        ? docEntry.title
+        : typeof docEntry.name === 'string' && docEntry.name.trim()
+          ? docEntry.name
+          : typeof docEntry.debitur === 'string' && docEntry.debitur.trim()
+            ? docEntry.debitur
+            : null;
+    if (!documentName) {
+      throw new Error(`${docLabel} harus memiliki "title" berupa teks.`);
     }
-    if (!Array.isArray(debtor.pages)) {
-      throw new Error(`${debtorLabel} harus memiliki array "pages".`);
+    if (!Array.isArray(docEntry.pages)) {
+      throw new Error(`${docLabel} harus memiliki array "pages".`);
     }
-    if (debtor.pages.length > APP_CONFIG.MAX_PAGES_PER_DEBTOR) {
-      throw new Error(`${debtorLabel} melebihi batas ${APP_CONFIG.MAX_PAGES_PER_DEBTOR} halaman.`);
+    if (
+      docEntry.pages.length > (APP_CONFIG.MAX_PAGES_PER_DOCUMENT || APP_CONFIG.MAX_PAGES_PER_DEBTOR)
+    ) {
+      throw new Error(
+        `${docLabel} melebihi batas ${APP_CONFIG.MAX_PAGES_PER_DOCUMENT || APP_CONFIG.MAX_PAGES_PER_DEBTOR} halaman.`,
+      );
     }
 
-    debtor.pages.forEach((page, pageIndex) => {
-      const pageLabel = `${debtorLabel}, halaman ke-${pageIndex + 1}`;
+    docEntry.pages.forEach((page, pageIndex) => {
+      const pageLabel = `${docLabel}, halaman ke-${pageIndex + 1}`;
       if (!isPlainObject(page)) throw new Error(`${pageLabel} harus berupa objek { }.`);
       if (!Number.isInteger(page.page_number) || page.page_number !== pageIndex + 1) {
         throw new Error(`${pageLabel} harus memiliki "page_number" berurutan mulai dari 1.`);
@@ -85,9 +102,13 @@ export function validateDocumentData(parsed) {
 
         if (item.rotation !== undefined) {
           const rotation = toFiniteNumber(item.rotation, `${itemLabel}: rotation`);
-          if (rotation < -360 || rotation > 360) throw new Error(`${itemLabel} memiliki rotasi di luar batas -360 sampai 360 derajat.`);
+          if (rotation < -360 || rotation > 360)
+            throw new Error(`${itemLabel} memiliki rotasi di luar batas -360 sampai 360 derajat.`);
         }
-        if (item.z_index !== undefined && (!Number.isInteger(item.z_index) || item.z_index < -1000 || item.z_index > 1000)) {
+        if (
+          item.z_index !== undefined &&
+          (!Number.isInteger(item.z_index) || item.z_index < -1000 || item.z_index > 1000)
+        ) {
           throw new Error(`${itemLabel} memiliki z_index yang tidak valid.`);
         }
         if (item.locked !== undefined && typeof item.locked !== 'boolean') {
@@ -95,29 +116,37 @@ export function validateDocumentData(parsed) {
         }
 
         if (type === 'image') {
-          if (!isValidImageSrc(item.text)) throw new Error(`${itemLabel} memiliki sumber gambar yang tidak aman atau tidak didukung.`);
+          if (!isValidImageSrc(item.text))
+            throw new Error(
+              `${itemLabel} memiliki sumber gambar yang tidak aman atau tidak didukung.`,
+            );
           if (item.text.length > APP_CONFIG.MAX_IMAGE_FILE_SIZE_BYTES * 1.5) {
             throw new Error(`${itemLabel} melebihi batas ukuran gambar.`);
           }
           const width = toFiniteNumber(item.width, `${itemLabel}: width`);
           const height = toFiniteNumber(item.height, `${itemLabel}: height`);
-          if (width <= 0 || height <= 0) throw new Error(`${itemLabel} harus memiliki ukuran gambar positif.`);
+          if (width <= 0 || height <= 0)
+            throw new Error(`${itemLabel} harus memiliki ukuran gambar positif.`);
           if (x + width > APP_CONFIG.PAPER_WIDTH_MM || y + height > APP_CONFIG.PAPER_HEIGHT_MM) {
             throw new Error(`${itemLabel} melewati batas kertas.`);
           }
         } else {
           if (item.width !== undefined) {
             const width = toFiniteNumber(item.width, `${itemLabel}: width`);
-            if (width <= 0 || x + width > APP_CONFIG.PAPER_WIDTH_MM) throw new Error(`${itemLabel} memiliki lebar di luar batas kertas.`);
+            if (width <= 0 || x + width > APP_CONFIG.PAPER_WIDTH_MM)
+              throw new Error(`${itemLabel} memiliki lebar di luar batas kertas.`);
           }
           if (item.height !== undefined) {
             const height = toFiniteNumber(item.height, `${itemLabel}: height`);
-            if (height <= 0 || y + height > APP_CONFIG.PAPER_HEIGHT_MM) throw new Error(`${itemLabel} memiliki tinggi di luar batas kertas.`);
+            if (height <= 0 || y + height > APP_CONFIG.PAPER_HEIGHT_MM)
+              throw new Error(`${itemLabel} memiliki tinggi di luar batas kertas.`);
           }
           if (item.font_size !== undefined) {
             const fontSize = toFiniteNumber(item.font_size, `${itemLabel}: font_size`);
             if (fontSize < APP_CONFIG.MIN_FONT_SIZE_PT || fontSize > APP_CONFIG.MAX_FONT_SIZE_PT) {
-              throw new Error(`${itemLabel} memiliki ukuran font di luar batas ${APP_CONFIG.MIN_FONT_SIZE_PT}-${APP_CONFIG.MAX_FONT_SIZE_PT} pt.`);
+              throw new Error(
+                `${itemLabel} memiliki ukuran font di luar batas ${APP_CONFIG.MIN_FONT_SIZE_PT}-${APP_CONFIG.MAX_FONT_SIZE_PT} pt.`,
+              );
             }
           }
         }
@@ -125,12 +154,12 @@ export function validateDocumentData(parsed) {
         if (item.font_family !== undefined && !ALLOWED_FONT_FAMILIES.has(item.font_family)) {
           throw new Error(`${itemLabel} menggunakan font yang tidak didukung.`);
         }
-        ['bold', 'italic', 'underline'].forEach(property => {
+        ['bold', 'italic', 'underline'].forEach((property) => {
           if (item[property] !== undefined && typeof item[property] !== 'boolean') {
             throw new Error(`${itemLabel} memiliki ${property} yang bukan boolean.`);
           }
         });
-        ['color', 'bg_color'].forEach(property => {
+        ['color', 'bg_color'].forEach((property) => {
           if (item[property] !== undefined && !isValidHexColor(item[property])) {
             throw new Error(`${itemLabel} memiliki ${property} yang tidak valid.`);
           }
