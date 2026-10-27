@@ -10,7 +10,6 @@ import { attachAutosave } from '@/application/editor-session';
 import { outputPages, standaloneHtml } from '@/infrastructure/export/html';
 import { readLegacySettings, writeLegacySettings } from '@/infrastructure/serialization/settings';
 import { backupWorkspace, restoreWorkspace } from '@/infrastructure/storage/workspace';
-import { validateDocumentData } from '../../src/core/document-schema.mjs';
 import { performance } from 'node:perf_hooks';
 
 const fixture = JSON.parse(readFileSync('tests/fixtures/valid-text.json', 'utf8')) as unknown;
@@ -65,7 +64,7 @@ describe('document codecs and invariants', () => {
     expect(a.document.debtors[0]!.pages[0]!.items[0]!.text).toBe('');
     expect(Object.keys(a.assets)).toHaveLength(1);
   });
-  it('matches legacy acceptance for numeric strings, optional defaults, and bounds', () => {
+  it('validates numeric strings, optional defaults, and bounds according to schema', () => {
     const accepted = (fn: () => unknown) => {
       try {
         fn();
@@ -74,31 +73,32 @@ describe('document codecs and invariants', () => {
         return false;
       }
     };
-    for (const patch of [
-      { x: ' 20 ' },
-      { x: '2e1' },
-      { x: null },
-      { x: 210 },
-      { x: 211 },
-      { font_size: 3 },
-      { font_size: 72 },
-      { font_size: 73 },
-      { width: 0 },
-      { width: 190 },
-      { width: 191 },
-      { rotation: -360 },
-      { rotation: 361 },
-      { z_index: '2' },
-      { locked: 'false' },
-      { color: '#abcdef' },
-      { color: 'red' },
-    ]) {
+    const cases: [Record<string, unknown>, boolean][] = [
+      [{ x: ' 20 ' }, true],
+      [{ x: '2e1' }, true],
+      [{ x: null }, false],
+      [{ x: 210 }, true],
+      [{ x: 211 }, false],
+      [{ font_size: 3 }, false],
+      [{ font_size: 72 }, true],
+      [{ font_size: 73 }, false],
+      [{ width: 0 }, false],
+      [{ width: 190 }, true],
+      [{ width: 191 }, false],
+      [{ rotation: -360 }, true],
+      [{ rotation: 361 }, false],
+      [{ z_index: '2' }, false],
+      [{ locked: 'false' }, false],
+      [{ color: '#abcdef' }, true],
+      [{ color: 'red' }, false],
+    ];
+    for (const [patch, expected] of cases) {
       const data = JSON.parse(JSON.stringify(fixture));
       Object.assign(data[0].pages[0].items[0], patch);
       expect(
         accepted(() => parseLegacy(data)),
         JSON.stringify(patch),
-      ).toBe(accepted(() => validateDocumentData(data)));
+      ).toBe(expected);
     }
   });
   it('preserves reserved-looking legacy metadata through import and export', () => {

@@ -17,9 +17,16 @@ const types = {
   '.wasm': 'application/wasm',
   '.webmanifest': 'application/manifest+json',
 };
+function getHeaders() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, 'security-headers.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+}
 function start(port = Number(process.env.PORT || 4174)) {
-  const headers = JSON.parse(fs.readFileSync(path.join(root, 'security-headers.json'), 'utf8'));
   const server = http.createServer((req, res) => {
+    const headers = getHeaders();
     let relative;
     try {
       relative = decodeURIComponent(new URL(req.url, `http://127.0.0.1:${port}`).pathname);

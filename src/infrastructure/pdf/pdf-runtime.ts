@@ -54,7 +54,5 @@ export async function renderPdf(
   return pages;
 }
 export function guideSource(number: number) {
-  return number <= 1
-    ? `/assets/doc_1/showcase-${number}.png`
-    : '';
+  return number <= 1 ? `/assets/doc_1/showcase-${number}.png` : '';
 }

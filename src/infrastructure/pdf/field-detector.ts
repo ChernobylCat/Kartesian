@@ -1,7 +1,16 @@
-import { APP_CONFIG } from '../config.mjs';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { Candidate } from '@/application/ports';
+import type { LegacyDocument } from '@/domain/document/schema';
+import { LIMITS } from '@/domain/document/schema';
 
-const IDENTITY_MATRIX = Object.freeze([1, 0, 0, 1, 0, 0]);
-const SOURCE_PRIORITY = Object.freeze({
+const PAPER_WIDTH_MM = LIMITS.width;
+const PAPER_HEIGHT_MM = LIMITS.height;
+const DEFAULT_FONT_SIZE_PT = 11;
+
+type Matrix6 = [number, number, number, number, number, number];
+
+const IDENTITY_MATRIX: Matrix6 = [1, 0, 0, 1, 0, 0];
+const SOURCE_PRIORITY: Record<string, number> = Object.freeze({
   acroform: 10,
   'pymupdf-acroform': 9,
   'table-cell': 8,
@@ -13,53 +22,119 @@ const SOURCE_PRIORITY = Object.freeze({
   'vector-line': 2,
   paddleocr: 1,
 });
+
 const SEMANTIC_SIGNATURE_LABEL =
   /\b(?:tanda\s*tangan|paraf|debitur|kreditur|pemberi\s+kuasa|penerima\s+kuasa|suami|istri|tempat\s*\/?\s*tanggal|materai)\b/i;
 
-function round(value, precision = 1) {
+function round(value: number, precision = 1): number {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
 }
 
-function clamp(value, min, max) {
+function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function copyMatrix(matrix) {
-  return Array.isArray(matrix) || ArrayBuffer.isView(matrix)
-    ? Array.from(matrix).slice(0, 6)
-    : [...IDENTITY_MATRIX];
+function copyMatrix(matrix: unknown): Matrix6 {
+  if (Array.isArray(matrix) || (matrix && ArrayBuffer.isView(matrix))) {
+    const arr = Array.from(matrix as ArrayLike<number>);
+    return [arr[0] ?? 1, arr[1] ?? 0, arr[2] ?? 0, arr[3] ?? 1, arr[4] ?? 0, arr[5] ?? 0];
+  }
+  return [...IDENTITY_MATRIX];
 }
 
-export function multiplyTransform(first, second) {
-  const a = copyMatrix(first);
-  const b = copyMatrix(second);
+export function multiplyTransform(first: unknown, second: unknown): Matrix6 {
+  const [a0, a1, a2, a3, a4, a5] = copyMatrix(first);
+  const [b0, b1, b2, b3, b4, b5] = copyMatrix(second);
   return [
-    a[0] * b[0] + a[2] * b[1],
-    a[1] * b[0] + a[3] * b[1],
-    a[0] * b[2] + a[2] * b[3],
-    a[1] * b[2] + a[3] * b[3],
-    a[0] * b[4] + a[2] * b[5] + a[4],
-    a[1] * b[4] + a[3] * b[5] + a[5],
+    a0 * b0 + a2 * b1,
+    a1 * b0 + a3 * b1,
+    a0 * b2 + a2 * b3,
+    a1 * b2 + a3 * b3,
+    a0 * b4 + a2 * b5 + a4,
+    a1 * b4 + a3 * b5 + a5,
   ];
 }
 
-function transformPoint(matrix, x, y) {
+function transformPoint(matrix: Matrix6, x: number, y: number): [number, number] {
   return [matrix[0] * x + matrix[2] * y + matrix[4], matrix[1] * x + matrix[3] * y + matrix[5]];
 }
 
+interface ViewportLike {
+  width: number;
+  height: number;
+  convertToViewportPoint: (x: number, y: number) => [number, number];
+}
+
+interface CanvasRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface PdfAnnotation {
+  subtype?: string;
+  fieldType?: string;
+  rect?: unknown;
+  fieldName?: string;
+  alternativeText?: string;
+  fieldValue?: string;
+}
+
+interface TextItemLike {
+  str?: unknown;
+  transform?: unknown;
+  width?: unknown;
+  height?: unknown;
+}
+
+interface OperatorListLike {
+  fnArray?: number[];
+  argsArray?: unknown[];
+}
+
+interface TextContentLike {
+  items?: TextItemLike[];
+}
+
+interface PageProxyLike {
+  getViewport: (options: { scale: number }) => ViewportLike;
+  getAnnotations: (options: { intent: string }) => Promise<PdfAnnotation[]>;
+  getTextContent: () => Promise<TextContentLike>;
+  getOperatorList: () => Promise<OperatorListLike>;
+}
+
+interface DocEntryLike {
+  pages?: { page_number: number; items?: unknown[] }[];
+}
+
+interface DocumentItemLike {
+  type?: unknown;
+  text?: unknown;
+  x?: unknown;
+  y?: unknown;
+}
+
 function normalizeViewportRect(
-  points,
-  viewport,
-  { paperWidthMm = APP_CONFIG.PAPER_WIDTH_MM, paperHeightMm = APP_CONFIG.PAPER_HEIGHT_MM } = {},
-) {
+  points: [number, number][],
+  viewport: ViewportLike,
+  {
+    paperWidthMm = PAPER_WIDTH_MM,
+    paperHeightMm = PAPER_HEIGHT_MM,
+  }: { paperWidthMm?: number; paperHeightMm?: number } = {},
+): CanvasRect {
   const viewportPoints = points.map(([x, y]) => viewport.convertToViewportPoint(x, y));
   const xs = viewportPoints.map((point) => point[0]);
   const ys = viewportPoints.map((point) => point[1]);
-  const left = clamp(Math.min(...xs), 0, viewport.width);
-  const right = clamp(Math.max(...xs), 0, viewport.width);
-  const top = clamp(Math.min(...ys), 0, viewport.height);
-  const bottom = clamp(Math.max(...ys), 0, viewport.height);
+  const minX = xs.length ? Math.min(...xs) : 0;
+  const maxX = xs.length ? Math.max(...xs) : 0;
+  const minY = ys.length ? Math.min(...ys) : 0;
+  const maxY = ys.length ? Math.max(...ys) : 0;
+  const left = clamp(minX, 0, viewport.width);
+  const right = clamp(maxX, 0, viewport.width);
+  const top = clamp(minY, 0, viewport.height);
+  const bottom = clamp(maxY, 0, viewport.height);
   return {
     x: round((left / viewport.width) * paperWidthMm),
     y: round((top / viewport.height) * paperHeightMm),
@@ -68,23 +143,27 @@ function normalizeViewportRect(
   };
 }
 
-export function convertPdfRectToCanvas(rect, viewport, options) {
+export function convertPdfRectToCanvas(
+  rect: unknown,
+  viewport: ViewportLike,
+  options?: { paperWidthMm?: number; paperHeightMm?: number },
+): CanvasRect | null {
   if (!viewport || !Array.isArray(rect) || rect.length < 4) return null;
-  const [x0, y0, x1, y1] = rect.map(Number);
-  if (![x0, y0, x1, y1].every(Number.isFinite)) return null;
+  const [rawX0 = 0, rawY0 = 0, rawX1 = 0, rawY1 = 0] = rect.map(Number);
+  if (![rawX0, rawY0, rawX1, rawY1].every(Number.isFinite)) return null;
   return normalizeViewportRect(
     [
-      [x0, y0],
-      [x0, y1],
-      [x1, y0],
-      [x1, y1],
+      [rawX0, rawY0],
+      [rawX0, rawY1],
+      [rawX1, rawY0],
+      [rawX1, rawY1],
     ],
     viewport,
     options,
   );
 }
 
-export function normalizePlaceholderKey(value, fallback = 'field') {
+export function normalizePlaceholderKey(value: string, fallback = 'field'): string {
   const normalized = String(value || '')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -95,14 +174,14 @@ export function normalizePlaceholderKey(value, fallback = 'field') {
   return normalized || fallback;
 }
 
-function normalizeLabel(value) {
+function normalizeLabel(value: unknown): string {
   return String(value || '')
-    .replace(/[_\.]{2,}/g, '')
+    .replace(/[_.]{2,}/g, '')
     .replace(/[\s:：._\-–—]+$/g, '')
     .replace(/^\s+|\s+$/g, '');
 }
 
-function cleanVectorLabel(value) {
+function cleanVectorLabel(value: unknown): string {
   const clean = normalizeLabel(value)
     .replace(/^\s*\d+(?:\.\d+)*(?:[.)])?\s*/, '')
     .replace(/^[\s,.;:'"“”]+/, '')
@@ -111,7 +190,7 @@ function cleanVectorLabel(value) {
     .trim();
   if (/keberatan/i.test(clean) && /jika ada/i.test(clean)) return 'Keberatan (jika ada)';
   if (!clean || clean.length > 72 || !/[a-z]/i.test(clean)) return '';
-  if (/^\s*[\[(].*[\])]\s*$/.test(clean)) return '';
+  if (/^\s*[[/(].*[\]/)]\s*$/.test(clean)) return '';
   if (clean.split(/\s+/).length > 10) return '';
   if (/^(?:field|pasal|halaman)\b/i.test(clean)) return '';
   if (/^(?:laki-laki|perempuan|pria|wanita|ya|tidak|tujuan pengisian formulir)$/i.test(clean))
@@ -119,12 +198,28 @@ function cleanVectorLabel(value) {
   return clean;
 }
 
-function makeCandidate({ pageNumber, source, index, label, rect, confidence }) {
+interface MakeCandidateParams {
+  pageNumber: number;
+  source: string;
+  index: number;
+  label: unknown;
+  rect: CanvasRect;
+  confidence: number;
+}
+
+function makeCandidate({
+  pageNumber,
+  source,
+  index,
+  label,
+  rect,
+  confidence,
+}: MakeCandidateParams): Candidate {
   const fallback = `field_${pageNumber}_${index + 1}`;
   const cleanLabel = normalizeLabel(label) || `Field ${index + 1}`;
   const key = normalizePlaceholderKey(cleanLabel, fallback);
-  const width = clamp(rect.width, 5, APP_CONFIG.PAPER_WIDTH_MM - rect.x);
-  const height = clamp(rect.height, 4, APP_CONFIG.PAPER_HEIGHT_MM - rect.y);
+  const width = clamp(rect.width, 5, PAPER_WIDTH_MM - rect.x);
+  const height = clamp(rect.height, 4, PAPER_HEIGHT_MM - rect.y);
   return {
     id: `pdf-field-p${pageNumber}-${source}-${index + 1}-${key}`,
     pageNumber,
@@ -140,10 +235,17 @@ function makeCandidate({ pageNumber, source, index, label, rect, confidence }) {
   };
 }
 
-export function extractAnnotationCandidates(annotations, viewport, pageNumber) {
+export function extractAnnotationCandidates(
+  annotations: unknown[],
+  viewport: ViewportLike,
+  pageNumber: number,
+): Candidate[] {
   return (annotations || [])
-    .filter((annotation) => annotation?.subtype === 'Widget' && annotation.fieldType === 'Tx')
-    .map((annotation, index) => {
+    .filter((annotation): annotation is PdfAnnotation => {
+      const item = annotation as PdfAnnotation | undefined;
+      return item?.subtype === 'Widget' && item.fieldType === 'Tx';
+    })
+    .map((annotation, index: number) => {
       const rect = convertPdfRectToCanvas(annotation.rect, viewport);
       if (!rect || rect.width < 2 || rect.height < 2) return null;
       const label = annotation.fieldName || annotation.alternativeText || annotation.fieldValue;
@@ -156,18 +258,31 @@ export function extractAnnotationCandidates(annotations, viewport, pageNumber) {
         confidence: 0.99,
       });
     })
-    .filter(Boolean);
+    .filter((c): c is Candidate => c !== null);
 }
 
-function textItemToCanvasBox(item, viewport, { preserveText = false } = {}) {
+interface TextBox extends CanvasRect {
+  text: string;
+}
+
+function textItemToCanvasBox(
+  item: TextItemLike | undefined,
+  viewport: ViewportLike,
+  { preserveText = false } = {},
+): TextBox | null {
   if (!item || typeof item.str !== 'string' || !item.str.trim() || !Array.isArray(item.transform))
     return null;
   const transform = item.transform.map(Number);
-  if (transform.length < 6 || transform.some((value) => !Number.isFinite(value))) return null;
-  const x = transform[4];
-  const y = transform[5];
-  const width = Math.max(Number(item.width) || 0, Math.hypot(transform[0], transform[1]));
-  const height = Math.max(Number(item.height) || 0, Math.hypot(transform[2], transform[3]), 1);
+  if (transform.length < 6 || transform.some((value: number) => !Number.isFinite(value)))
+    return null;
+  const x = transform[4] ?? 0;
+  const y = transform[5] ?? 0;
+  const t0 = transform[0] ?? 0;
+  const t1 = transform[1] ?? 0;
+  const t2 = transform[2] ?? 0;
+  const t3 = transform[3] ?? 0;
+  const width = Math.max(Number(item.width) || 0, Math.hypot(t0, t1));
+  const height = Math.max(Number(item.height) || 0, Math.hypot(t2, t3), 1);
   const rect = normalizeViewportRect(
     [
       [x, y],
@@ -180,16 +295,16 @@ function textItemToCanvasBox(item, viewport, { preserveText = false } = {}) {
   return { ...rect, text: preserveText ? item.str : item.str.trim() };
 }
 
-export function extractTextBoxes(items, viewport) {
+export function extractTextBoxes(items: unknown[] | undefined, viewport: ViewportLike): TextBox[] {
   return (items || [])
-    .map((item) => textItemToCanvasBox(item, viewport))
-    .filter(Boolean)
+    .map((item) => textItemToCanvasBox(item as TextItemLike, viewport))
+    .filter((b): b is TextBox => b !== null)
     .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
-export function mergeTextBoxes(items, viewport) {
+export function mergeTextBoxes(items: unknown[] | undefined, viewport: ViewportLike): TextBox[] {
   const boxes = extractTextBoxes(items, viewport);
-  const lines = [];
+  const lines: { boxes: TextBox[]; centerY: number; right: number }[] = [];
   boxes.forEach((box) => {
     const centerY = box.y + box.height / 2;
     let line = lines.find(
@@ -206,10 +321,14 @@ export function mergeTextBoxes(items, viewport) {
   });
   return lines.map((line) => {
     line.boxes.sort((a, b) => a.x - b.x);
-    const left = Math.min(...line.boxes.map((box) => box.x));
-    const top = Math.min(...line.boxes.map((box) => box.y));
-    const right = Math.max(...line.boxes.map((box) => box.x + box.width));
-    const bottom = Math.max(...line.boxes.map((box) => box.y + box.height));
+    const xs = line.boxes.map((box) => box.x);
+    const ys = line.boxes.map((box) => box.y);
+    const rights = line.boxes.map((box) => box.x + box.width);
+    const bottoms = line.boxes.map((box) => box.y + box.height);
+    const left = xs.length ? Math.min(...xs) : 0;
+    const top = ys.length ? Math.min(...ys) : 0;
+    const right = rights.length ? Math.max(...rights) : 0;
+    const bottom = bottoms.length ? Math.max(...bottoms) : 0;
     return {
       text: line.boxes
         .map((box) => box.text)
@@ -224,31 +343,46 @@ export function mergeTextBoxes(items, viewport) {
   });
 }
 
-function getPathBounds(args, matrix, viewport) {
-  const rawBounds = args?.[2];
+function getPathBounds(
+  args: unknown[] | undefined,
+  matrix: Matrix6,
+  viewport: ViewportLike,
+): CanvasRect | null {
+  const rawBounds = args?.[2] as ArrayLike<number> | undefined;
   if (!rawBounds || rawBounds.length < 4) return null;
-  const [x0, y0, x1, y1] = Array.from(rawBounds, Number);
-  if (![x0, y0, x1, y1].every(Number.isFinite)) return null;
-  const corners = [
-    transformPoint(matrix, x0, y0),
-    transformPoint(matrix, x0, y1),
-    transformPoint(matrix, x1, y0),
-    transformPoint(matrix, x1, y1),
+  const [rawX0 = 0, rawY0 = 0, rawX1 = 0, rawY1 = 0] = Array.from(rawBounds, Number);
+  if (![rawX0, rawY0, rawX1, rawY1].every(Number.isFinite)) return null;
+  const corners: [number, number][] = [
+    transformPoint(matrix, rawX0, rawY0),
+    transformPoint(matrix, rawX0, rawY1),
+    transformPoint(matrix, rawX1, rawY0),
+    transformPoint(matrix, rawX1, rawY1),
   ];
   return normalizeViewportRect(corners, viewport);
 }
 
-export function extractVectorShapes(operatorList, viewport, ops = {}) {
+interface VectorShape extends CanvasRect {
+  horizontal: boolean;
+  vertical: boolean;
+  box: boolean;
+}
+
+export function extractVectorShapes(
+  operatorList: OperatorListLike | undefined,
+  viewport: ViewportLike,
+  ops: Record<string, number> = {},
+): VectorShape[] {
   if (!operatorList?.fnArray || !operatorList?.argsArray || !viewport) return [];
-  const stack = [];
-  let matrix = [...IDENTITY_MATRIX];
-  const shapes = [];
-  operatorList.fnArray.forEach((fn, index) => {
-    const args = operatorList.argsArray[index];
-    if (fn === ops.save) stack.push([...matrix]);
-    else if (fn === ops.restore) matrix = stack.pop() || [...IDENTITY_MATRIX];
-    else if (fn === ops.transform && args?.length >= 6) matrix = multiplyTransform(matrix, args);
-    else if (fn === ops.constructPath) {
+  const stack: Matrix6[] = [];
+  let matrix: Matrix6 = [...IDENTITY_MATRIX];
+  const shapes: VectorShape[] = [];
+  operatorList.fnArray.forEach((fn: number, index: number) => {
+    const args = operatorList.argsArray?.[index] as unknown[] | undefined;
+    if (fn === ops['save']) stack.push([...matrix]);
+    else if (fn === ops['restore']) matrix = stack.pop() || [...IDENTITY_MATRIX];
+    else if (fn === ops['transform'] && args && args.length >= 6)
+      matrix = multiplyTransform(matrix, args);
+    else if (fn === ops['constructPath']) {
       const rect = getPathBounds(args, matrix, viewport);
       if (!rect) return;
       const horizontal = rect.width >= 15 && rect.height <= 1.5;
@@ -268,7 +402,7 @@ export function extractVectorShapes(operatorList, viewport, ops = {}) {
   return shapes;
 }
 
-function verticalOverlapRatio(first, second) {
+function verticalOverlapRatio(first: CanvasRect, second: CanvasRect): number {
   const overlap = Math.max(
     0,
     Math.min(first.y + first.height, second.y + second.height) - Math.max(first.y, second.y),
@@ -276,8 +410,8 @@ function verticalOverlapRatio(first, second) {
   return overlap / Math.max(1, Math.min(first.height, second.height));
 }
 
-function deduplicateRects(rects, tolerance = 0.6) {
-  const unique = [];
+function deduplicateRects(rects: CanvasRect[], tolerance = 0.6): CanvasRect[] {
+  const unique: CanvasRect[] = [];
   rects.forEach((rect) => {
     const duplicate = unique.some(
       (existing) =>
@@ -291,8 +425,8 @@ function deduplicateRects(rects, tolerance = 0.6) {
   return unique;
 }
 
-function deriveTableCells(shapes) {
-  const segmentGroups = [];
+function deriveTableCells(shapes: VectorShape[]): CanvasRect[] {
+  const segmentGroups: { x: number; width: number; segments: VectorShape[] }[] = [];
   shapes
     .filter((shape) => shape.horizontal && shape.width >= 15)
     .forEach((shape) => {
@@ -307,20 +441,22 @@ function deriveTableCells(shapes) {
         group.segments.push(shape);
     });
 
-  const derived = [];
+  const derived: CanvasRect[] = [];
   segmentGroups.forEach((group) => {
     group.segments.sort((a, b) => a.y - b.y);
     for (let index = 0; index < group.segments.length - 1; index++) {
       const top = group.segments[index];
       const bottom = group.segments[index + 1];
-      const height = bottom.y - top.y;
-      if (height >= 3 && height <= 15) {
-        derived.push({
-          x: group.x,
-          y: top.y + top.height,
-          width: group.width,
-          height: Math.max(3, height - top.height),
-        });
+      if (top && bottom) {
+        const height = bottom.y - top.y;
+        if (height >= 3 && height <= 15) {
+          derived.push({
+            x: group.x,
+            y: top.y + top.height,
+            width: group.width,
+            height: Math.max(3, height - top.height),
+          });
+        }
       }
     }
   });
@@ -333,7 +469,7 @@ function deriveTableCells(shapes) {
   ]);
 }
 
-function textInsideRect(rect, textBoxes) {
+function textInsideRect(rect: CanvasRect, textBoxes: TextBox[]): string {
   return textBoxes
     .filter((text) => {
       const centerX = text.x + text.width / 2;
@@ -352,26 +488,43 @@ function textInsideRect(rect, textBoxes) {
     .trim();
 }
 
-function cleanTableLabel(value) {
+function cleanTableLabel(value: unknown): string {
   const label = cleanVectorLabel(value);
   if (!label || label.length > 48 || label.split(/\s+/).length > 7) return '';
   if (/^(?:no|nomor urut|keterangan|uraian|rincian|jumlah|total)$/i.test(label)) return '';
   return label;
 }
 
-function tableColumnKey(pair) {
-  const quantize = (value) => Math.round(value / 2);
+function tableColumnKey(pair: { labelCell: CanvasRect; valueCell: CanvasRect }): string {
+  const quantize = (value: number) => Math.round(value / 2);
   return [pair.labelCell.x, pair.labelCell.width, pair.valueCell.x, pair.valueCell.width]
     .map(quantize)
     .join(':');
 }
 
-export function extractTableCandidates({ operatorList, textContent, viewport, ops, pageNumber }) {
+export function extractTableCandidates({
+  operatorList,
+  textContent,
+  viewport,
+  ops,
+  pageNumber,
+}: {
+  operatorList?: OperatorListLike;
+  textContent?: TextContentLike;
+  viewport: ViewportLike;
+  ops?: Record<string, number>;
+  pageNumber: number;
+}): Candidate[] {
   const shapes = extractVectorShapes(operatorList, viewport, ops);
   const cells = deriveTableCells(shapes);
   const textBoxes = extractTextBoxes(textContent?.items, viewport);
   const cellsWithText = cells.map((cell) => ({ ...cell, text: textInsideRect(cell, textBoxes) }));
-  const pairs = [];
+  const pairs: {
+    label: string;
+    labelCell: CanvasRect & { text: string };
+    valueCell: CanvasRect & { text: string };
+    valueText: string;
+  }[] = [];
 
   cellsWithText.forEach((valueCell) => {
     if (valueCell.width < 20 || valueCell.height < 3) return;
@@ -424,14 +577,14 @@ export function extractTableCandidates({ operatorList, textContent, viewport, op
     });
   });
 
-  const groupCounts = new Map();
+  const groupCounts = new Map<string, number>();
   pairs.forEach((pair) => {
     const key = tableColumnKey(pair);
     groupCounts.set(key, (groupCounts.get(key) || 0) + 1);
   });
 
   return pairs
-    .filter((pair) => !pair.valueText && groupCounts.get(tableColumnKey(pair)) >= 2)
+    .filter((pair) => !pair.valueText && (groupCounts.get(tableColumnKey(pair)) || 0) >= 2)
     .map((pair, index) =>
       makeCandidate({
         pageNumber,
@@ -449,7 +602,7 @@ export function extractTableCandidates({ operatorList, textContent, viewport, op
     );
 }
 
-function horizontalOverlapRatio(first, second) {
+function horizontalOverlapRatio(first: CanvasRect, second: CanvasRect): number {
   const overlap = Math.max(
     0,
     Math.min(first.x + first.width, second.x + second.width) - Math.max(first.x, second.x),
@@ -457,7 +610,7 @@ function horizontalOverlapRatio(first, second) {
   return overlap / Math.max(1, Math.min(first.width, second.width));
 }
 
-function hasTextOnBorder(shape, textBoxes) {
+function hasTextOnBorder(shape: VectorShape, textBoxes: TextBox[]): boolean {
   if (!shape.horizontal) return false;
   const lineY = shape.y + shape.height / 2;
   const overlap = textBoxes.reduce((total, text) => {
@@ -471,7 +624,11 @@ function hasTextOnBorder(shape, textBoxes) {
   return overlap >= Math.max(8, shape.width * 0.22);
 }
 
-function intersectsTableGrid(shape, shapes, textBoxes) {
+function intersectsTableGrid(
+  shape: VectorShape,
+  shapes: VectorShape[],
+  textBoxes: TextBox[],
+): boolean {
   if (shape.horizontal) {
     const y = shape.y + shape.height / 2;
     const intersections = shapes.filter(
@@ -509,9 +666,15 @@ function intersectsTableGrid(shape, shapes, textBoxes) {
   return false;
 }
 
-function findNearestLabel(shape, textBoxes) {
+interface LabelCandidate {
+  text: TextBox;
+  score: number;
+  mode: string;
+}
+
+function findNearestLabel(shape: CanvasRect, textBoxes: TextBox[]): LabelCandidate | null {
   const centerY = shape.y + shape.height / 2;
-  const candidates = [];
+  const candidates: LabelCandidate[] = [];
   textBoxes.forEach((text) => {
     const cleanText = cleanVectorLabel(text.text);
     if (!cleanText) return;
@@ -555,7 +718,7 @@ function findNearestLabel(shape, textBoxes) {
   return candidates.sort((a, b) => a.score - b.score)[0] || null;
 }
 
-function findInteriorLabel(shape, textBoxes) {
+function findInteriorLabel(shape: VectorShape, textBoxes: TextBox[]): string {
   if (!shape.box) return '';
   return (
     textBoxes
@@ -573,7 +736,7 @@ function findInteriorLabel(shape, textBoxes) {
   );
 }
 
-function findBoxInstructionLabel(shape, textBoxes) {
+function findBoxInstructionLabel(shape: VectorShape, textBoxes: TextBox[]): string {
   if (!shape.box) return '';
   const nearby = textBoxes
     .filter((text) => {
@@ -586,19 +749,28 @@ function findBoxInstructionLabel(shape, textBoxes) {
   return combined === 'Keberatan (jika ada)' ? combined : '';
 }
 
-export function extractTextCandidates({ textContent, viewport, pageNumber }) {
+export function extractTextCandidates({
+  textContent,
+  viewport,
+  pageNumber,
+}: {
+  textContent?: TextContentLike;
+  viewport: ViewportLike;
+  pageNumber: number;
+}): Candidate[] {
   const textBoxes = mergeTextBoxes(textContent?.items, viewport);
-  const candidates = [];
-  (textContent?.items || []).forEach((item, itemIndex) => {
+  const candidates: Candidate[] = [];
+  (textContent?.items || []).forEach((item, itemIndex: number) => {
     const rawText = typeof item?.str === 'string' ? item.str : '';
     const box = textItemToCanvasBox(item, viewport, { preserveText: true });
     if (!box || !rawText) return;
     for (const match of rawText.matchAll(
       /[_\uFF3F\uFE4F]{2,}(?:\s*[\/.-]\s*[_\uFF3F\uFE4F]{2,})*/g,
     )) {
-      const startRatio = match.index / Math.max(1, rawText.length);
+      const matchIndex = match.index ?? 0;
+      const startRatio = matchIndex / Math.max(1, rawText.length);
       const widthRatio = match[0].length / Math.max(1, rawText.length);
-      const rect = {
+      const rect: CanvasRect = {
         x: box.x + box.width * startRatio,
         y: box.y,
         width: Math.max(5, box.width * widthRatio),
@@ -606,7 +778,7 @@ export function extractTextCandidates({ textContent, viewport, pageNumber }) {
       };
       const inlineLabel = cleanVectorLabel(
         rawText
-          .slice(0, match.index)
+          .slice(0, matchIndex)
           .split(/[_\uFF3F\uFE4F]{2,}|\s{2,}|[|]/)
           .pop(),
       );
@@ -628,7 +800,19 @@ export function extractTextCandidates({ textContent, viewport, pageNumber }) {
   return candidates;
 }
 
-export function extractVectorCandidates({ operatorList, textContent, viewport, ops, pageNumber }) {
+export function extractVectorCandidates({
+  operatorList,
+  textContent,
+  viewport,
+  ops,
+  pageNumber,
+}: {
+  operatorList?: OperatorListLike;
+  textContent?: TextContentLike;
+  viewport: ViewportLike;
+  ops?: Record<string, number>;
+  pageNumber: number;
+}): Candidate[] {
   const shapes = extractVectorShapes(operatorList, viewport, ops);
   const textBoxes = mergeTextBoxes(textContent?.items, viewport);
   return shapes
@@ -652,7 +836,7 @@ export function extractVectorCandidates({ operatorList, textContent, viewport, o
       const rect = shape.horizontal
         ? {
             x: shape.x,
-            y: clamp(shape.y - 4, 0, APP_CONFIG.PAPER_HEIGHT_MM - 4),
+            y: clamp(shape.y - 4, 0, PAPER_HEIGHT_MM - 4),
             width: shape.width,
             height: 5,
           }
@@ -672,10 +856,10 @@ export function extractVectorCandidates({ operatorList, textContent, viewport, o
             : Math.min(0.92, (shape.box ? 0.78 : 0.82) + colonBonus),
       });
     })
-    .filter(Boolean);
+    .filter((c): c is Candidate => c !== null);
 }
 
-function overlapRatio(first, second) {
+function overlapRatio(first: CanvasRect, second: CanvasRect): number {
   const left = Math.max(first.x, second.x);
   const top = Math.max(first.y, second.y);
   const right = Math.min(first.x + first.width, second.x + second.width);
@@ -685,13 +869,13 @@ function overlapRatio(first, second) {
   return smallerArea > 0 ? intersection / smallerArea : 0;
 }
 
-export function deduplicateCandidates(candidates) {
+export function deduplicateCandidates(candidates: Candidate[]): Candidate[] {
   const sorted = [...(candidates || [])].sort(
     (a, b) =>
       (SOURCE_PRIORITY[b.source] || 0) - (SOURCE_PRIORITY[a.source] || 0) ||
       b.confidence - a.confidence,
   );
-  const unique = [];
+  const unique: Candidate[] = [];
   sorted.forEach((candidate) => {
     const centerX = candidate.x + candidate.width / 2;
     const centerY = candidate.y + candidate.height / 2;
@@ -707,7 +891,11 @@ export function deduplicateCandidates(candidates) {
   return unique.sort((a, b) => a.pageNumber - b.pageNumber || a.y - b.y || a.x - b.x);
 }
 
-export async function scanPdfPage(page, pageNumber, { ops = {} } = {}) {
+export async function scanPdfPage(
+  page: PageProxyLike,
+  pageNumber: number,
+  { ops = {} }: { ops?: Record<string, number> } = {},
+): Promise<Candidate[]> {
   const viewport = page.getViewport({ scale: 1 });
   const [annotationResult, textResult, operatorResult] = await Promise.allSettled([
     page.getAnnotations({ intent: 'display' }),
@@ -746,10 +934,18 @@ export async function scanPdfPage(page, pageNumber, { ops = {} } = {}) {
 }
 
 export async function scanPdfDocument(
-  pdf,
-  { ops = {}, nextFrame = () => Promise.resolve(), onProgress = () => {} } = {},
-) {
-  const candidates = [];
+  pdf: PDFDocumentProxy,
+  {
+    ops = {},
+    nextFrame = () => Promise.resolve(),
+    onProgress = () => {},
+  }: {
+    ops?: Record<string, number>;
+    nextFrame?: () => Promise<unknown>;
+    onProgress?: (progress: { pageNumber: number; totalPages: number; percent: number }) => void;
+  } = {},
+): Promise<Candidate[]> {
+  const candidates: Candidate[] = [];
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
     onProgress({
       pageNumber,
@@ -758,47 +954,53 @@ export async function scanPdfDocument(
     });
     await nextFrame();
     const page = await pdf.getPage(pageNumber);
-    candidates.push(...(await scanPdfPage(page, pageNumber, { ops })));
+    candidates.push(...(await scanPdfPage(page as unknown as PageProxyLike, pageNumber, { ops })));
   }
   return deduplicateCandidates(candidates);
 }
 
-function ensurePage(docEntry, pageNumber) {
+function ensurePage(docEntry: DocEntryLike, pageNumber: number) {
   if (!Array.isArray(docEntry.pages)) docEntry.pages = [];
   while (docEntry.pages.length < pageNumber) {
     docEntry.pages.push({ page_number: docEntry.pages.length + 1, items: [] });
   }
   const page = docEntry.pages[pageNumber - 1];
-  if (!Array.isArray(page.items)) page.items = [];
+  if (page && !Array.isArray(page.items)) page.items = [];
   return page;
 }
 
-export function applyFieldCandidates(data, candidates) {
+export function applyFieldCandidates(
+  data: LegacyDocument,
+  candidates: Candidate[],
+): { data: LegacyDocument; addedCount: number; appliedCandidateIds: string[] } {
   if (!Array.isArray(data) || !Array.isArray(candidates))
     throw new TypeError('Data dan kandidat field harus berupa array.');
   const nextData = structuredClone(data);
   let addedCount = 0;
-  const appliedCandidateIds = [];
+  const appliedCandidateIds: string[] = [];
   candidates.forEach((candidate) => {
-    const pageNumber = Number.parseInt(candidate.pageNumber, 10);
+    const pageNumber = Number.parseInt(String(candidate.pageNumber), 10);
     if (!Number.isInteger(pageNumber) || pageNumber < 1) return;
     const key = normalizePlaceholderKey(candidate.key || candidate.label, `field_${pageNumber}`);
     const text = String(candidate.placeholder || `{{${key}}}`).trim() || `{{${key}}}`;
     let candidateApplied = false;
     nextData.forEach((docEntry) => {
       const page = ensurePage(docEntry, pageNumber);
-      const duplicate = page.items.some(
-        (item) =>
+      if (!page || !Array.isArray(page.items)) return;
+      const duplicate = page.items.some((rawItem) => {
+        const item = rawItem as DocumentItemLike;
+        return (
           item.type !== 'image' &&
           item.text === text &&
           Math.abs(Number(item.x) - Number(candidate.x)) <= 1 &&
-          Math.abs(Number(item.y) - Number(candidate.y)) <= 1,
-      );
+          Math.abs(Number(item.y) - Number(candidate.y)) <= 1
+        );
+      });
       if (duplicate) return;
-      const x = clamp(Number(candidate.x) || 0, 0, APP_CONFIG.PAPER_WIDTH_MM - 1);
-      const y = clamp(Number(candidate.y) || 0, 0, APP_CONFIG.PAPER_HEIGHT_MM - 1);
-      const width = clamp(Number(candidate.width) || 30, 1, APP_CONFIG.PAPER_WIDTH_MM - x);
-      const height = clamp(Number(candidate.height) || 5, 1, APP_CONFIG.PAPER_HEIGHT_MM - y);
+      const x = clamp(Number(candidate.x) || 0, 0, PAPER_WIDTH_MM - 1);
+      const y = clamp(Number(candidate.y) || 0, 0, PAPER_HEIGHT_MM - 1);
+      const width = clamp(Number(candidate.width) || 30, 1, PAPER_WIDTH_MM - x);
+      const height = clamp(Number(candidate.height) || 5, 1, PAPER_HEIGHT_MM - y);
       page.items.push({
         text,
         x: round(x),
@@ -806,7 +1008,7 @@ export function applyFieldCandidates(data, candidates) {
         width: round(width),
         height: round(height),
         font_family: 'Arial, sans-serif',
-        font_size: APP_CONFIG.DEFAULT_FONT_SIZE_PT,
+        font_size: DEFAULT_FONT_SIZE_PT,
         color: '#111827',
         bold: false,
       });

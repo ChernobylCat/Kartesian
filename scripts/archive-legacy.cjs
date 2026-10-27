@@ -117,7 +117,10 @@ try {
 } catch {
   try {
     const zipPath = path.join(backupDir, 'legacy-v1-archive.zip');
-    execSync(`powershell -Command "Compress-Archive -Path '${stagingDir}\\*' -DestinationPath '${zipPath}' -Force"`, { stdio: 'inherit' });
+    execSync(
+      `powershell -Command "Compress-Archive -Path '${stagingDir}\\*' -DestinationPath '${zipPath}' -Force"`,
+      { stdio: 'inherit' },
+    );
     console.log(`Created zip at: ${zipPath}`);
   } catch (err) {
     console.warn('Could not compress, but staging directory is intact:', err.message);

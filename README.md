@@ -6,70 +6,61 @@ It is designed for coordinate-based print workflows where data must line up with
 
 Rencana rewrite ke Next.js tersedia di [Masterplan Rewrite Next.js](docs/NEXTJS-REWRITE-MASTERPLAN.md), mencakup arsitektur, tahapan implementasi, kompatibilitas data, quality gate, dan rollback.
 
-## Next.js rewrite
+## Arsitektur Next.js Modern
 
-The Next.js App Router application uses React, TypeScript strict, Zustand, Zod, and Tailwind. Run `npm install`, `npm run build`, then `npm start` to open the production static export at `http://127.0.0.1:4174`. Use `npm run dev` for development on port 3000. The original implementation remains available through its static server and at `/legacy/` in the production export.
+Kartesian telah sepenuhnya dimigrasikan ke arsitektur **Next.js 16 (App Router)** dengan React 19, TypeScript strict, Zustand, Zod, dan Tailwind CSS v4. Seluruh implementasi legacy SPA terdahulu telah diarsipkan secara aman pada branch `archive/legacy-baseline` dan tag `v1.0.0-legacy-final` (serta arsip lokal di `backups/legacy/`).
 
-Read [Next.js operations](docs/NEXTJS-OPERATIONS.md) for data migration, backups, production headers, offline updates, detector integration, and rollback, and [rewrite status](docs/NEXTJS-REWRITE-STATUS.md) for actual validation and remaining acceptance steps. Browser data is origin-specific: use the original hostname/port or a full workspace backup when moving installations. The legacy instructions below describe the original editor; its asset-only build command is now `npm run build:legacy`.
+Dokumentasi operasional lengkap tersedia di:
 
-## Highlights
+- [Next.js Operations & Runbook](docs/NEXTJS-OPERATIONS.md)
+- [Status & Verifikasi Rewrite](docs/NEXTJS-REWRITE-STATUS.md)
 
-- Coordinate-based F4 canvas measuring `210 x 330 mm`
-- Drag-and-drop text and image placement with magnetic snapping
-- Eight-direction resize handles for text and images
-- Precise element properties for position, size, typography, rotation, layer, and lock state
-- Text formatting through a contextual floating toolbar
-- Multi-selection, marquee selection, alignment, and distribution tools
-- Inline text editing, undo/redo history, keyboard shortcuts, and context menus
-- PDF background overlays with opacity control and local persistence
-- Automatic suggestions for AcroForm, key-value table cells, labelled vector fields, multiline boxes, and text underlines in uploaded digital PDFs
-- Printer calibration offsets and separate preview/print visibility controls
-- Import/export for application settings and standalone HTML export
-- Autosave, dark mode, interactive onboarding, accessibility support, and offline PWA support
-- Schema validation, safe rendering, and cross-browser regression tests
+## Fitur Utama
 
-## Requirements
+- Kanvas koordinat F4 presisi tinggi (`210 × 330 mm`)
+- Penempatan teks dan gambar drag-and-drop dengan snapping magnetik
+- Handle pengubah ukuran (resize) 8 arah untuk elemen teks dan gambar
+- Penggaris interaktif (_interactive canvas rulers_) dengan penunjuk kursor dan panduan garis bantu
+- Formatting toolbar kontekstual mengambang
+- Multi-seleksi, seleksi marquee, perataan, dan distribusi elemen
+- Deteksi otomatis field PDF (AcroForm, tabel key-value, kotak vektor, garis bawah)
+- Kalibrasi offset pencetakan printer fisik
+- Ekspor cetak PDF dan HTML mandiri (_portable standalone HTML_)
+- Offline PWA dengan precache aset otomatis
 
-- Node.js 24 is used by the CI workflow. A current Node.js LTS release should also work locally.
-- npm
-- Python 3.10 or newer is optional for PyMuPDF; PaddleOCR currently requires Python 3.10–3.12
-- A modern browser such as Edge, Chrome, Firefox, or Safari
-- A local web server; ES modules and service workers do not work correctly through `file://`
+## Kebutuhan Sistem
 
-## Getting Started
+- Node.js 24 (atau versi LTS terkini)
+- pnpm atau npm
+- Python 3.10–3.12 (opsional, untuk service detector PyMuPDF / PaddleOCR)
+- Peramban modern (Chrome, Edge, Firefox, Safari)
 
-Clone the repository, install the dependencies, and build the local assets:
+## Memulai Cepat (Getting Started)
 
-```bash
-git clone https://github.com/ChernobylCat/Kartesian.git
-cd Kartesian
-npm install
-npm run build
-```
+1. Clone repositori dan pasang dependensi:
 
-Start the included static development server:
+   ```bash
+   git clone https://github.com/ChernobylCat/Kartesian.git
+   cd Kartesian
+   pnpm install
+   ```
 
-```bash
-node tests/support/static-server.js
-```
+2. Jalankan server pengembangan lokal:
 
-Open the application at:
+   ```bash
+   pnpm dev
+   ```
 
-```text
-http://127.0.0.1:4173
-```
+   Buka peramban di [http://localhost:3000](http://localhost:3000).
 
-The runtime does not depend on a CDN. The build command copies the pinned Ace, Lucide, PDF.js, and Driver.js assets from `node_modules` into `assets/vendor`, then compiles Tailwind CSS into `assets/app.css`.
+3. Membangun dan menjalankan versi produksi:
+   ```bash
+   pnpm build
+   pnpm start
+   ```
+   Buka peramban di [http://127.0.0.1:4174](http://127.0.0.1:4174).
 
-### Developing the UI
-
-Run the Tailwind watcher in a separate terminal while editing UI styles:
-
-```bash
-npm run dev:css
-```
-
-The application uses native ES modules, so JavaScript changes only require a browser reload. CSS source lives in `src/input.css`. Canvas geometry, physical units, and print-specific rules remain in `index.html` because they are part of the print layout engine.
+Aplikasi berjalan secara lokal tanpa ketergantungan CDN. Seluruh aset PDF worker, font lokal, dan Ace Editor disiapkan ke dalam `public/vendor/` secara otomatis saat proses build melalui `scripts/prepare-next.cjs`.
 
 ## How to Use Kartesian
 

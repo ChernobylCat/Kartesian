@@ -427,7 +427,7 @@ async function main() {
     width: '210mm',
     height: '330mm',
     printBackground: true,
-    margin: { top: 0, right: 0, bottom: 0, left: 0 }
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
   });
   fs.writeFileSync(pdfPathAssets, pdfBuffer);
   fs.writeFileSync(pdfPathPublic, pdfBuffer);
@@ -441,15 +441,10 @@ async function main() {
   });
   const pngPath1 = path.join(assetsDir, 'showcase-1.png');
   const pngPathPublic1 = path.join(publicDir, 'showcase-1.png');
-  const legacyPngPathAssets = path.join(assetsDir, '(1) Perjanjian Pembiayaan Multiguna  Investasi Angsuran-1.png');
-  const legacyPngPathPublic = path.join(publicDir, '(1) Perjanjian Pembiayaan Multiguna  Investasi Angsuran-1.png');
-
   const pngBuffer = await page.screenshot({ type: 'png' });
   fs.writeFileSync(pngPath1, pngBuffer);
   fs.writeFileSync(pngPathPublic1, pngBuffer);
-  fs.writeFileSync(legacyPngPathAssets, pngBuffer);
-  fs.writeFileSync(legacyPngPathPublic, pngBuffer);
-  console.log('Wrote showcase-1.png and legacy alias to assets and public (1700x2600).');
+  console.log('Wrote showcase-1.png to assets and public (1700x2600).');
 
   await browser.close();
   console.log('Showcase generation complete!');

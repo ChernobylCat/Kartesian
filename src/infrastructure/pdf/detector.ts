@@ -6,7 +6,7 @@ import {
   deduplicateCandidates,
   normalizePlaceholderKey,
   applyFieldCandidates,
-} from '../../pdf/field-detector.mjs';
+} from './field-detector';
 import type { LegacyDocument } from '@/domain/document/schema';
 
 export type ScanMode = 'auto' | 'pdfjs' | 'pymupdf' | 'paddleocr';

@@ -39,23 +39,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Build generated assets
+      - name: Build Next production export
         run: npm run build
 
       - name: TypeScript and lint
         run: npm run typecheck && npm run lint
 
-      - name: Next domain and component tests
-        run: npm run test:next:unit
+      - name: Unit and component tests
+        run: npm run test:unit
 
       - name: Python detector helpers
         run: python -m unittest discover -s services/pdf-field-detector -p 'test_*.py'
-
-      - name: Verify generated assets are committed
-        run: git diff --exit-code -- assets/app.css assets/vendor
-
-      - name: Run unit and regression tests
-        run: npm run test:unit
 
       - name: Audit dependencies
         run: npm run audit
@@ -93,14 +87,11 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run end-to-end tests
-        run: npm run test:e2e
-
       - name: Build Next production export
         run: npm run build
 
-      - name: Next production browser suite
-        run: npm run test:next:e2e
+      - name: Run browser end-to-end suite
+        run: npm run test:e2e
 
       - name: Upload failure artifacts
         if: ${{ failure() }}
