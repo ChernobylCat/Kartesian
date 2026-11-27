@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_PAPER as F4 } from '@/domain/document/paper';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { decodeLegacy, encodeLegacy, locate, defaultSettings } from '@/domain/document/model';
 import { parseLegacy } from '@/domain/document/schema';
@@ -9,7 +10,12 @@ import { emptyPdf } from '@/application/ports';
 import { attachAutosave } from '@/application/editor-session';
 import { outputPages, standaloneHtml } from '@/infrastructure/export/html';
 import { readLegacySettings, writeLegacySettings } from '@/infrastructure/serialization/settings';
-import { backupWorkspace, restoreWorkspace } from '@/infrastructure/storage/workspace';
+import {
+  backupWorkspace,
+  restoreWorkspace,
+  repairWorkspace,
+  resetWorkspace,
+} from '@/infrastructure/storage/workspace';
 import { performance } from 'node:perf_hooks';
 
 const fixture = JSON.parse(readFileSync('tests/fixtures/valid-text.json', 'utf8')) as unknown;
@@ -49,19 +55,19 @@ describe('document codecs and invariants', () => {
   it('preserves unambiguous IDs and clears ambiguous identity', () => {
     const a = setup();
     const b = decodeLegacy(fixture, a.document, a.assets);
-    expect(b.document.debtors[0]!.pages[0]!.items[0]!.id).toBe(
-      a.document.debtors[0]!.pages[0]!.items[0]!.id,
+    expect(b.document.documents[0]!.pages[0]!.items[0]!.id).toBe(
+      a.document.documents[0]!.pages[0]!.items[0]!.id,
     );
     const raw = parseLegacy(fixture);
     raw[0]!.pages[0]!.items.push({ ...raw[0]!.pages[0]!.items[0]! });
     const c = decodeLegacy(raw, a.document, a.assets);
-    expect(c.document.debtors[0]!.pages[0]!.items[0]!.id).not.toBe(
-      a.document.debtors[0]!.pages[0]!.items[0]!.id,
+    expect(c.document.documents[0]!.pages[0]!.items[0]!.id).not.toBe(
+      a.document.documents[0]!.pages[0]!.items[0]!.id,
     );
   });
   it('uses separate assets instead of data URLs in history documents', () => {
     const a = decodeLegacy(JSON.parse(readFileSync('tests/fixtures/valid-image.json', 'utf8')));
-    expect(a.document.debtors[0]!.pages[0]!.items[0]!.text).toBe('');
+    expect(a.document.documents[0]!.pages[0]!.items[0]!.text).toBe('');
     expect(Object.keys(a.assets)).toHaveLength(1);
   });
   it('validates numeric strings, optional defaults, and bounds according to schema', () => {
@@ -115,7 +121,7 @@ describe('document codecs and invariants', () => {
 describe('D2 scale benchmark', () => {
   it('commits at 5,000 items without copying image payloads into history', () => {
     const data = Array.from({ length: 5 }, (_, di) => ({
-      debitur: `Debitur ${di}`,
+      title: `Dokumen ${di + 1}`,
       pages: Array.from({ length: 10 }, (_, pi) => ({
         page_number: pi + 1,
         items: Array.from({ length: 100 }, (_, ii) => ({
@@ -128,7 +134,7 @@ describe('D2 scale benchmark', () => {
     }));
     const decoded = decodeLegacy(data);
     const store = createEditorStore({ ...workspace(), ...decoded });
-    const id = store.getState().workspace.document.debtors[0]!.pages[0]!.items[0]!.id;
+    const id = store.getState().workspace.document.documents[0]!.pages[0]!.items[0]!.id;
     const times = [];
     for (let index = 0; index < 6; index++) {
       const start = performance.now();
@@ -148,16 +154,16 @@ describe('D2 scale benchmark', () => {
 describe('commands and geometry', () => {
   it('preserves structural sharing and creates unique duplicate IDs', () => {
     const a = setup(),
-      item = a.document.debtors[0]!.pages[0]!.items[0]!;
+      item = a.document.documents[0]!.pages[0]!.items[0]!;
     const b = execute(a.document, { type: 'duplicate', ids: [item.id] }, a.assets);
-    expect(b.debtors[0]!.pages[0]!.items).toHaveLength(2);
-    expect(b.debtors[0]!.pages[0]!.items[0]).toBe(item);
-    expect(b.debtors[0]!.pages[0]!.items[1]!.id).not.toBe(item.id);
+    expect(b.documents[0]!.pages[0]!.items).toHaveLength(2);
+    expect(b.documents[0]!.pages[0]!.items[0]).toBe(item);
+    expect(b.documents[0]!.pages[0]!.items[1]!.id).not.toBe(item.id);
     expect(item.x).toBe(20);
   });
   it('blocks moving locked elements but allows unlocking', () => {
     const a = setup(),
-      id = a.document.debtors[0]!.pages[0]!.items[0]!.id;
+      id = a.document.documents[0]!.pages[0]!.items[0]!.id;
     let document = execute(
       a.document,
       { type: 'patch', ids: [id], patch: { locked: true } },
@@ -174,36 +180,36 @@ describe('commands and geometry', () => {
       a.document,
       {
         type: 'add',
-        debtorId: a.document.debtors[0]!.id,
+        documentId: a.document.documents[0]!.id,
         pageId: 'virtual',
         pageNumber: 5,
         item: { text: 'Field', x: 10, y: 10 },
       },
       a.assets,
     );
-    expect(b.debtors[0]!.pages).toHaveLength(5);
-    expect(b.debtors[0]!.pages[4]!.items[0]!.text).toBe('Field');
+    expect(b.documents[0]!.pages).toHaveLength(5);
+    expect(b.documents[0]!.pages[4]!.items[0]!.text).toBe('Field');
   });
   it('converts scaled pointer coordinates and constrains resize', () => {
-    expect(position(150, 200, { left: 100, top: 100, width: 420, height: 660 })).toEqual({
+    expect(position(150, 200, { left: 100, top: 100, width: 420, height: 660 }, F4)).toEqual({
       x: 25,
       y: 50,
     });
-    const item = { ...setup().document.debtors[0]!.pages[0]!.items[0]!, width: 30, height: 10 };
-    expect(resize(item, 'se', 30, 10, true)).toMatchObject({ width: 60, height: 20 });
-    expect(resize(item, 'w', 10, 0, false, true)).toMatchObject({ x: 30, width: 10 });
-    expect(resize(item, 'se', 1000, 1000).width).toBe(190);
-    expect(snap(item, 0.4, 0, [{ ...item, id: 'other', x: 20.5 }]).guideX).toBeDefined();
+    const item = { ...setup().document.documents[0]!.pages[0]!.items[0]!, width: 30, height: 10 };
+    expect(resize(item, F4, 'se', 30, 10, true)).toMatchObject({ width: 60, height: 20 });
+    expect(resize(item, F4, 'w', 10, 0, false, true)).toMatchObject({ x: 30, width: 10 });
+    expect(resize(item, F4, 'se', 1000, 1000).width).toBe(190);
+    expect(snap(item, F4, 0.4, 0, [{ ...item, id: 'other', x: 20.5 }]).guideX).toBeDefined();
   });
   it('keeps the opposite handle fixed while resizing a rotated item', () => {
     const item = {
-      ...setup().document.debtors[0]!.pages[0]!.items[0]!,
+      ...setup().document.documents[0]!.pages[0]!.items[0]!,
       width: 30,
       height: 10,
       rotation: 90,
     };
-    expect(resize(item, 'e', 0, 10)).toMatchObject({ x: 15, y: 35, width: 40, height: 10 });
-    const centered = resize({ ...item, rotation: 30 }, 'se', 10, 10, true, true);
+    expect(resize(item, F4, 'e', 0, 10)).toMatchObject({ x: 15, y: 35, width: 40, height: 10 });
+    const centered = resize({ ...item, rotation: 30 }, F4, 'se', 10, 10, true, true);
     expect(Math.abs(centered.x + centered.width / 2 - (item.x + 15))).toBeLessThan(0.1);
     expect(Math.abs(centered.y + centered.height / 2 - (item.y + 5))).toBeLessThan(0.1);
     expect(Math.abs(centered.width / centered.height - 3)).toBeLessThan(0.03);
@@ -220,13 +226,13 @@ describe('editor transactions and persistence scheduling', () => {
     expect(state.getState().error).toBeNull();
     state.getState().command({
       type: 'duplicate',
-      ids: [state.getState().workspace.document.debtors[0]!.pages[0]!.items[0]!.id],
+      ids: [state.getState().workspace.document.documents[0]!.pages[0]!.items[0]!.id],
     });
-    expect(state.getState().workspace.document.debtors[0]!.pages[0]!.items).toHaveLength(2);
+    expect(state.getState().workspace.document.documents[0]!.pages[0]!.items).toHaveLength(2);
     state.getState().undo();
-    expect(state.getState().workspace.document.debtors[0]!.pages[0]!.items).toHaveLength(1);
+    expect(state.getState().workspace.document.documents[0]!.pages[0]!.items).toHaveLength(1);
     state.getState().redo();
-    expect(state.getState().workspace.document.debtors[0]!.pages[0]!.items).toHaveLength(2);
+    expect(state.getState().workspace.document.documents[0]!.pages[0]!.items).toHaveLength(2);
   });
   it('groups formatting and skips invalid-draft autosave', async () => {
     const store = createEditorStore(workspace());
@@ -238,7 +244,7 @@ describe('editor transactions and persistence scheduling', () => {
         saves.push(w.revision);
       },
     });
-    const id = store.getState().workspace.document.debtors[0]!.pages[0]!.items[0]!.id;
+    const id = store.getState().workspace.document.documents[0]!.pages[0]!.items[0]!.id;
     store.getState().command({ type: 'patch', ids: [id], patch: { color: '#123456' } }, 'color');
     store.getState().command({ type: 'patch', ids: [id], patch: { color: '#abcdef' } }, 'color');
     expect(store.getState().undoStack).toHaveLength(1);
@@ -284,7 +290,7 @@ describe('print and portable output', () => {
   });
   it('escapes user content and renders every page without a DOM viewport', async () => {
     const w = workspace();
-    w.document.debtors[0]!.pages[0]!.items[0]!.text = '<script>alert(1)</script>';
+    w.document.documents[0]!.pages[0]!.items[0]!.text = '<script>alert(1)</script>';
     w.settings.overlay = 'doc_1';
     expect(outputPages(w).match(/class="output-page"/g)).toHaveLength(1);
     const html = await standaloneHtml({ ...w, settings: { ...w.settings, overlay: 'none' } });
@@ -292,5 +298,63 @@ describe('print and portable output', () => {
     expect(html).not.toContain('<script>');
     expect(html).not.toContain('/_next/');
     expect(html).toContain('size:210mm 330mm');
+  });
+  it('auto-heals legacy document entries with missing or empty titles', () => {
+    const rawNoTitle = [{ pages: [{ page_number: 1, items: [] }] }];
+    const decodedNoTitle = decodeLegacy(rawNoTitle);
+    expect(decodedNoTitle.document.documents[0]!.title).toBe('Dokumen 1');
+
+    const rawEmptyTitle = [{ title: '   ', pages: [{ page_number: 1, items: [] }] }];
+    const decodedEmptyTitle = decodeLegacy(rawEmptyTitle);
+    expect(decodedEmptyTitle.document.documents[0]!.title).toBe('Dokumen 1');
+  });
+  it('repairs workspace without valid title into a working workspace', async () => {
+    let saved: unknown = null;
+    const fakeRepo = {
+      load: async () => null,
+      save: async (w: unknown) => {
+        saved = w;
+      },
+      close: () => {},
+      loadRaw: async () => ({
+        stored: {
+          id: 'active',
+          schemaVersion: 2,
+          storageVersion: 1,
+          assetIds: [],
+          document: {
+            id: 'doc-1',
+            documents: [
+              {
+                id: 'd-1',
+                title: '',
+                pages: [{ id: 'p-1', page_number: 1, extra: {}, items: [] }],
+                extra: {},
+              },
+            ],
+          },
+          settings: defaultSettings,
+          pdf: emptyPdf(),
+          revision: 1,
+        },
+        assets: {},
+      }),
+    };
+    const repaired = await repairWorkspace(fakeRepo as any);
+    expect(repaired.document.documents[0]!.title).toBe('Dokumen 1');
+    expect(saved).not.toBeNull();
+  });
+  it('resets workspace to clean demo workspace and clears legacy settings', async () => {
+    let saved: unknown = null;
+    const fakeRepo = {
+      load: async () => null,
+      save: async (w: unknown) => {
+        saved = w;
+      },
+      close: () => {},
+    };
+    const clean = await resetWorkspace(fakeRepo as any);
+    expect(clean.document.documents[0]!.title).toBe('Dokumen Baru');
+    expect(saved).not.toBeNull();
   });
 });

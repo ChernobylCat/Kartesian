@@ -106,6 +106,15 @@ def _candidate(page_number: int, source: str, index: int, label: str, box: Box,
     }
 
 
+def _visual_candidate(page: Any, page_number: int, source: str, index: int,
+                      label: str, box: Box, confidence: float) -> dict[str, Any] | None:
+    # PyMuPDF text/widget/vector coordinates are unrotated; pixmap OCR is
+    # already visual and continues to call _candidate directly.
+    rect = fitz.Rect(box.x0, box.y0, box.x1, box.y1) * page.rotation_matrix
+    return _candidate(page_number, source, index, label,
+                      Box(rect.x0, rect.y0, rect.x1, rect.y1), page.rect, confidence)
+
+
 def _word_lines(page: Any) -> list[Box]:
     grouped: dict[tuple[int, int], list[tuple[Any, ...]]] = {}
     for word in page.get_text("words", sort=True) or []:
@@ -151,8 +160,8 @@ def _extract_widgets(page: Any, page_number: int) -> list[dict[str, Any]]:
         if widget.field_type == text_type:
             rect = widget.rect
             label = widget.field_name or widget.field_label or widget.field_value or f"Field {index + 1}"
-            candidate = _candidate(page_number, "pymupdf-acroform", index, label,
-                                   Box(rect.x0, rect.y0, rect.x1, rect.y1), page.rect, .98)
+            candidate = _visual_candidate(page, page_number, "pymupdf-acroform", index, label,
+                                          Box(rect.x0, rect.y0, rect.x1, rect.y1), .98)
             if candidate:
                 results.append(candidate)
             index += 1
@@ -174,8 +183,8 @@ def _extract_underlines(page: Any, page_number: int, lines: list[Box]) -> list[d
             )
             inline = clean_label(line.text[:match.start()].split("|")[-1])
             label = inline or _nearest_label(box, lines)
-            candidate = _candidate(page_number, "pymupdf-text", line_index + match_index,
-                                   label, box, page.rect, .74)
+            candidate = _visual_candidate(page, page_number, "pymupdf-text", line_index + match_index,
+                                          label, box, .74)
             if candidate:
                 results.append(candidate)
     return results
@@ -195,7 +204,7 @@ def _shape_boxes(page: Any) -> list[Box]:
             elif kind in {"re", "qu"} and len(item) >= 2:
                 rect = item[1].rect if hasattr(item[1], "rect") else item[1]
                 box = Box(float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1))
-                if 35 <= box.width <= page.rect.width * .95 and 8 <= box.height <= 140:
+                if 35 <= box.width <= page.cropbox.width * .95 and 8 <= box.height <= 140:
                     shapes.append(box)
     unique: list[Box] = []
     for shape in shapes:
@@ -214,7 +223,7 @@ def _extract_vectors(page: Any, page_number: int, lines: list[Box]) -> list[dict
         height = shape.height
         target = shape if height > 3 else Box(shape.x0, max(0, shape.y0 - 11), shape.x1, shape.y0 + 3)
         confidence = .7 if SEMANTIC_LABEL.search(label) else .64
-        candidate = _candidate(page_number, "pymupdf-vector", index, label, target, page.rect, confidence)
+        candidate = _visual_candidate(page, page_number, "pymupdf-vector", index, label, target, confidence)
         if candidate:
             results.append(candidate)
     return results
@@ -240,8 +249,8 @@ def _extract_tables(page: Any, page_number: int) -> list[dict[str, Any]]:
                 if not label or value or column + 1 >= len(cells) or not cells[column + 1]:
                     continue
                 rect = cells[column + 1]
-                candidate = _candidate(page_number, "pymupdf-table", index, label,
-                                       Box(*map(float, rect)), page.rect, .86)
+                candidate = _visual_candidate(page, page_number, "pymupdf-table", index, label,
+                                              Box(*map(float, rect)), .86)
                 if candidate:
                     results.append(candidate)
                     index += 1

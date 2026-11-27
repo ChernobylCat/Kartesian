@@ -1,5 +1,9 @@
 import type { WorkspaceRepository } from './ports';
 import type { EditorStore } from '@/features/editor/store/editor-store';
+import { errorMessage } from './error-message';
+import { t } from '@/i18n/core';
+
+const AUTOSAVE_DELAY_MS = 500;
 
 export function attachAutosave(store: EditorStore, repository: WorkspaceRepository) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -22,7 +26,7 @@ export function attachAutosave(store: EditorStore, repository: WorkspaceReposito
         } catch (error) {
           store.setState({
             saveStatus: 'error',
-            message: error instanceof Error ? error.message : String(error),
+            message: errorMessage(error, t('save.failed')),
           });
           throw error;
         }
@@ -37,7 +41,7 @@ export function attachAutosave(store: EditorStore, repository: WorkspaceReposito
       clearTimeout(timer);
       timer = setTimeout(() => {
         void flush().catch(() => {});
-      }, 500);
+      }, AUTOSAVE_DELAY_MS);
     }
   });
   return {

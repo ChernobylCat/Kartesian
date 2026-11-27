@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditor, useEditorState } from '../context';
 import type { Ace } from 'ace-builds';
+import { t as translateNow } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 type AceRuntime = {
   edit(element: HTMLElement): Ace.Editor;
@@ -18,7 +20,7 @@ function loadScript(src: string) {
       script.onerror = () => {
         scripts.delete(src);
         script.remove();
-        reject(new Error('Ace tidak tersedia.'));
+        reject(new Error(translateNow('json.aceUnavailable')));
       };
       document.head.append(script);
     });
@@ -27,11 +29,12 @@ function loadScript(src: string) {
   return pending;
 }
 export default function JsonPanel() {
+  const t = useT();
   const { store } = useEditor();
   const raw = useEditorState((state) => state.rawText);
   const error = useEditorState((state) => state.error);
   const dark = useEditorState((state) => state.workspace.settings.dark);
-  const readonly = useEditorState((state) => state.readonly);
+  const readonly = useEditorState((state) => state.readonly || state.frozen);
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<Ace.Editor | null>(null);
   const silent = useRef(false);
@@ -59,7 +62,7 @@ export default function JsonPanel() {
         instance.session.setUseWorker(false);
         instance.setOptions({ fontSize: 12, showPrintMargin: false, tabSize: 2, wrap: true });
         instance.setValue(store.getState().rawText, -1);
-        instance.setReadOnly(store.getState().readonly);
+        instance.setReadOnly(store.getState().readonly || store.getState().frozen);
         instance.setTheme(
           store.getState().workspace.settings.dark
             ? 'ace/theme/tomorrow_night'
@@ -102,13 +105,13 @@ export default function JsonPanel() {
       <div
         ref={host}
         className="ace-host"
-        aria-label="Editor JSON"
+        aria-label={t('json.editor')}
         style={{ display: aceReady ? 'block' : 'none' }}
       />
       {!aceReady && (
         <textarea
           id="jsonInput"
-          aria-label="Editor JSON"
+          aria-label={t('json.editor')}
           spellCheck={false}
           value={raw}
           readOnly={readonly}
@@ -126,14 +129,14 @@ export default function JsonPanel() {
             try {
               store.setState({ rawText: JSON.stringify(JSON.parse(raw), null, 2) });
             } catch {
-              store.setState({ message: 'JSON belum valid.' });
+              store.setState({ message: t('json.notValidYet') });
             }
           }}
         >
-          Rapikan JSON
+          {t('json.format')}
         </button>
         <span className={error ? 'danger-text' : 'muted'}>
-          {error ? 'Perlu diperbaiki' : 'JSON valid'}
+          {error ? t('json.needsFix') : t('json.valid')}
         </span>
       </div>
     </div>

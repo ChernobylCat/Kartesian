@@ -1,0 +1,53 @@
+{
+  "nameImport": {
+    "input": [
+      {
+        "name": "Nama dari import",
+        "pages": []
+      }
+    ],
+    "title": "Dokumen 1",
+    "output": [
+      {
+        "name": "Nama dari import",
+        "title": "Dokumen 1",
+        "pages": []
+      }
+    ]
+  },
+  "defaults": {
+    "panelFont": "Arial, sans-serif",
+    "canvasFont": "\"Courier New\", Courier, monospace",
+    "panelColor": "#111827",
+    "canvasColor": "rgb(0, 0, 0)"
+  },
+  "autoResize": {
+    "beforeWidth": 54,
+    "afterWidth": 51.8671875,
+    "cursorDelta": 6,
+    "estimatedMm": 16.2,
+    "model": {
+      "text": "Teks awal",
+      "x": 20,
+      "y": 30,
+      "font_size": 10,
+      "id": "2a75d0e2-bedd-45fa-beb8-dd17e0ed07dd",
+      "width": 18.3,
+      "height": 6
+    }
+  },
+  "inlineBeforeCommit": {
+    "html": "Baris 1\nBaris 2",
+    "textContent": "Baris 1\nBaris 2",
+    "innerText": "Baris 1\nBaris 2"
+  },
+  "inlineAfterCommit": "Baris 1\nBaris 2",
+  "negativeLayer": {
+    "previewMagenta": 3136,
+    "printMagenta": 0,
+    "exportMagenta": 0
+  },
+  "invalidPdfWorkers": [1, 2, 3],
+  "legacyRecoveryStatus": "Not found",
+  "legacyRecoveryHttp": 404
+}

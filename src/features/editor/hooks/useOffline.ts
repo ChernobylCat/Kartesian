@@ -1,6 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useEditor } from '../context';
+import { freezeAndFlush } from '@/application/workspace-transfer';
+import { finishEditing } from '../finish-editing';
+import { errorMessage } from '@/application/error-message';
+import { t } from '@/i18n/core';
+type UpdatePreparation = { cancelled: boolean; unfreeze?: () => void };
 
 export function useOffline() {
   const { store, flush } = useEditor();
@@ -10,7 +15,7 @@ export function useOffline() {
     if (!('serviceWorker' in navigator) || process.env.NODE_ENV !== 'production') return;
     let disposed = false;
     let prepared = false;
-    let previousReadonly = false;
+    let preparation: UpdatePreparation | null = null;
     let registration: ServiceWorkerRegistration | undefined;
     const update = () => setOffline(!navigator.onLine);
     update();
@@ -18,12 +23,15 @@ export function useOffline() {
     window.addEventListener('offline', update);
     const message = async (event: MessageEvent) => {
       if (event.data?.type === 'PREPARE_UPDATE') {
+        const current: UpdatePreparation = { cancelled: false };
         try {
-          if (store.getState().error)
-            throw new Error('Perbaiki atau backup draft JSON sebelum memperbarui aplikasi.');
-          await flush();
-          previousReadonly = store.getState().readonly;
-          store.setState({ readonly: true });
+          if (preparation) throw new Error(t('update.preparing'));
+          preparation = current;
+          current.unfreeze = await freezeAndFlush(store, flush, finishEditing);
+          if (current.cancelled || disposed) {
+            current.unfreeze();
+            return;
+          }
           prepared = true;
           (event.source as ServiceWorker | null)?.postMessage({
             type: 'UPDATE_ACK',
@@ -31,20 +39,25 @@ export function useOffline() {
             ok: true,
           });
         } catch (error) {
+          if (preparation === current) preparation = null;
+          current.unfreeze?.();
           (event.source as ServiceWorker | null)?.postMessage({
             type: 'UPDATE_ACK',
             token: event.data.token,
             ok: false,
           });
-          store.setState({ message: String(error) });
+          store.setState({ message: errorMessage(error) });
         }
       }
       if (event.data?.type === 'CANCEL_UPDATE') {
-        if (prepared) store.setState({ readonly: previousReadonly });
+        if (preparation) {
+          preparation.cancelled = true;
+          preparation.unfreeze?.();
+          preparation = null;
+        }
         prepared = false;
         store.setState({
-          message:
-            'Update ditunda karena ada tab yang belum siap. Simpan semua tab lalu coba lagi.',
+          message: t('update.deferred'),
         });
       }
     };
@@ -75,9 +88,15 @@ export function useOffline() {
         checkWaiting();
         result.addEventListener('updatefound', onUpdate);
       })
-      .catch((error) => store.setState({ message: `Offline belum siap: ${String(error)}` }));
+      .catch((error) =>
+        store.setState({ message: t('offline.notReady', { reason: errorMessage(error) }) }),
+      );
     return () => {
       disposed = true;
+      if (preparation) {
+        preparation.cancelled = true;
+        preparation.unfreeze?.();
+      }
       window.removeEventListener('online', update);
       window.removeEventListener('offline', update);
       navigator.serviceWorker.removeEventListener('message', message);

@@ -14,6 +14,7 @@ import {
 import { Crosshair, Eraser } from 'lucide-react';
 import type { Page } from '@/domain/document/model';
 import { clamp, position, round } from '@/domain/document/geometry';
+import { paperOf } from '@/domain/document/paper';
 import {
   unionBounds,
   type Bounds,
@@ -22,6 +23,9 @@ import {
 } from '@/domain/document/measurement';
 import { useEditor, useEditorState } from '../context';
 import { rulerTicks } from './ruler-ticks';
+import { formatFixed } from '@/i18n/core';
+import { toUnit, UNIT_DECIMALS, type Unit } from '@/domain/document/units';
+import { useLocale, useT } from '@/i18n/react';
 
 export type RulerHandle = {
   track: (x: number, y: number) => void;
@@ -29,15 +33,22 @@ export type RulerHandle = {
   preview: (bounds: Bounds | null, point: Point) => void;
   refresh: () => void;
 };
-const numberFormat = new Intl.NumberFormat('id-ID', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-const format = (value: number) => numberFormat.format(value);
+/** One decimal in the active language, e.g. "20,0" or "20.0". */
+/** One decimal in mm (three in inches) in the active language, e.g. "20,0" or "20.0". */
+const formatIn = (mm: number, unit: Unit) => formatFixed(toUnit(mm, unit), UNIT_DECIMALS[unit]);
 
-const Scale = memo(function Scale({ axis, zoom }: { axis: 'x' | 'y'; zoom: number }) {
-  const length = axis === 'x' ? 210 : 330;
-  const { scale, ticks, labels } = rulerTicks(length, zoom);
+const Scale = memo(function Scale({
+  axis,
+  length,
+  zoom,
+  unit,
+}: {
+  axis: 'x' | 'y';
+  length: number;
+  zoom: number;
+  unit: Unit;
+}) {
+  const { scale, ticks, labels, labelText } = rulerTicks(length, zoom, unit);
   const horizontal = axis === 'x';
   return (
     <svg
@@ -77,7 +88,7 @@ const Scale = memo(function Scale({ axis, zoom }: { axis: 'x' | 'y'; zoom: numbe
               : `rotate(-90 10 ${value * scale + (value === 0 ? 4 : value === length ? -4 : 0)})`
           }
         >
-          {value}
+          {labelText(value)}
         </text>
       ))}
     </svg>
@@ -120,7 +131,12 @@ const CanvasRulers = forwardRef<
   const cursorSize = useRef<HTMLSpanElement>(null);
   const animation = useRef(0);
   const dragging = useRef(false);
+  const t = useT();
+  const locale = useLocale();
   const selected = useEditorState((state) => state.selected);
+  const paper = useEditorState((state) => paperOf(state.workspace.document));
+  const unit = useEditorState((state) => state.unit);
+  const format = (mm: number) => formatIn(mm, unit);
   const { store } = useEditor();
 
   function paintCursor(point: Point | null) {
@@ -128,18 +144,18 @@ const CanvasRulers = forwardRef<
     if (!element || !pointerValue.current) return;
     element.dataset.cursor = point ? 'on' : 'off';
     if (point) {
-      const x = round(clamp(point.x, 0, 210)),
-        y = round(clamp(point.y, 0, 330));
-      element.style.setProperty('--ruler-x', `${(x / 210) * 100}%`);
-      element.style.setProperty('--ruler-y', `${(y / 330) * 100}%`);
-      pointerValue.current.textContent = `X ${format(x)} · Y ${format(y)} mm`;
+      const x = round(clamp(point.x, 0, paper.width)),
+        y = round(clamp(point.y, 0, paper.height));
+      element.style.setProperty('--ruler-x', `${(x / paper.width) * 100}%`);
+      element.style.setProperty('--ruler-y', `${(y / paper.height) * 100}%`);
+      pointerValue.current.textContent = `X ${format(x)} · Y ${format(y)} ${unit}`;
       pointerValue.current.dataset.x = String(x);
       pointerValue.current.dataset.y = String(y);
       if (cursorLabel.current)
-        cursorLabel.current.textContent = `X ${format(x)} · Y ${format(y)} mm`;
+        cursorLabel.current.textContent = `X ${format(x)} · Y ${format(y)} ${unit}`;
       const pixelsPerMm = (96 / 25.4) * zoom;
-      const paperWidth = 210 * pixelsPerMm,
-        paperHeight = 330 * pixelsPerMm;
+      const paperWidth = paper.width * pixelsPerMm,
+        paperHeight = paper.height * pixelsPerMm;
       const selectedText =
         element.dataset.selection === 'on' ? (cursorSize.current?.textContent ?? '') : '';
       const labelWidth =
@@ -172,29 +188,37 @@ const CanvasRulers = forwardRef<
     if (!element || !sizeValue.current) return;
     element.dataset.selection = bounds ? 'on' : 'off';
     if (bounds) {
-      const left = clamp(bounds.x, 0, 210),
-        top = clamp(bounds.y, 0, 330);
-      element.style.setProperty('--selection-x', `${(left / 210) * 100}%`);
-      element.style.setProperty('--selection-y', `${(top / 330) * 100}%`);
+      const left = clamp(bounds.x, 0, paper.width),
+        top = clamp(bounds.y, 0, paper.height);
+      element.style.setProperty('--selection-x', `${(left / paper.width) * 100}%`);
+      element.style.setProperty('--selection-y', `${(top / paper.height) * 100}%`);
       element.style.setProperty(
         '--selection-width',
-        `${(Math.max(0, clamp(bounds.x + bounds.width, 0, 210) - left) / 210) * 100}%`,
+        `${(Math.max(0, clamp(bounds.x + bounds.width, 0, paper.width) - left) / paper.width) * 100}%`,
       );
       element.style.setProperty(
         '--selection-height',
-        `${(Math.max(0, clamp(bounds.y + bounds.height, 0, 330) - top) / 330) * 100}%`,
+        `${(Math.max(0, clamp(bounds.y + bounds.height, 0, paper.height) - top) / paper.height) * 100}%`,
       );
-      sizeValue.current.textContent = `${format(bounds.width)} × ${format(bounds.height)} mm`;
+      sizeValue.current.textContent = `${format(bounds.width)} × ${format(bounds.height)} ${unit}`;
       if (cursorSize.current)
-        cursorSize.current.textContent = `Pilihan ${format(bounds.width)} × ${format(bounds.height)} mm`;
-      sizeValue.current.title = `Batas pilihan: X ${format(bounds.x)} · Y ${format(bounds.y)} mm`;
+        cursorSize.current.textContent = t('ruler.selectionSize', {
+          unit,
+          width: format(bounds.width),
+          height: format(bounds.height),
+        });
+      sizeValue.current.title = t('ruler.selectionBounds', {
+        unit,
+        x: format(bounds.x),
+        y: format(bounds.y),
+      });
       sizeValue.current.dataset.x = String(bounds.x);
       sizeValue.current.dataset.y = String(bounds.y);
       sizeValue.current.dataset.width = String(bounds.width);
       sizeValue.current.dataset.height = String(bounds.height);
     } else {
-      sizeValue.current.textContent = 'Pilih elemen';
-      sizeValue.current.title = 'Pilih teks atau gambar untuk melihat ukuran batasnya';
+      sizeValue.current.textContent = t('ruler.selectPrompt');
+      sizeValue.current.title = t('ruler.selectHint');
       for (const key of ['x', 'y', 'width', 'height']) delete sizeValue.current.dataset[key];
     }
   }
@@ -207,10 +231,10 @@ const CanvasRulers = forwardRef<
       if (!selected.includes(node.dataset.itemId!)) return;
       const box = node.getBoundingClientRect();
       boxes.push({
-        x: ((box.left - sheet.left) / sheet.width) * 210,
-        y: ((box.top - sheet.top) / sheet.height) * 330,
-        width: (box.width / sheet.width) * 210,
-        height: (box.height / sheet.height) * 330,
+        x: ((box.left - sheet.left) / sheet.width) * paper.width,
+        y: ((box.top - sheet.top) / sheet.height) * paper.height,
+        width: (box.width / sheet.width) * paper.width,
+        height: (box.height / sheet.height) * paper.height,
       });
     });
     paintSelection(unionBounds(boxes));
@@ -219,7 +243,7 @@ const CanvasRulers = forwardRef<
     track(x, y) {
       cancelAnimationFrame(animation.current);
       animation.current = requestAnimationFrame(() => {
-        if (root.current) paintCursor(position(x, y, root.current.getBoundingClientRect()));
+        if (root.current) paintCursor(position(x, y, root.current.getBoundingClientRect(), paper));
       });
     },
     leave() {
@@ -252,13 +276,16 @@ const CanvasRulers = forwardRef<
     };
     // Measurements follow committed items, selected nodes, zoom and loaded fonts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page.items, selected, zoom, root]);
+  }, [page.items, selected, zoom, root, paper, locale, unit]);
   useEffect(() => () => cancelAnimationFrame(animation.current), []);
 
   function setGuide(axis: 'x' | 'y', value: number | undefined) {
     onGuidesChange(guideId, {
       ...guides,
-      [axis]: value === undefined ? undefined : round(clamp(value, 0, axis === 'x' ? 210 : 330)),
+      [axis]:
+        value === undefined
+          ? undefined
+          : round(clamp(value, 0, axis === 'x' ? paper.width : paper.height)),
     });
   }
   function pointerGuide(event: PointerEvent<HTMLDivElement>, axis: 'x' | 'y') {
@@ -266,12 +293,12 @@ const CanvasRulers = forwardRef<
     setGuide(
       axis,
       axis === 'x'
-        ? ((event.clientX - box.left) / box.width) * 210
-        : ((event.clientY - box.top) / box.height) * 330,
+        ? ((event.clientX - box.left) / box.width) * paper.width
+        : ((event.clientY - box.top) / box.height) * paper.height,
     );
   }
   function keyboardGuide(event: KeyboardEvent<HTMLDivElement>, axis: 'x' | 'y') {
-    const maximum = axis === 'x' ? 210 : 330;
+    const maximum = axis === 'x' ? paper.width : paper.height;
     const value = guides[axis] ?? maximum / 2;
     const step = event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
     const delta = ['ArrowRight', 'ArrowDown'].includes(event.key)
@@ -306,8 +333,8 @@ const CanvasRulers = forwardRef<
         data-selection="off"
         data-crosshair={crosshair}
       >
-        <div className="ruler-origin" title="Satuan penggaris: milimeter">
-          mm
+        <div className="ruler-origin" title={t('ruler.unit', { unit: t(`unit.${unit}`) })}>
+          {unit}
         </div>
         {(['x', 'y'] as const).map((axis) => (
           <div
@@ -316,13 +343,18 @@ const CanvasRulers = forwardRef<
             role="slider"
             tabIndex={0}
             onFocus={() => store.setState({ activePage: page.id })}
-            aria-label={`Garis bantu ${axis === 'x' ? 'vertikal' : 'horizontal'} halaman ${number}`}
+            aria-label={t(axis === 'x' ? 'ruler.guideVertical' : 'ruler.guideHorizontal', {
+              number,
+            })}
             aria-orientation={axis === 'x' ? 'horizontal' : 'vertical'}
             aria-valuemin={0}
-            aria-valuemax={axis === 'x' ? 210 : 330}
-            aria-valuenow={guides[axis] ?? (axis === 'x' ? 105 : 165)}
-            aria-valuetext={`${format(guides[axis] ?? (axis === 'x' ? 105 : 165))} mm dari ${axis === 'x' ? 'kiri' : 'atas'}`}
-            title="Klik atau geser skala untuk garis bantu sesi ini. Panah: 1 mm · Shift: 10 mm · Alt: 0,1 mm · Delete / klik dua kali: hapus."
+            aria-valuemax={axis === 'x' ? paper.width : paper.height}
+            aria-valuenow={guides[axis] ?? (axis === 'x' ? paper.width : paper.height) / 2}
+            aria-valuetext={t(axis === 'x' ? 'ruler.fromLeft' : 'ruler.fromTop', {
+              unit,
+              value: format(guides[axis] ?? (axis === 'x' ? paper.width : paper.height) / 2),
+            })}
+            title={t('ruler.guideHelp')}
             onPointerDown={(event) => {
               event.preventDefault();
               event.currentTarget.focus();
@@ -339,7 +371,12 @@ const CanvasRulers = forwardRef<
             onDoubleClick={() => setGuide(axis, undefined)}
             onKeyDown={(event) => keyboardGuide(event, axis)}
           >
-            <Scale axis={axis} zoom={zoom} />
+            <Scale
+              axis={axis}
+              length={axis === 'x' ? paper.width : paper.height}
+              zoom={zoom}
+              unit={unit}
+            />
             <span className="ruler-selection-range" aria-hidden="true" />
             <span className="ruler-cursor-marker" aria-hidden="true" />
             {guides[axis] !== undefined && (
@@ -348,8 +385,8 @@ const CanvasRulers = forwardRef<
                 aria-hidden="true"
                 style={
                   axis === 'x'
-                    ? { left: `${(guides.x! / 210) * 100}%` }
-                    : { top: `${(guides.y! / 330) * 100}%` }
+                    ? { left: `${(guides.x! / paper.width) * 100}%` }
+                    : { top: `${(guides.y! / paper.height) * 100}%` }
                 }
               />
             )}
@@ -367,13 +404,13 @@ const CanvasRulers = forwardRef<
             {guides.x !== undefined && (
               <span
                 className="ruler-pin-line ruler-pin-x"
-                style={{ left: `${(guides.x / 210) * 100}%` }}
+                style={{ left: `${(guides.x / paper.width) * 100}%` }}
               />
             )}
             {guides.y !== undefined && (
               <span
                 className="ruler-pin-line ruler-pin-y"
-                style={{ top: `${(guides.y / 330) * 100}%` }}
+                style={{ top: `${(guides.y / paper.height) * 100}%` }}
               />
             )}
           </div>
@@ -383,7 +420,7 @@ const CanvasRulers = forwardRef<
         <output
           ref={pointerValue}
           className="ruler-position"
-          aria-label={`Posisi kursor halaman ${number}`}
+          aria-label={t('ruler.cursorPosition', { number })}
           aria-live="off"
         >
           X — · Y — mm
@@ -391,25 +428,25 @@ const CanvasRulers = forwardRef<
         <output
           ref={sizeValue}
           className="ruler-size"
-          aria-label={`Ukuran pilihan halaman ${number}`}
+          aria-label={t('ruler.selectionLabel', { number })}
           aria-live="off"
         >
-          Pilih elemen
+          {t('ruler.selectPrompt')}
         </output>
         <div className="ruler-actions">
           <button
             type="button"
-            aria-label={`Garis silang kursor halaman ${number}`}
+            aria-label={t('ruler.crosshair', { number })}
             aria-pressed={crosshair}
-            title="Garis silang posisi kursor"
+            title={t('ruler.crosshairHint')}
             onClick={() => onCrosshairChange(!crosshair)}
           >
             <Crosshair size={13} />
           </button>
           <button
             type="button"
-            aria-label={`Hapus garis bantu halaman ${number}`}
-            title="Hapus garis bantu sesi ini"
+            aria-label={t('ruler.clearGuides', { number })}
+            title={t('ruler.clearGuidesHint')}
             disabled={guides.x === undefined && guides.y === undefined}
             onClick={() => onGuidesChange(guideId, {})}
           >

@@ -1,0 +1,29 @@
+# Files uploaded by `gcloud run deploy --source .` (Cloud Build then applies
+# .dockerignore). Keep this in step with .dockerignore; Dockerfile and
+# .dockerignore themselves must be uploaded.
+.gcloudignore
+
+node_modules
+.next
+out
+public
+*.tsbuildinfo
+next-env.d.ts
+
+docs
+tests
+services
+infra
+videos
+test-results
+playwright-report
+.venv
+.venv-ocr
+**/__pycache__
+
+.git
+.github
+.claude
+.env
+.env.*
+**/*.env.local

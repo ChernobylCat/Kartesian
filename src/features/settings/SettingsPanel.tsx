@@ -8,10 +8,16 @@ import { writeLegacySettings, readLegacySettings } from '@/infrastructure/serial
 import { decodeLegacy, encodeLegacy } from '@/domain/document/model';
 import { download } from '@/infrastructure/export/html';
 import { LIMITS } from '@/domain/document/schema';
+import { errorMessage } from '@/application/error-message';
+import { useT } from '@/i18n/react';
+import { UNITS, type Unit } from '@/domain/document/units';
+import { UNIT_KEY } from '../editor/preferences';
 
 export default function SettingsPanel() {
+  const t = useT();
   const { store, flush } = useEditor();
   const settings = useEditorState((state) => state.workspace.settings);
+  const unit = useEditorState((state) => state.unit);
   const input = useRef<HTMLInputElement>(null);
   async function backup() {
     try {
@@ -19,21 +25,16 @@ export default function SettingsPanel() {
       await flush().catch(() => {});
       download(await backupWorkspace(store.getState().workspace), 'kartesian-workspace.json');
     } catch (error) {
-      store.setState({ message: String(error) });
+      store.setState({ message: errorMessage(error, t('backup.failed')) });
     }
   }
   async function restore(file: File) {
     try {
-      if (file.size > LIMITS.backupBytes) throw new Error('Berkas melebihi 150 MB.');
-      if (store.getState().readonly) throw new Error('Ambil alih workspace sebelum mengimpor.');
+      if (file.size > LIMITS.backupBytes) throw new Error(t('import.fileTooLarge'));
+      if (store.getState().readonly) throw new Error(t('import.takeOverFirst'));
       const text = await file.text();
       const raw = JSON.parse(text) as Record<string, unknown>;
-      if (
-        !confirm(
-          'Ganti workspace aktif dengan isi berkas? Backup data saat ini terlebih dahulu jika diperlukan.',
-        )
-      )
-        return;
+      if (!confirm(t('import.confirmReplace'))) return;
       if (raw.format === 'kartesian-workspace') {
         const next = await restoreWorkspace(text);
         const state = store.getState();
@@ -41,7 +42,7 @@ export default function SettingsPanel() {
         state.settings(next.settings);
         state.pdf(next.pdf);
       } else {
-        if (file.size > LIMITS.settingsBytes) throw new Error('Settings legacy melebihi 5 MB.');
+        if (file.size > LIMITS.settingsBytes) throw new Error(t('import.settingsTooLarge'));
         const legacy = readLegacySettings(raw, store.getState().workspace.settings.dark);
         const state = store.getState();
         if (legacy.jsonInput) {
@@ -55,15 +56,15 @@ export default function SettingsPanel() {
         state.settings(legacy.settings);
       }
       await flush();
-      store.setState({ message: 'Data berhasil dipulihkan.' });
+      store.setState({ message: t('import.restored') });
     } catch (error) {
-      store.setState({ message: error instanceof Error ? error.message : 'Import gagal.' });
+      store.setState({ message: errorMessage(error, t('import.failed')) });
     }
   }
   return (
     <section className="sidebar-section">
       <details>
-        <summary>Cetak, kalibrasi & penyimpanan</summary>
+        <summary>{t('settings.title')}</summary>
         <div className="stack">
           <div className="field-grid">
             <NumericField
@@ -81,13 +82,33 @@ export default function SettingsPanel() {
               change={(offsetY) => store.getState().settings({ offsetY })}
             />
           </div>
+          <label className="field">
+            {t('settings.unit')}
+            <select
+              value={unit}
+              onChange={(event) => {
+                const value = event.target.value as Unit;
+                store.setState({ unit: value });
+                try {
+                  localStorage.setItem(UNIT_KEY, value);
+                } catch {}
+              }}
+            >
+              {UNITS.map((value) => (
+                <option key={value} value={value}>
+                  {t(`unit.${value}`)} ({value})
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="settings-note">{t('settings.unitNote')}</p>
           <label className="check-row">
             <input
               type="checkbox"
               checked={settings.snap}
               onChange={(event) => store.getState().settings({ snap: event.target.checked })}
             />
-            Magnetic snapping
+            {t('settings.snap')}
           </label>
           <label className="check-row">
             <input
@@ -97,7 +118,7 @@ export default function SettingsPanel() {
                 store.getState().settings({ printOverlay: event.target.checked })
               }
             />
-            Sertakan background saat cetak
+            {t('settings.printOverlay')}
           </label>
           <label className="check-row">
             <input
@@ -107,7 +128,7 @@ export default function SettingsPanel() {
                 store.getState().settings({ hideCalibration: event.target.checked })
               }
             />
-            Sembunyikan marker cetak
+            {t('settings.hidePrintMarkers')}
           </label>
           <label className="check-row">
             <input
@@ -117,15 +138,12 @@ export default function SettingsPanel() {
                 store.getState().settings({ hideCalibrationPreview: event.target.checked })
               }
             />
-            Sembunyikan marker preview
+            {t('settings.hidePreviewMarkers')}
           </label>
-          <p className="settings-note">
-            Cetak F4, skala 100%, margin nol, tanpa header/footer. Koreksi offset setelah mengukur
-            hasil printer.
-          </p>
+          <p className="settings-note">{t('settings.printNote')}</p>
           <button onClick={() => void backup()}>
             <ShieldCheck size={14} />
-            Backup workspace lengkap
+            {t('settings.fullBackup')}
           </button>
           <button
             onClick={() => {
@@ -149,11 +167,11 @@ export default function SettingsPanel() {
             }}
           >
             <Download size={14} />
-            Ekspor settings legacy
+            {t('settings.exportLegacy')}
           </button>
           <button onClick={() => input.current?.click()}>
             <Upload size={14} />
-            Impor settings / backup
+            {t('settings.import')}
           </button>
           <input
             ref={input}
@@ -166,10 +184,7 @@ export default function SettingsPanel() {
               if (file) void restore(file);
             }}
           />
-          <p className="settings-note">
-            Backup lengkap menyertakan PDF, gambar, dan kalibrasi. Settings legacy mempertahankan
-            format lama.
-          </p>
+          <p className="settings-note">{t('settings.backupNote')}</p>
         </div>
       </details>
     </section>

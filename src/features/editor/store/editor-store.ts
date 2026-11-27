@@ -1,5 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import {
+  allItemIds,
+  expandGroups,
   decodeLegacy,
   encodeLegacy,
   type Settings,
@@ -9,6 +11,9 @@ import {
 import { execute, type Command } from '@/domain/document/commands';
 import { pushHistory, type HistoryEntry } from '@/domain/document/history';
 import type { Workspace, PdfData } from '@/application/ports';
+import { FULL_SCOPE, type OutputScope } from '@/domain/document/output-scope';
+import type { Unit } from '@/domain/document/units';
+import { t } from '@/i18n/core';
 
 export type EditorState = {
   workspace: Workspace;
@@ -18,10 +23,19 @@ export type EditorState = {
   undoStack: HistoryEntry[];
   redoStack: HistoryEntry[];
   readonly: boolean;
+  frozen: boolean;
   saveStatus: 'saved' | 'pending' | 'saving' | 'error';
   message: string;
   activePage: string | null;
-  command(command: Command, group?: string): void;
+  /** Part of the workspace Print and Export HTML produce; kept for this session only. */
+  outputScope: OutputScope;
+  /** Grid spacing in mm shown on the canvas (0 = off); a per-device preference. */
+  grid: number;
+  /** Items hidden on screen only (never in print or storage), for this session. */
+  hidden: string[];
+  /** Display unit for coordinates (stored values stay in mm); a per-device preference. */
+  unit: Unit;
+  command(command: Command, group?: string, assets?: Assets): void;
   editJson(raw: string): void;
   replace(document: DocumentModel, assets: Assets): void;
   undo(): void;
@@ -31,19 +45,21 @@ export type EditorState = {
   pdf(pdf: PdfData): void;
 };
 export type EditorStore = StoreApi<EditorState>;
+/** Edits sharing a group key within this window become a single undo step. */
+const GROUP_WINDOW_MS = 400;
+const serialize = (document: DocumentModel, assets: Assets) =>
+  JSON.stringify(encodeLegacy(document, assets), null, 2);
+
 export function createEditorStore(workspace: Workspace): EditorStore {
   let grouping: { key: string; time: number } | null = null;
   return createStore<EditorState>()((set, get) => {
     function commit(document: DocumentModel, assets = get().workspace.assets, group?: string) {
       const current = get();
-      if (current.readonly) throw new Error('Workspace dibuka hanya-baca.');
-      const grouped = group && grouping?.key === group && Date.now() - grouping.time < 400;
-      grouping = group ? { key: group, time: Date.now() } : null;
-      const validIds = new Set(
-        document.debtors.flatMap((docEntry) =>
-          docEntry.pages.flatMap((page) => page.items.map((item) => item.id)),
-        ),
-      );
+      if (current.readonly || current.frozen) throw new Error(t('store.locked'));
+      const now = Date.now();
+      const grouped = group && grouping?.key === group && now - grouping.time < GROUP_WINDOW_MS;
+      grouping = group ? { key: group, time: now } : null;
+      const validIds = allItemIds(document);
       set({
         workspace: {
           ...current.workspace,
@@ -51,7 +67,7 @@ export function createEditorStore(workspace: Workspace): EditorStore {
           assets,
           revision: current.workspace.revision + 1,
         },
-        rawText: JSON.stringify(encodeLegacy(document, assets), null, 2),
+        rawText: serialize(document, assets),
         error: null,
         selected: current.selected.filter((id) => validIds.has(id)),
         undoStack: grouped
@@ -61,34 +77,63 @@ export function createEditorStore(workspace: Workspace): EditorStore {
         saveStatus: 'pending',
       });
     }
+    /** Moves one snapshot between the undo and redo stacks. */
+    function travel(direction: 'undo' | 'redo') {
+      const state = get();
+      const from = direction === 'undo' ? state.undoStack : state.redoStack;
+      const to = direction === 'undo' ? state.redoStack : state.undoStack;
+      const entry = from.at(-1);
+      if (!entry || state.readonly || state.frozen) return;
+      grouping = null;
+      const remaining = from.slice(0, -1);
+      const pushed = pushHistory(to, state.workspace.document);
+      set({
+        workspace: {
+          ...state.workspace,
+          document: entry.document,
+          revision: state.workspace.revision + 1,
+        },
+        rawText: serialize(entry.document, state.workspace.assets),
+        error: null,
+        selected: [],
+        undoStack: direction === 'undo' ? remaining : pushed,
+        redoStack: direction === 'undo' ? pushed : remaining,
+        saveStatus: 'pending',
+      });
+    }
     return {
       workspace,
-      rawText: JSON.stringify(encodeLegacy(workspace.document, workspace.assets), null, 2),
+      rawText: serialize(workspace.document, workspace.assets),
       error: null,
       selected: [],
       undoStack: [],
       redoStack: [],
       readonly: false,
+      frozen: false,
       saveStatus: 'saved',
       message: '',
-      activePage: workspace.document.debtors[0]?.pages[0]?.id ?? null,
-      command(command, group) {
+      activePage: workspace.document.documents[0]?.pages[0]?.id ?? null,
+      outputScope: FULL_SCOPE,
+      grid: 0,
+      hidden: [],
+      unit: 'mm',
+      command(command, group, addedAssets) {
         const state = get();
-        if (state.error) throw new Error('Perbaiki JSON sebelum mengedit canvas.');
-        commit(
-          execute(state.workspace.document, command, state.workspace.assets),
-          undefined,
-          group,
-        );
+        if (state.readonly || state.frozen) throw new Error(t('store.locked'));
+        if (state.error) throw new Error(t('store.fixJsonFirst'));
+        const assets = addedAssets
+          ? { ...state.workspace.assets, ...addedAssets }
+          : state.workspace.assets;
+        commit(execute(state.workspace.document, command, assets), assets, group);
       },
       editJson(rawText) {
-        if (get().readonly) return;
+        if (get().readonly || get().frozen) return;
         try {
           const result = decodeLegacy(rawText, get().workspace.document, get().workspace.assets);
           commit(result.document, result.assets, 'json-input');
           set({ rawText });
         } catch (error) {
-          set({ rawText, error: error instanceof Error ? error.message : 'JSON tidak valid.' });
+          set({ rawText, error: error instanceof Error ? error.message : t('json.invalid') });
         }
       },
       replace(document, assets) {
@@ -96,49 +141,17 @@ export function createEditorStore(workspace: Workspace): EditorStore {
         set({ selected: [] });
       },
       undo() {
-        const state = get();
-        const entry = state.undoStack.at(-1);
-        if (!entry || state.readonly) return;
-        grouping = null;
-        set({
-          workspace: {
-            ...state.workspace,
-            document: entry.document,
-            revision: state.workspace.revision + 1,
-          },
-          rawText: JSON.stringify(encodeLegacy(entry.document, state.workspace.assets), null, 2),
-          error: null,
-          selected: [],
-          undoStack: state.undoStack.slice(0, -1),
-          redoStack: pushHistory(state.redoStack, state.workspace.document),
-          saveStatus: 'pending',
-        });
+        travel('undo');
       },
       redo() {
-        const state = get();
-        const entry = state.redoStack.at(-1);
-        if (!entry || state.readonly) return;
-        grouping = null;
-        set({
-          workspace: {
-            ...state.workspace,
-            document: entry.document,
-            revision: state.workspace.revision + 1,
-          },
-          rawText: JSON.stringify(encodeLegacy(entry.document, state.workspace.assets), null, 2),
-          error: null,
-          selected: [],
-          redoStack: state.redoStack.slice(0, -1),
-          undoStack: pushHistory(state.undoStack, state.workspace.document),
-          saveStatus: 'pending',
-        });
+        travel('redo');
       },
       select(selected) {
-        set({ selected });
+        set({ selected: expandGroups(get().workspace.document, selected) });
       },
       settings(patch) {
         const state = get();
-        if (state.readonly) return;
+        if (state.readonly || state.frozen) return;
         set({
           workspace: {
             ...state.workspace,
@@ -150,7 +163,7 @@ export function createEditorStore(workspace: Workspace): EditorStore {
       },
       pdf(pdf) {
         const state = get();
-        if (state.readonly) return;
+        if (state.readonly || state.frozen) return;
         set({
           workspace: { ...state.workspace, pdf, revision: state.workspace.revision + 1 },
           saveStatus: 'pending',

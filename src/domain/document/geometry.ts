@@ -1,42 +1,63 @@
 import type { Item } from './model';
 import type { PageGuides } from './measurement';
+import type { Paper } from './paper';
+/** Rounds to the 0.1 mm grid used by stored coordinates. */
 export const round = (value: number) => Math.round(value * 10) / 10;
 export const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
-export function dimensions(item: Item) {
+/**
+ * Clamps then rounds to 0.1 mm without leaving [min, max]. Plain `round(clamp())`
+ * can round up past the limit (e.g. 176.67 → 176.7 with width 33.33 overflows 210 mm),
+ * which makes schema validation reject the whole command.
+ */
+export function roundWithin(value: number, min: number, max: number) {
+  const upper = Math.max(min, max);
+  const rounded = round(clamp(value, min, upper));
+  if (rounded > upper) return Math.floor(upper * 10) / 10;
+  if (rounded < min) return Math.ceil(min * 10) / 10;
+  return rounded;
+}
+export type ItemSize = { width: number; height: number };
+export function dimensions(item: Item, measured?: ItemSize) {
   return {
     width:
       Number(item.width) ||
+      measured?.width ||
       Math.min(60, Math.max(5, item.text.length * (Number(item.font_size) || 10) * 0.18)),
-    height: Number(item.height) || (Number(item.font_size) || 10) * 0.5 + 1,
+    height: Number(item.height) || measured?.height || (Number(item.font_size) || 10) * 0.5 + 1,
   };
 }
+/** Converts a pointer position over the rendered sheet to paper millimetres. */
 export function position(
   clientX: number,
   clientY: number,
   rect: { left: number; top: number; width: number; height: number },
+  paper: Paper,
 ) {
   return {
-    x: round(((clientX - rect.left) / rect.width) * 210),
-    y: round(((clientY - rect.top) / rect.height) * 330),
+    x: round(((clientX - rect.left) / rect.width) * paper.width),
+    y: round(((clientY - rect.top) / rect.height) * paper.height),
   };
 }
-export function move(item: Item, dx: number, dy: number) {
+export function move(item: Item, dx: number, dy: number, paper: Paper) {
   const { width, height } = dimensions(item);
+  // Auto-sized text has no stored width/height, so only its origin is kept on the sheet.
   return {
-    x: round(clamp(item.x + dx, 0, 210 - (item.width ? width : 0))),
-    y: round(clamp(item.y + dy, 0, 330 - (item.height ? height : 0))),
+    x: roundWithin(item.x + dx, 0, paper.width - (item.width ? width : 0)),
+    y: roundWithin(item.y + dy, 0, paper.height - (item.height ? height : 0)),
   };
 }
 export function resize(
   item: Item,
+  paper: Paper,
   direction: string,
   dx: number,
   dy: number,
   aspect = false,
   center = false,
+  measured?: ItemSize,
 ) {
-  const size = dimensions(item);
+  const size = dimensions(item, measured);
   const rad = (-(Number(item.rotation) || 0) * Math.PI) / 180;
   const localX = dx * Math.cos(rad) - dy * Math.sin(rad),
     localY = dx * Math.sin(rad) + dy * Math.cos(rad);
@@ -79,8 +100,8 @@ export function resize(
   const inside = (box: ReturnType<typeof boxAt>) =>
     box.x >= -1e-9 &&
     box.y >= -1e-9 &&
-    box.x + box.width <= 210 + 1e-9 &&
-    box.y + box.height <= 330 + 1e-9;
+    box.x + box.width <= paper.width + 1e-9 &&
+    box.y + box.height <= paper.height + 1e-9;
   let box = boxAt(1);
   if (!inside(box) && inside(boxAt(0))) {
     let low = 0,
@@ -92,33 +113,38 @@ export function resize(
     }
     box = boxAt(low);
   }
-  const x = round(clamp(box.x, 0, 209));
-  const y = round(clamp(box.y, 0, 329));
+  const x = round(clamp(box.x, 0, paper.width - 1));
+  const y = round(clamp(box.y, 0, paper.height - 1));
   return {
     x,
     y,
-    width: round(Math.max(0.1, Math.min(box.width, 210 - x))),
-    height: round(Math.max(0.1, Math.min(box.height, 330 - y))),
+    width: roundWithin(box.width, 0.1, paper.width - x),
+    height: roundWithin(box.height, 0.1, paper.height - y),
   };
 }
 export function snap(
   item: Item,
+  paper: Paper,
   dx: number,
   dy: number,
   others: Item[],
   threshold = 1.5,
   guides: PageGuides = {},
+  sizes?: ReadonlyMap<string, ItemSize>,
+  /** Grid spacing in mm; the item's top-left corner also snaps to grid lines. */
+  grid = 0,
 ) {
-  const { width, height } = dimensions(item);
+  const { width, height } = dimensions(item, sizes?.get(item.id));
   let x = item.x + dx,
     y = item.y + dy;
   let guideX: number | undefined, guideY: number | undefined;
-  const xs = [0, 105, 210],
-    ys = [0, 165, 330];
+  // Sheet edges and centre lines.
+  const xs = [0, paper.width / 2, paper.width],
+    ys = [0, paper.height / 2, paper.height];
   if (guides.x !== undefined) xs.push(guides.x);
   if (guides.y !== undefined) ys.push(guides.y);
   others.forEach((other) => {
-    const d = dimensions(other);
+    const d = dimensions(other, sizes?.get(other.id));
     xs.push(other.x, other.x + d.width / 2, other.x + d.width);
     ys.push(other.y, other.y + d.height / 2, other.y + d.height);
   });
@@ -142,5 +168,19 @@ export function snap(
         guideY = target;
       }
     }
+  if (grid > 0) {
+    // Grid lines never draw a guide; they only pull the top-left corner.
+    const gridDelta = (value: number) => Math.round(value / grid) * grid - value;
+    const deltaX = gridDelta(item.x + dx);
+    const deltaY = gridDelta(item.y + dy);
+    if (Math.abs(deltaX) < bestX) {
+      x = item.x + dx + deltaX;
+      guideX = undefined;
+    }
+    if (Math.abs(deltaY) < bestY) {
+      y = item.y + dy + deltaY;
+      guideY = undefined;
+    }
+  }
   return { dx: x - item.x, dy: y - item.y, guideX, guideY };
 }

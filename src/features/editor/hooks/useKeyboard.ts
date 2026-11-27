@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { locate } from '@/domain/document/model';
 import { moveSelection, type Align } from '@/domain/document/commands';
 import { useEditor } from '../context';
+import { measureSelection } from '../measure-items';
+import { t } from '@/i18n/core';
 
 export function useKeyboard(print: () => void, help: () => void) {
   const { store } = useEditor();
@@ -32,7 +34,7 @@ export function useKeyboard(print: () => void, help: () => void) {
         help();
         return;
       }
-      if (state.readonly) return;
+      if (state.readonly || state.frozen) return;
       try {
         if (meta && key === 'z') {
           event.preventDefault();
@@ -47,16 +49,21 @@ export function useKeyboard(print: () => void, help: () => void) {
         }
         if (meta && key === 'a') {
           event.preventDefault();
+          const docs = state.workspace.document.documents;
           const page = state.selected[0]
             ? locate(state.workspace.document, state.selected[0])?.page
-            : (state.workspace.document.debtors
+            : (docs
                 .flatMap((docEntry) => docEntry.pages)
-                .find((page) => page.id === state.activePage) ??
-              state.workspace.document.debtors[0]?.pages[0]);
+                .find((page) => page.id === state.activePage) ?? docs[0]?.pages[0]);
           state.select(page?.items.map((item) => item.id) ?? []);
           return;
         }
         if (!state.selected.length || state.error) return;
+        if (meta && key === 'g') {
+          event.preventDefault();
+          state.command({ type: event.shiftKey ? 'ungroup' : 'group', ids: state.selected });
+          return;
+        }
         if (meta && key === 'd') {
           event.preventDefault();
           state.command({ type: 'duplicate', ids: state.selected });
@@ -64,7 +71,7 @@ export function useKeyboard(print: () => void, help: () => void) {
         }
         if (key === 'delete' || key === 'backspace') {
           event.preventDefault();
-          if (confirm(`Hapus ${state.selected.length} elemen?`))
+          if (confirm(t('confirm.deleteCount', { count: state.selected.length })))
             state.command({ type: 'delete', ids: state.selected });
           return;
         }
@@ -89,6 +96,7 @@ export function useKeyboard(print: () => void, help: () => void) {
           state.command({
             type: 'align',
             ids: state.selected,
+            sizes: measureSelection(state.selected),
             action:
               event.shiftKey && key === 'h'
                 ? 'distribute-h'
@@ -106,7 +114,7 @@ export function useKeyboard(print: () => void, help: () => void) {
           state.command(moveSelection(state.workspace.document, state.selected, dx, dy), 'nudge');
         }
       } catch (error) {
-        store.setState({ message: error instanceof Error ? error.message : 'Shortcut gagal.' });
+        store.setState({ message: error instanceof Error ? error.message : t('error.shortcut') });
       }
     };
     window.addEventListener('keydown', listener);

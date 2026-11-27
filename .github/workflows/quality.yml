@@ -29,30 +29,37 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup pnpm
+        # Version comes from the packageManager field in package.json.
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build Next production export
-        run: npm run build
+        run: pnpm run build
 
       - name: TypeScript and lint
-        run: npm run typecheck && npm run lint
+        run: pnpm run typecheck && pnpm run lint
 
       - name: Unit and component tests
-        run: npm run test:unit
+        run: pnpm run test:unit
+
+      - name: Signing configuration policy regressions
+        run: pnpm run test:signing
 
       - name: Python detector helpers
         run: python -m unittest discover -s services/pdf-field-detector -p 'test_*.py'
 
       - name: Audit dependencies
-        run: npm run audit
+        run: pnpm run audit
 
   e2e:
     name: E2E / ${{ matrix.browser }}
@@ -74,24 +81,28 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup pnpm
+        # Version comes from the packageManager field in package.json.
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Build Next production export
-        run: npm run build
+        run: pnpm run build
 
       - name: Run browser end-to-end suite
-        run: npm run test:e2e
+        run: pnpm run test:e2e
 
       - name: Upload failure artifacts
         if: ${{ failure() }}
