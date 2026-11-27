@@ -41,7 +41,7 @@ export const LANDING: Record<Locale, LandingCopy> = {
     meta: {
       title: 'Kartesian — Cetak data tepat di formulir pracetak',
       description:
-        'Editor cetak koordinat di browser. Tempatkan teks dan gambar di atas formulir pracetak atau PDF dengan ketelitian 0,1 mm, lalu cetak tanpa server dan tanpa akun.',
+        'Editor cetak koordinat di browser. Tempatkan teks, gambar, barcode, dan QR di atas formulir pracetak atau PDF dengan ketelitian 0,1 mm, isi dari CSV, lalu cetak atau ekspor ke PDF tanpa server dan tanpa akun.',
     },
     skip: 'Lewati ke konten',
     home: 'Kartesian, beranda',
@@ -51,7 +51,7 @@ export const LANDING: Record<Locale, LandingCopy> = {
     hero: {
       eyebrow: 'Editor cetak koordinat untuk formulir pracetak',
       title: 'Data jatuh tepat di kolomnya.',
-      lede: 'Kartesian menempatkan teks dan gambar di atas formulir pracetak atau PDF dengan ketelitian 0,1 mm. Susun sekali, isi untuk banyak dokumen, lalu cetak dari browser. Tanpa server dan tanpa akun.',
+      lede: 'Kartesian menempatkan teks dan gambar di atas formulir pracetak atau PDF dengan ketelitian 0,1 mm. Susun sekali, isi banyak dokumen sekaligus dari CSV, lalu cetak dari browser atau ekspor ke PDF. Tanpa server dan tanpa akun.',
       secondary: 'Lihat cara kerja',
       meta: 'Gratis dan open source · Apache 2.0 · Bekerja offline',
       alt: 'Kanvas editor Kartesian: formulir F4 dari PDF panduan dengan nama, NIK, dan alamat yang sudah diposisikan di kolomnya, serta penggaris milimeter di tepi kanvas.',
@@ -72,7 +72,7 @@ export const LANDING: Record<Locale, LandingCopy> = {
         },
         {
           title: 'Kalibrasi, lalu cetak',
-          body: 'Geser offset X/Y sesuai printer Anda, cetak langsung dari browser, atau ekspor ke HTML mandiri.',
+          body: 'Geser offset X/Y sesuai printer Anda, lalu cetak langsung dari browser atau ekspor ke PDF dan HTML mandiri, untuk semua dokumen atau sebagian saja.',
         },
       ],
     },
@@ -82,23 +82,35 @@ export const LANDING: Record<Locale, LandingCopy> = {
       items: [
         {
           title: 'Kertas apa saja',
-          body: 'A3, A4, A5, B5, F4, Letter, Legal, atau ukuran kustom, potret maupun lanskap. Koordinat milimeter dengan ketelitian 0,1 mm dan snapping magnetik.',
+          body: 'A3, A4, A5, B5, F4, Letter, Legal, atau ukuran kustom, potret maupun lanskap. Ketelitian 0,1 mm, dengan tampilan dalam milimeter, inci, atau poin.',
         },
         {
           title: 'Edit secara visual',
-          body: 'Drag, resize ke 8 arah, multi-seleksi, rata dan distribusi, plus undo/redo sampai 50 langkah.',
+          body: 'Drag, resize ke 8 arah, rata dan distribusi, grid dengan snap, panel layer, grup, salin-tempel antar dokumen, plus undo/redo sampai 50 langkah.',
         },
         {
-          title: 'Satu layout, banyak dokumen',
-          body: 'Isi hingga 100 dokumen dengan layout yang sama. Datanya bisa diubah langsung lewat panel JSON.',
+          title: 'Gabung data dari CSV',
+          body: 'Satu baris CSV menjadi satu dokumen, hingga 100 dokumen. Format nilai seperti rupiah, terbilang, dan tanggal langsung di placeholder: {{nominal|rupiah}}.',
+        },
+        {
+          title: 'Teks yang pas di kolom',
+          body: 'Rata kiri, tengah, atau kanan, jarak huruf dan baris, kotak per huruf untuk NIK, dan perkecil otomatis agar teks panjang tetap muat.',
+        },
+        {
+          title: 'Barcode, QR, dan tanda',
+          body: 'Code 128, EAN-13, dan QR yang bisa diisi dari data, serta centang, silang, garis, dan kotak penutup untuk formulir.',
+        },
+        {
+          title: 'Cetak, PDF, atau HTML',
+          body: 'Ekspor PDF vektor tanpa dialog cetak, atau cetak sebagian dokumen dan rentang halaman. Offset ±50 mm mengoreksi pergeseran printer.',
+        },
+        {
+          title: 'Workspace dan templat',
+          body: 'Simpan beberapa workspace untuk pekerjaan berbeda, dan jadikan layout yang sering dipakai sebagai templat.',
         },
         {
           title: 'Deteksi field opsional',
           body: 'PDF.js bekerja di browser. Untuk dokumen hasil scan, pasang service lokal PyMuPDF atau PaddleOCR.',
-        },
-        {
-          title: 'Kalibrasi printer',
-          body: 'Offset hingga ±50 mm mengoreksi pergeseran printer tanpa mengubah layout yang sudah tersusun.',
         },
         {
           title: 'Tetap jalan offline',
@@ -146,7 +158,7 @@ export const LANDING: Record<Locale, LandingCopy> = {
     meta: {
       title: 'Kartesian — Print data exactly where the form expects it',
       description:
-        'A coordinate print editor in your browser. Place text and images on pre-printed forms or PDFs to within 0.1 mm, then print with no server and no account.',
+        'A coordinate print editor in your browser. Place text, images, barcodes and QR codes on pre-printed forms or PDFs to within 0.1 mm, fill them from a CSV, then print or export a PDF with no server and no account.',
     },
     skip: 'Skip to content',
     home: 'Kartesian, home',
@@ -161,7 +173,7 @@ export const LANDING: Record<Locale, LandingCopy> = {
     hero: {
       eyebrow: 'Coordinate print editor for pre-printed forms',
       title: 'Every value lands in its box.',
-      lede: 'Kartesian places text and images on pre-printed forms or PDFs to within 0.1 mm. Lay it out once, fill it for many documents, and print from the browser. No server, no account.',
+      lede: 'Kartesian places text and images on pre-printed forms or PDFs to within 0.1 mm. Lay it out once, fill many documents at a time from a CSV, then print from the browser or export a PDF. No server, no account.',
       secondary: 'See how it works',
       meta: 'Free and open source · Apache 2.0 · Works offline',
       alt: 'The Kartesian editor canvas: an F4 form from a PDF guide with a name, ID number and address already placed in their fields, and millimetre rulers along the edges.',
@@ -182,7 +194,7 @@ export const LANDING: Record<Locale, LandingCopy> = {
         },
         {
           title: 'Calibrate, then print',
-          body: 'Adjust the X/Y offset for your printer, print straight from the browser, or export a standalone HTML file.',
+          body: 'Adjust the X/Y offset for your printer, then print straight from the browser or export a PDF or standalone HTML file, for every document or only some.',
         },
       ],
     },
@@ -192,23 +204,35 @@ export const LANDING: Record<Locale, LandingCopy> = {
       items: [
         {
           title: 'Any paper size',
-          body: 'A3, A4, A5, B5, F4, Letter, Legal or a custom size, in portrait or landscape. Millimetre coordinates to 0.1 mm with magnetic snapping.',
+          body: 'A3, A4, A5, B5, F4, Letter, Legal or a custom size, in portrait or landscape. Precise to 0.1 mm, shown in millimetres, inches or points.',
         },
         {
           title: 'Visual editing',
-          body: 'Drag, resize from 8 handles, multi-select, align and distribute, with up to 50 steps of undo and redo.',
+          body: 'Drag, resize from 8 handles, align and distribute, snap to a grid, use layers and groups, copy and paste between documents, with up to 50 steps of undo.',
         },
         {
-          title: 'One layout, many documents',
-          body: 'Fill up to 100 documents with the same layout. Edit the data directly in the JSON panel.',
+          title: 'Merge data from a CSV',
+          body: 'Each CSV row becomes a document, up to 100 of them. Format values such as currency, amounts in words and dates right in the placeholder: {{amount|number}}.',
+        },
+        {
+          title: 'Text that fits the box',
+          body: 'Left, centre or right alignment, letter and line spacing, one box per character for ID numbers, and shrink to fit so long values are never cut off.',
+        },
+        {
+          title: 'Barcodes, QR and marks',
+          body: 'Code 128, EAN-13 and QR codes that can be filled from data, plus ticks, crosses, lines and cover boxes for forms.',
+        },
+        {
+          title: 'Print, PDF or HTML',
+          body: 'Export a vector PDF without the print dialog, or print only some documents and page ranges. Offsets of up to ±50 mm correct printer drift.',
+        },
+        {
+          title: 'Workspaces and templates',
+          body: 'Keep separate workspaces for different jobs, and save layouts you reuse as templates.',
         },
         {
           title: 'Optional field detection',
           body: 'PDF.js runs in the browser. For scanned documents, install the local PyMuPDF or PaddleOCR service.',
-        },
-        {
-          title: 'Printer calibration',
-          body: 'Offsets of up to ±50 mm correct printer drift without touching the finished layout.',
         },
         {
           title: 'Works offline',

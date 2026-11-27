@@ -1,15 +1,18 @@
 import {
   ArrowRight,
   Crosshair,
+  FileDown,
+  FileSpreadsheet,
   FileUp,
-  Files,
   HardDrive,
+  Library,
   Lock,
   MousePointer2,
   Printer,
+  QrCode,
   Ruler,
   ScanLine,
-  SlidersHorizontal,
+  TextCursorInput,
   WifiOff,
 } from 'lucide-react';
 import StandaloneRedirect from './StandaloneRedirect';
@@ -22,7 +25,17 @@ const REPOSITORY = 'https://github.com/ChernobylCat/Kartesian';
 /** The editor opens in the language of the landing page it was reached from. */
 const editorHref = (locale: Locale) => `/editor/?lang=${locale}`;
 const STEP_ICONS = [FileUp, ScanLine, Printer];
-const FEATURE_ICONS = [Ruler, MousePointer2, Files, ScanLine, SlidersHorizontal, WifiOff];
+const FEATURE_ICONS = [
+  Ruler,
+  MousePointer2,
+  FileSpreadsheet,
+  TextCursorInput,
+  QrCode,
+  FileDown,
+  Library,
+  ScanLine,
+  WifiOff,
+];
 const PRIVACY_ICONS = [HardDrive, Lock, ScanLine];
 
 /** Ruler ticks every 10 mm across 210 mm, the width of A4 and F4. */

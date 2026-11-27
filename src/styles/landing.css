@@ -622,6 +622,7 @@
   }
   .lp-nav .lp-button--small {
     margin-left: auto;
+    white-space: nowrap;
   }
   .lp-steps {
     grid-template-columns: minmax(0, 1fr);
@@ -678,4 +679,20 @@
 }
 .lp-language:hover {
   color: var(--lp-ink) !important;
+}
+
+/* Narrow phones: the logo alone identifies the brand, so the language link
+   and the editor button stay on one line. */
+@media (max-width: 480px) {
+  .lp-nav {
+    gap: 12px;
+  }
+  .lp-nav > .lp-brand span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
