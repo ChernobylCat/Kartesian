@@ -4,62 +4,63 @@ Kartesian is a browser-based visual editor for precisely positioning and printin
 
 It is designed for coordinate-based print workflows where data must line up with an existing paper form or PDF template. Users can prepare a document visually, calibrate printer offsets, preview the result against a PDF, and print or export the finished layout directly from the browser.
 
-## Highlights
+Rencana rewrite ke Next.js tersedia di [Masterplan Rewrite Next.js](docs/NEXTJS-REWRITE-MASTERPLAN.md), mencakup arsitektur, tahapan implementasi, kompatibilitas data, quality gate, dan rollback.
 
-- Coordinate-based F4 canvas measuring `210 x 330 mm`
-- Drag-and-drop text and image placement with magnetic snapping
-- Eight-direction resize handles for text and images
-- Precise element properties for position, size, typography, rotation, layer, and lock state
-- Text formatting through a contextual floating toolbar
-- Multi-selection, marquee selection, alignment, and distribution tools
-- Inline text editing, undo/redo history, keyboard shortcuts, and context menus
-- PDF background overlays with opacity control and local persistence
-- Printer calibration offsets and separate preview/print visibility controls
-- Import/export for application settings and standalone HTML export
-- Autosave, dark mode, interactive onboarding, accessibility support, and offline PWA support
-- Schema validation, safe rendering, and cross-browser regression tests
+## Arsitektur Next.js Modern
 
-## Requirements
+Kartesian telah sepenuhnya dimigrasikan ke arsitektur **Next.js 16 (App Router)** dengan React 19, TypeScript strict, Zustand, Zod, dan Tailwind CSS v4. Seluruh implementasi legacy SPA terdahulu telah diarsipkan secara aman pada branch `archive/legacy-baseline` dan tag `v1.0.0-legacy-final` (serta arsip lokal di `backups/legacy/`).
 
-- Node.js 24 is used by the CI workflow. A current Node.js LTS release should also work locally.
-- npm
-- A modern browser such as Edge, Chrome, Firefox, or Safari
-- A local web server; ES modules and service workers do not work correctly through `file://`
+Dokumentasi operasional lengkap tersedia di:
 
-## Getting Started
+- [Next.js Operations & Runbook](docs/NEXTJS-OPERATIONS.md)
+- [Status & Verifikasi Rewrite](docs/NEXTJS-REWRITE-STATUS.md)
 
-Clone the repository, install the dependencies, and build the local assets:
+## Fitur Utama
 
-```bash
-git clone https://github.com/ChernobylCat/Kartesian.git
-cd Kartesian
-npm install
-npm run build
-```
+- Kanvas koordinat F4 presisi tinggi (`210 × 330 mm`)
+- Penempatan teks dan gambar drag-and-drop dengan snapping magnetik
+- Handle pengubah ukuran (resize) 8 arah untuk elemen teks dan gambar
+- Penggaris interaktif (_interactive canvas rulers_) dengan penunjuk kursor dan panduan garis bantu
+- Formatting toolbar kontekstual mengambang
+- Multi-seleksi, seleksi marquee, perataan, dan distribusi elemen
+- Deteksi otomatis field PDF (AcroForm, tabel key-value, kotak vektor, garis bawah)
+- Kalibrasi offset pencetakan printer fisik
+- Ekspor cetak PDF dan HTML mandiri (_portable standalone HTML_)
+- Offline PWA dengan precache aset otomatis
 
-Start the included static development server:
+## Kebutuhan Sistem
 
-```bash
-node tests/support/static-server.js
-```
+- Node.js 24 (atau versi LTS terkini)
+- pnpm atau npm
+- Python 3.10–3.12 (opsional, untuk service detector PyMuPDF / PaddleOCR)
+- Peramban modern (Chrome, Edge, Firefox, Safari)
 
-Open the application at:
+## Memulai Cepat (Getting Started)
 
-```text
-http://127.0.0.1:4173
-```
+1. Clone repositori dan pasang dependensi:
 
-The runtime does not depend on a CDN. The build command copies the pinned Ace, Lucide, and PDF.js assets from `node_modules` into `assets/vendor`, then compiles Tailwind CSS into `assets/app.css`.
+   ```bash
+   git clone https://github.com/ChernobylCat/Kartesian.git
+   cd Kartesian
+   pnpm install
+   ```
 
-### Developing the UI
+2. Jalankan server pengembangan lokal:
 
-Run the Tailwind watcher in a separate terminal while editing UI styles:
+   ```bash
+   pnpm dev
+   ```
 
-```bash
-npm run dev:css
-```
+   Buka peramban di [http://localhost:3000](http://localhost:3000).
 
-The application uses native ES modules, so JavaScript changes only require a browser reload. CSS source lives in `src/input.css`. Canvas geometry, physical units, and print-specific rules remain in `index.html` because they are part of the print layout engine.
+3. Membangun dan menjalankan versi produksi:
+   ```bash
+   pnpm build
+   pnpm start
+   ```
+   Buka peramban di [http://127.0.0.1:4174](http://127.0.0.1:4174).
+
+Aplikasi berjalan secara lokal tanpa ketergantungan CDN. Seluruh aset PDF worker, font lokal, dan Ace Editor disiapkan ke dalam `public/vendor/` secara otomatis saat proses build melalui `scripts/prepare-next.cjs`.
 
 ## How to Use Kartesian
 
@@ -131,7 +132,63 @@ Choose an existing guide or upload a local PDF. The PDF is rendered beneath the 
 - displayed with adjustable opacity; and
 - optionally included in the printed output.
 
-Uploaded PDFs are stored locally in IndexedDB. PDF files are limited to 25 MB and 50 pages.
+Uploaded PDFs, including their original bytes, are stored locally in IndexedDB so field detection can be rerun after a browser reload. PDF files are limited to 25 MB and 50 pages.
+
+When a digital PDF is uploaded, Kartesian also scans it locally for AcroForm text widgets, two-column key-value tables, labelled empty lines or multiline boxes, underscore fields, signatures, and initials. In a key-value table, the populated left cell becomes the label and the empty right cell becomes the suggested field. Dense numbered or repeating table borders are suppressed so they do not become one suggestion per cell. Detected fields appear as non-printing dashed suggestions. Use **Review Candidates** to select or rename placeholders before applying them to the matching page for every debtor. Low-confidence suggestions remain visible but start unchecked. Applying suggestions creates regular text elements such as `{{nama}}`, preserves existing elements, and can be reverted with one Undo action.
+
+Field detection uses a local, per-page fallback pipeline:
+
+1. PDF.js scans digital PDF data in the browser.
+2. Pages without candidates are offered to the optional localhost PyMuPDF service.
+3. The service invokes PaddleOCR only when a requested page has no usable text layer.
+
+PDF.js remains fully functional when the Python service is not running. PyMuPDF improves independent parsing of widgets, tables, text underlines, and vector lines or boxes. PaddleOCR adds conservative suggestions for image-only scans; these suggestions use lower confidence and therefore start unchecked in the review dialog. Handwriting and unusually complex form layouts can still require manual placement.
+
+After uploading a PDF, use **Pindai Ulang Field** and choose one of these modes:
+
+| Mode            | Behaviour                                                                                                  |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Otomatis**    | Runs PDF.js first, then sends only unresolved pages to PyMuPDF; image-only pages can continue to PaddleOCR |
+| **PDF.js saja** | Runs entirely in the browser without the Python service                                                    |
+| **PyMuPDF**     | Forces every page through the local PyMuPDF service and disables OCR                                       |
+| **PaddleOCR**   | Forces OCR on every page; useful for scans but slower                                                      |
+
+A successful manual scan replaces the previous candidate list and opens it for review through **Tinjau Kandidat**. A failed service check does not delete existing candidates.
+
+### Optional local detector
+
+The detector binds to `127.0.0.1:8765`; uploaded PDFs are processed on the same computer and are not forwarded to a cloud provider. A virtual environment is recommended.
+
+PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+npm run detector:install
+npm run detector:start
+```
+
+macOS or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+npm run detector:install
+npm run detector:start
+```
+
+To enable the image-only scan fallback, create the environment with Python 3.10–3.12 and install the larger PaddleOCR runtime instead:
+
+```powershell
+py -3.12 -m venv .venv-ocr
+.\.venv-ocr\Scripts\Activate.ps1
+npm run detector:install:ocr
+npm run detector:start
+```
+
+On macOS or Linux, use `python3.12 -m venv .venv-ocr` followed by `source .venv-ocr/bin/activate` before running the same npm commands.
+
+PaddleOCR downloads its recognition models on first use. Its PaddlePaddle runtime does not currently provide official wheels for Python 3.13 or newer, and the installer reports that incompatibility before making changes. Keep the detector terminal open while using Kartesian. The status below the manual scan button and the health endpoint at `http://127.0.0.1:8765/health` report which engines are installed. The server accepts browser origins on localhost by default; set `KARTESIAN_ALLOWED_ORIGINS` to a comma-separated allowlist when Kartesian is served from another trusted origin.
 
 ### 7. Calibrate the printer
 
@@ -161,17 +218,20 @@ Use **Print** for the browser print workflow or **Export to HTML** to download a
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-| --- | --- |
-| `Ctrl/Cmd + Z` | Undo |
-| `Ctrl + Y` or `Cmd + Shift + Z` | Redo |
-| `Arrow keys` | Move selected elements by 0.1 mm |
-| `Shift + Arrow keys` | Move selected elements by 1 mm |
-| `Ctrl/Cmd + A` | Select all elements on the active page |
-| `Ctrl/Cmd + D` | Duplicate selected elements |
-| `Alt + L` | Lock or unlock selected elements |
-| `Delete` / `Backspace` | Delete selected elements |
-| `Escape` | Clear selection or close the active dialog/fullscreen view |
+| Shortcut                              | Action                                                     |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `Ctrl/Cmd + Z`                        | Undo                                                       |
+| `Ctrl + Y` or `Cmd + Shift + Z`       | Redo                                                       |
+| `Arrow keys`                          | Move selected elements by 0.1 mm                           |
+| `Shift + Arrow keys`                  | Move selected elements by 1 mm                             |
+| `Ctrl/Cmd + A`                        | Select all elements on the active page                     |
+| `Ctrl/Cmd + D`                        | Duplicate selected elements                                |
+| `Alt + L`                             | Lock or unlock selected elements                           |
+| `Alt + A` / `Alt + H` / `Alt + D`     | Align left / horizontal center / right                     |
+| `Alt + W` / `Alt + V` / `Alt + S`     | Align top / vertical center / bottom                       |
+| `Alt + Shift + H` / `Alt + Shift + V` | Distribute horizontally / vertically                       |
+| `Delete` / `Backspace`                | Delete selected elements                                   |
+| `Escape`                              | Clear selection or close the active dialog/fullscreen view |
 
 Keyboard shortcuts are ignored while typing in an input, textarea, inline text editor, or the JSON editor.
 
@@ -213,20 +273,20 @@ The document root is an array of debtor records. Each debtor contains ordered pa
 
 ### Item properties
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `type` | `"text"` or `"image"` | Defaults to text when omitted |
-| `text` | string | Text content or an image data URL |
-| `x`, `y` | number | Position in millimetres |
-| `width`, `height` | number | Optional text box size; required for images |
-| `font_family` | string | One of the supported font-family values |
-| `font_size` | number | Text size from 4 to 72 pt |
-| `color` | hex string | Text colour in `#rrggbb` format |
-| `bg_color` | hex string | Text highlight colour in `#rrggbb` format |
-| `bold`, `italic`, `underline` | boolean | Text formatting flags |
-| `rotation` | number | Rotation from -360 to 360 degrees |
-| `z_index` | integer | Layer value from -1000 to 1000 |
-| `locked` | boolean | Prevents drag and resize interactions |
+| Property                      | Type                  | Description                                 |
+| ----------------------------- | --------------------- | ------------------------------------------- |
+| `type`                        | `"text"` or `"image"` | Defaults to text when omitted               |
+| `text`                        | string                | Text content or an image data URL           |
+| `x`, `y`                      | number                | Position in millimetres                     |
+| `width`, `height`             | number                | Optional text box size; required for images |
+| `font_family`                 | string                | One of the supported font-family values     |
+| `font_size`                   | number                | Text size from 4 to 72 pt                   |
+| `color`                       | hex string            | Text colour in `#rrggbb` format             |
+| `bg_color`                    | hex string            | Text highlight colour in `#rrggbb` format   |
+| `bold`, `italic`, `underline` | boolean               | Text formatting flags                       |
+| `rotation`                    | number                | Rotation from -360 to 360 degrees           |
+| `z_index`                     | integer               | Layer value from -1000 to 1000              |
+| `locked`                      | boolean               | Prevents drag and resize interactions       |
 
 Supported fonts are Arial, Courier New, Times New Roman, Georgia, Verdana, and Plus Jakarta Sans using the exact values generated by the editor.
 
@@ -236,6 +296,7 @@ The schema rejects malformed values, unsupported image sources, unsafe colours, 
 
 - Document JSON, calibration values, UI preferences, and application settings are stored in `localStorage`.
 - Uploaded PDF overlays are stored in IndexedDB.
+- PDFs sent to the optional detector stay on localhost and are held only for the duration of the request.
 - The service worker precaches the application shell for offline use after the first successful visit.
 - PWA installation and offline support require HTTPS or a localhost origin.
 - Exported settings files are limited to 5 MB.
@@ -282,19 +343,23 @@ Kartesian/
 
 ## Available Commands
 
-| Command | Description |
-| --- | --- |
-| `npm run build` | Copy vendor assets and compile Tailwind CSS |
-| `npm run build:css` | Compile and minify Tailwind CSS |
-| `npm run build:vendor` | Copy pinned browser dependencies into `assets/vendor` |
-| `npm run dev:css` | Watch and rebuild Tailwind CSS |
-| `npm run test:unit` | Run unit and regression checks |
-| `npm run test:e2e` | Run the Playwright browser suite |
-| `npm run test:e2e:headed` | Run Playwright with a visible browser |
-| `npm run test:visual` | Run the visual baseline test |
-| `npm run test` | Run unit and E2E tests |
-| `npm run check` | Build the project and run the complete quality gate |
-| `npm run audit` | Check npm dependencies for high-severity vulnerabilities |
+| Command                        | Description                                               |
+| ------------------------------ | --------------------------------------------------------- |
+| `npm run build`                | Copy vendor assets and compile Tailwind CSS               |
+| `npm run build:css`            | Compile and minify Tailwind CSS                           |
+| `npm run build:vendor`         | Copy pinned browser dependencies into `assets/vendor`     |
+| `npm run dev:css`              | Watch and rebuild Tailwind CSS                            |
+| `npm run test:unit`            | Run unit and regression checks                            |
+| `npm run test:detector`        | Run dependency-free tests for the Python detector helpers |
+| `npm run detector:install`     | Install the PyMuPDF local fallback                        |
+| `npm run detector:install:ocr` | Install PyMuPDF and the optional PaddleOCR fallback       |
+| `npm run detector:start`       | Start the local detector on `127.0.0.1:8765`              |
+| `npm run test:e2e`             | Run the Playwright browser suite                          |
+| `npm run test:e2e:headed`      | Run Playwright with a visible browser                     |
+| `npm run test:visual`          | Run the visual baseline test                              |
+| `npm run test`                 | Run unit and E2E tests                                    |
+| `npm run check`                | Build the project and run the complete quality gate       |
+| `npm run audit`                | Check npm dependencies for high-severity vulnerabilities  |
 
 Playwright uses the locally installed Microsoft Edge channel by default outside CI. Set `PW_BROWSER` to `chromium`, `firefox`, or `webkit` to select another installed Playwright engine.
 
@@ -341,15 +406,15 @@ npm run test:e2e -- --update-snapshots
 
 ## Application Limits
 
-| Resource | Limit |
-| --- | ---: |
-| Debtors | 100 |
-| Pages per debtor | 100 |
-| Items per page | 1,000 |
-| Total document items | 5,000 |
-| Image upload | 2 MB |
-| Settings import | 5 MB |
-| PDF upload | 25 MB / 50 pages |
+| Resource             |             Limit |
+| -------------------- | ----------------: |
+| Debtors              |               100 |
+| Pages per debtor     |               100 |
+| Items per page       |             1,000 |
+| Total document items |             5,000 |
+| Image upload         |              2 MB |
+| Settings import      |              5 MB |
+| PDF upload           |  25 MB / 50 pages |
 | PDF canvas rendering | 20,000,000 pixels |
 
 ## Troubleshooting

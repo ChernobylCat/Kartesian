@@ -1,0 +1,177 @@
+'use client';
+import { useRef } from 'react';
+import { Download, Upload, ShieldCheck } from 'lucide-react';
+import { useEditor, useEditorState } from '../editor/context';
+import { NumericField } from '../editor/components/PropertyPanel';
+import { backupWorkspace, restoreWorkspace } from '@/infrastructure/storage/workspace';
+import { writeLegacySettings, readLegacySettings } from '@/infrastructure/serialization/settings';
+import { decodeLegacy, encodeLegacy } from '@/domain/document/model';
+import { download } from '@/infrastructure/export/html';
+import { LIMITS } from '@/domain/document/schema';
+
+export default function SettingsPanel() {
+  const { store, flush } = useEditor();
+  const settings = useEditorState((state) => state.workspace.settings);
+  const input = useRef<HTMLInputElement>(null);
+  async function backup() {
+    try {
+      // A backup must still be downloadable when quota or persistence fails.
+      await flush().catch(() => {});
+      download(await backupWorkspace(store.getState().workspace), 'kartesian-workspace.json');
+    } catch (error) {
+      store.setState({ message: String(error) });
+    }
+  }
+  async function restore(file: File) {
+    try {
+      if (file.size > LIMITS.backupBytes) throw new Error('Berkas melebihi 150 MB.');
+      if (store.getState().readonly) throw new Error('Ambil alih workspace sebelum mengimpor.');
+      const text = await file.text();
+      const raw = JSON.parse(text) as Record<string, unknown>;
+      if (
+        !confirm(
+          'Ganti workspace aktif dengan isi berkas? Backup data saat ini terlebih dahulu jika diperlukan.',
+        )
+      )
+        return;
+      if (raw.format === 'kartesian-workspace') {
+        const next = await restoreWorkspace(text);
+        const state = store.getState();
+        state.replace(next.document, next.assets);
+        state.settings(next.settings);
+        state.pdf(next.pdf);
+      } else {
+        if (file.size > LIMITS.settingsBytes) throw new Error('Settings legacy melebihi 5 MB.');
+        const legacy = readLegacySettings(raw, store.getState().workspace.settings.dark);
+        const state = store.getState();
+        if (legacy.jsonInput) {
+          const decoded = decodeLegacy(
+            legacy.jsonInput,
+            state.workspace.document,
+            state.workspace.assets,
+          );
+          state.replace(decoded.document, decoded.assets);
+        }
+        state.settings(legacy.settings);
+      }
+      await flush();
+      store.setState({ message: 'Data berhasil dipulihkan.' });
+    } catch (error) {
+      store.setState({ message: error instanceof Error ? error.message : 'Import gagal.' });
+    }
+  }
+  return (
+    <section className="sidebar-section">
+      <details>
+        <summary>Cetak, kalibrasi & penyimpanan</summary>
+        <div className="stack">
+          <div className="field-grid">
+            <NumericField
+              label="Offset X · mm"
+              value={settings.offsetX}
+              min={-50}
+              max={50}
+              change={(offsetX) => store.getState().settings({ offsetX })}
+            />
+            <NumericField
+              label="Offset Y · mm"
+              value={settings.offsetY}
+              min={-50}
+              max={50}
+              change={(offsetY) => store.getState().settings({ offsetY })}
+            />
+          </div>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={settings.snap}
+              onChange={(event) => store.getState().settings({ snap: event.target.checked })}
+            />
+            Magnetic snapping
+          </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={settings.printOverlay}
+              onChange={(event) =>
+                store.getState().settings({ printOverlay: event.target.checked })
+              }
+            />
+            Sertakan background saat cetak
+          </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={settings.hideCalibration}
+              onChange={(event) =>
+                store.getState().settings({ hideCalibration: event.target.checked })
+              }
+            />
+            Sembunyikan marker cetak
+          </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={settings.hideCalibrationPreview}
+              onChange={(event) =>
+                store.getState().settings({ hideCalibrationPreview: event.target.checked })
+              }
+            />
+            Sembunyikan marker preview
+          </label>
+          <p className="settings-note">
+            Cetak F4, skala 100%, margin nol, tanpa header/footer. Koreksi offset setelah mengukur
+            hasil printer.
+          </p>
+          <button onClick={() => void backup()}>
+            <ShieldCheck size={14} />
+            Backup workspace lengkap
+          </button>
+          <button
+            onClick={() => {
+              const state = store.getState();
+              if (state.error) return;
+              download(
+                JSON.stringify(
+                  writeLegacySettings(
+                    JSON.stringify(
+                      encodeLegacy(state.workspace.document, state.workspace.assets),
+                      null,
+                      2,
+                    ),
+                    state.workspace.settings,
+                  ),
+                  null,
+                  2,
+                ),
+                'kartesian-settings.json',
+              );
+            }}
+          >
+            <Download size={14} />
+            Ekspor settings legacy
+          </button>
+          <button onClick={() => input.current?.click()}>
+            <Upload size={14} />
+            Impor settings / backup
+          </button>
+          <input
+            ref={input}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) void restore(file);
+            }}
+          />
+          <p className="settings-note">
+            Backup lengkap menyertakan PDF, gambar, dan kalibrasi. Settings legacy mempertahankan
+            format lama.
+          </p>
+        </div>
+      </details>
+    </section>
+  );
+}

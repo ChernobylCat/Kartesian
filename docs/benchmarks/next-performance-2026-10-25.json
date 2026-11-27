@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-25T01:16:44.629Z",
+  "node": "v24.13.0",
+  "machine": {
+    "platform": "win32",
+    "cpu": "12th Gen Intel(R) Core(TM) i3-1220P",
+    "memoryGiB": 24
+  },
+  "browser": "155.0.4283.62",
+  "methodology": "Microsoft Edge/Chromium headless, loopback origin, service workers blocked to isolate editor profiling; offline is tested separately in E2E.",
+  "datasets": {
+    "D1": {
+      "coldStartupMs": 896.7084,
+      "warmSamplesMs": [
+        351.27379999999994, 452.0587000000005, 1132.0495999999994, 1117.3518999999997, 549.7172
+      ],
+      "warmP95Ms": 1132.0495999999994,
+      "mountedPages": 1,
+      "pagePlaceholders": 1,
+      "printPages": 1,
+      "printItems": 100,
+      "domNodes": 536
+    },
+    "D2": {
+      "startupMs": 1474.6399000000001,
+      "frameSamples": 122,
+      "frameIntervalP95Ms": 17.90000000000009,
+      "frameIntervalMaxMs": 266.5999999999999,
+      "mountedPages": 2,
+      "pagePlaceholders": 50,
+      "printPages": 50,
+      "printItems": 5000,
+      "domNodes": 6090
+    },
+    "D3": {
+      "renderAndScan50PagesMs": 1560.8878000000004,
+      "mountedPages": 2,
+      "pagePlaceholders": 50,
+      "printPages": 50,
+      "printItems": 1,
+      "domNodes": 618,
+      "pdfOpenDeleteHeapBytes": [
+        6376360, 6456872, 6542568, 6596460, 6648256, 6682156, 6706444, 6809112, 6922500, 6958476
+      ],
+      "heapTrendLastMinusFirstBytes": 582116,
+      "resourceSamples": [
+        {
+          "documents": 1,
+          "nodes": 492,
+          "jsEventListeners": 365,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 492,
+          "jsEventListeners": 365,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        },
+        {
+          "documents": 1,
+          "nodes": 485,
+          "jsEventListeners": 364,
+          "activeWorkers": 0,
+          "objectUrls": 0,
+          "fontFaces": 2
+        }
+      ]
+    },
+    "D4": {
+      "startupMs": 3185.8770000000004,
+      "mountedPages": 2,
+      "pagePlaceholders": 10000,
+      "printPages": 10000,
+      "printItems": 0,
+      "domNodes": 70237
+    }
+  }
+}
