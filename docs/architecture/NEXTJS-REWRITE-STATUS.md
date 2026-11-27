@@ -2,11 +2,13 @@
 
 Tanggal: 25 Oktober 2026 (Asia/Jakarta).
 
-Pembaruan 26 Oktober 2026: [perbaikan proporsi background dan pemetaan field PDF](BACKGROUND-ACCURACY-FIX.md), tervalidasi dengan 27 tes unit/komponen dan 33 tes browser terpilih. Preview sesi pembaruan memakai port 4175.
+Pembaruan 27 Oktober 2026: legacy kini diarsipkan terpisah dan tidak disertakan pada build. Lihat [runbook terkini](../guides/NEXTJS-OPERATIONS.md) dan [perbaikan 12 temuan audit](../history/PROJECT-AUDIT-FIXES-2026-10-27.md). Catatan di bawah mempertahankan hasil dan keputusan pada saat rewrite awal.
 
-Pembaruan berikutnya: [perbaikan posisi dan responsivitas dialog bersama](DIALOG-STYLE-FIX.md), meliputi panduan awal, Bantuan & shortcut, dan review PDF.
+Pembaruan 26 Oktober 2026: [perbaikan proporsi background dan pemetaan field PDF](../history/BACKGROUND-ACCURACY-FIX.md), tervalidasi dengan 27 tes unit/komponen dan 33 tes browser terpilih. Preview sesi pembaruan memakai port 4175.
 
-Revamp berikutnya: [penggaris interaktif dan garis bantu](RULER-REVAMP.md), meliputi koordinat kursor, ukuran pilihan, snapping, keyboard, serta kontras tema gelap. Validasi mencakup 38 tes unit/komponen, 33 tes browser terpilih, dan 3 pemeriksaan ulang interaksi setelah penyesuaian kontras.
+Pembaruan berikutnya: [perbaikan posisi dan responsivitas dialog bersama](../history/DIALOG-STYLE-FIX.md), meliputi panduan awal, Bantuan & shortcut, dan review PDF.
+
+Revamp berikutnya: [penggaris interaktif dan garis bantu](../history/RULER-REVAMP.md), meliputi koordinat kursor, ukuran pilihan, snapping, keyboard, serta kontras tema gelap. Validasi mencakup 38 tes unit/komponen, 33 tes browser terpilih, dan 3 pemeriksaan ulang interaksi setelah penyesuaian kontras.
 
 ## Hasil implementasi
 
@@ -46,7 +48,7 @@ Artefak lokal pengujian: `playwright-report/next/`, screenshot `test-results/nex
 
 ### Pengukuran yang telah dilakukan
 
-- Dataset D2: 5 debitur × 10 halaman × 100 item = 5.000 item. Canvas layar memasang kurang dari tujuh halaman penuh, sementara surface cetak tetap berisi 50 halaman dan 5.000 item.
+- Dataset D2: 5 dokumen × 10 halaman × 100 item = 5.000 item. Canvas layar memasang kurang dari tujuh halaman penuh, sementara surface cetak tetap berisi 50 halaman dan 5.000 item.
 - Lima sampel command D2 setelah warm-up pada Node 24 di mesin ini: sekitar 13,7–17,5 ms pada run yang dicatat. Ini mengukur domain/store commit dan serialisasi JSON, bukan latensi pointer browser atau OCR.
 - Fixture teks F4 menghasilkan satu halaman pada Next dan legacy. Pemeriksaan PDF menggunakan PyMuPDF menemukan selisih bounding box teks horizontal 0,1172 pt, sekitar 0,0413 mm; vertikal setara. Selisih berada di bawah target pembandingan 0,1 mm.
 - Kedua PDF memiliki MediaBox yang sama, sekitar 209,889 × 329,861 mm akibat pembulatan ukuran halaman oleh browser. Ini bukan hasil kalibrasi printer fisik.
@@ -59,12 +61,12 @@ Benchmark produksi final memakai Windows, Intel Core i3-1220P, RAM 24 GiB, Node 
 | D1: satu halaman/100 item            | Cold ready 897 ms; p95 lima warm reload 1.132 ms                                                                                 |
 | D2: 50 halaman/5.000 item            | Ready 1.475 ms; dua halaman canvas terpasang; frame interval p95 17,9 ms dari 122 sampel                                         |
 | D3: PDF sintetis 50 halaman kosong   | Render + scan PDF.js 1.561 ms; dua halaman canvas terpasang; 50 halaman tetap tersedia untuk cetak                               |
-| D4: 100 debitur × 100 halaman kosong | Ready 3.186 ms; dua canvas aktif dari 10.000 placeholder; 10.000 halaman pada surface cetak                                      |
+| D4: 100 dokumen × 100 halaman kosong | Ready 3.186 ms; dua canvas aktif dari 10.000 placeholder; 10.000 halaman pada surface cetak                                      |
 | Sepuluh siklus PDF                   | Worker aktif dan object URL kembali nol setiap siklus; font face tetap dua; DOM 485–492 node; listener 364–365 tanpa pertumbuhan |
 
 Ada outlier frame D2 **266,6 ms**, sehingga hasil p95 tidak berarti setiap frame lancar. Heap JS setelah GC naik sekitar **582 KB** selama sepuluh siklus, sementara counter DOM/listener/worker stabil; run ini belum membuktikan plateau heap atau meniadakan kebutuhan soak test lebih panjang. Surface cetak lengkap pada D4 menyumbang total sekitar 70 ribu node DOM, meskipun controller canvas layar dibatasi.
 
-Bukti angka lengkap: [profil performa](benchmarks/next-performance-2026-10-25.json) dan [perbandingan PDF](benchmarks/print-comparison-2026-10-25.json). PDF D3 sintetis tidak mewakili semua PDF kompleks/scanned berukuran maksimum.
+Bukti angka lengkap: [profil performa](../history/benchmarks/next-performance-2026-10-25.json) dan [perbandingan PDF](../history/benchmarks/print-comparison-2026-10-25.json). PDF D3 sintetis tidak mewakili semua PDF kompleks/scanned berukuran maksimum.
 
 ## Pemetaan fase
 
@@ -88,4 +90,4 @@ Bukti angka lengkap: [profil performa](benchmarks/next-performance-2026-10-25.js
 4. Lengkapi corpus PDF besar/scanned produksi, pengukuran latensi pointer langsung, analisis outlier frame, soak heap lebih panjang, kuota storage nyata, serta pemeriksaan keyboard/accessibility pada perangkat pengguna. D4 sintetis dan rollback saat fault injection storage sudah diuji.
 5. Lakukan rollout pada origin yang tepat, backup lengkap sebelum cutover, simpan artefak/chunk versi sebelumnya, dan observasi tujuh hari sebelum mempertimbangkan penghapusan legacy.
 
-Rewrite lokal dan bukti otomatis tidak dengan sendirinya menyelesaikan acceptance perangkat keras atau deployment produksi. Ikuti [runbook operasional](NEXTJS-OPERATIONS.md) untuk menjalankan dan memindahkan instalasi tanpa kehilangan data.
+Rewrite lokal dan bukti otomatis tidak dengan sendirinya menyelesaikan acceptance perangkat keras atau deployment produksi. Ikuti [runbook operasional](../guides/NEXTJS-OPERATIONS.md) untuk menjalankan dan memindahkan instalasi tanpa kehilangan data.

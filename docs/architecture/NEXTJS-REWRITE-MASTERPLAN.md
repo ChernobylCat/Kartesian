@@ -28,7 +28,7 @@ Asumsi kerja: UI berbahasa Indonesia, alur pengguna tetap dikenali, penggunaan u
 | Bootstrap     | `src/app.mjs`, `src/app/bootstrap.mjs`                       | Pisahkan composition root, use case, state, dan lifecycle browser                      |
 | UI            | `index.html`, controller di `src/ui/`                        | Pecah menjadi komponen React, pertahankan perilaku aksesibilitas                       |
 | Canvas        | `src/canvas/`                                                | Gunakan kembali aturan geometri dan command yang sudah benar melalui port TypeScript   |
-| Model         | JSON array debitur, pages, items                             | Pertahankan kontrak eksternal; model internal boleh menggunakan ID dan asset reference |
+| Model         | JSON array dokumen, pages, items                             | Pertahankan kontrak eksternal; model internal boleh menggunakan ID dan asset reference |
 | Validasi      | `src/core/document-schema.mjs`, `settings-schema.mjs`        | Port aturan, default, error, dan batas dengan fixture pembanding                       |
 | State/history | State aplikasi dan snapshot string undo/redo                 | Model objek tervalidasi, selection berbasis ID, transaksi history                      |
 | Rendering     | DOM absolut dalam mm; render penuh memakai `replaceChildren` | Render selektif dan halaman aktif; jalur cetak merender semua halaman                  |
@@ -89,7 +89,7 @@ src/
   features/settings/                 # Kalibrasi, tema, import/export settings
   features/print/                    # PrintSurface dan orkestrasi print
   domain/document/
-    model.ts                         # Debtor, page, text/image item, stable ID
+    model.ts                         # Dokumen, page, text/image item, stable ID
     schema.ts                        # Aturan model internal
     commands.ts                      # Mutasi immutable dan inverse transaction
     geometry.ts                      # mm/px/pt, bounds, snapping, alignment
@@ -140,15 +140,15 @@ Model internal yang diusulkan:
 
 ```text
 WorkspaceEnvelope { schemaVersion: 2, document, assets, calibration, revision }
-Document           { id, debtorOrder, debtorsById }
-Debtor             { id, name, pageOrder, pagesById }
+Document           { id, entryOrder, entriesById }
+DocumentEntry      { id, name, pageOrder, pagesById }
 Page               { id, pageNumber, itemOrder, itemsById }
 Item               { id, type, xMm, yMm, rotation, zIndex, locked, ... }
 ImageItem          { ..., assetId }
 Asset              { id, mimeType, byteLength, blob }
 ```
 
-Ini schema internal baru; tidak mengubah format JSON pengguna secara diam-diam. Codec legacy tetap menerima array `{debitur, pages:[{page_number, items}]}` dan representasi gambar `text: data:image/...`. Ekspor legacy default tetap kompatibel. Format workspace v2 disediakan sebagai backup baru untuk data yang memerlukan metadata/aset tambahan.
+Ini schema internal baru; tidak mengubah format JSON pengguna secara diam-diam. Codec legacy tetap menerima array `{title|name|debitur, pages:[{page_number, items}]}` dan representasi gambar `text: data:image/...`. Ekspor legacy default tetap kompatibel. Format workspace v2 disediakan sebagai backup baru untuk data yang memerlukan metadata/aset tambahan.
 
 - ID dibuat saat import/create, dipertahankan saat edit, dan dibuat ulang pada duplicate. Selection menggunakan ID, bukan indeks array atau node DOM.
 - JSON panel menampilkan format kompatibel. Draft teks adalah state terpisah: `rawText`, hasil parse, dan error. Draft invalid tidak merusak model terakhir yang valid; print/export dinonaktifkan sampai draft kembali valid, sesuai perilaku existing.
@@ -189,7 +189,7 @@ HTML mandiri dihasilkan dari snapshot dan portable assets dengan escaping/allowl
 - Pertahankan mode auto, PDF.js saja, PyMuPDF, dan PaddleOCR. Auto mengirim hanya halaman unresolved ke service lokal; OCR fallback mengikuti kontrak existing.
 - Pertahankan `GET /health` dan `POST /v1/detect` dengan body raw `application/pdf`, query pages/ocr/mode, serta normalisasi/deduplikasi kandidat.
 - Timeout awal tetap 2 detik untuk health dan 120 detik untuk scan. Pembatalan client menghentikan fetch/UI dan mengabaikan hasil usang; tidak menjanjikan job Python otomatis berhenti jika server belum mendukung cancellation.
-- Kandidat low confidence tetap unchecked; apply ke halaman yang sesuai untuk semua debitur sebagai satu undo; kegagalan scan tidak menghapus kandidat lama.
+- Kandidat low confidence tetap unchecked; apply ke halaman yang sesuai untuk semua dokumen sebagai satu undo; kegagalan scan tidak menghapus kandidat lama.
 - Upload PDF baru membatalkan task lama dan menaikkan generation token. Hasil scan/render/save dari generasi lama tidak boleh masuk ke dokumen baru.
 - Simpan byte PDF asli, fileName, kandidat, dan metadata; thumbnail/render cache boleh dibangun ulang. Batasi concurrency render awal dua halaman dan sesuaikan berdasar profiling/memori.
 - Service tetap bind localhost. Fetch localhost berasal dari browser pengguna; proxy server Next.js akan merujuk localhost mesin server sehingga bukan pengganti yang benar.
@@ -215,7 +215,7 @@ Alur migrasi:
 1. Baca legacy tanpa menulis/menghapus; kumpulkan settings, PDF, dan preferensi.
 2. Validasi, normalisasi satuan, buat ID, pindahkan gambar ke asset record, dan pertahankan semua field yang didukung. Input invalid membuka recovery, bukan reset otomatis.
 3. Tulis dokumen/aset/metadata migrasi dalam transaksi v2. Perubahan localStorage dan IndexedDB tidak dianggap satu transaksi atomik; penanda final berada bersama data v2.
-4. Baca kembali dan bandingkan jumlah debitur/page/item, isi teks, geometri, kalibrasi, hash aset, PDF bytes, dan kandidat. Baru tandai migrasi selesai dan aktifkan autosave.
+4. Baca kembali dan bandingkan jumlah dokumen/page/item, isi teks, geometri, kalibrasi, hash aset, PDF bytes, dan kandidat. Baru tandai migrasi selesai dan aktifkan autosave.
 5. Migrasi idempotent: retry tidak menduplikasi data, interrupted migration tidak dianggap selesai, dan versi masa depan yang tidak dikenal ditolak secara aman.
 6. Storage quota, akses ditolak, private mode, DB blocked oleh tab lain, serta crash saat migrasi memiliki jalur recovery dan backup unduhan.
 7. Legacy tetap utuh selama masa transisi. Tidak ada dual-write otomatis karena berisiko konflik dan kehilangan data.
@@ -248,7 +248,7 @@ Default origin root; dukungan `basePath`/subpath harus dinyatakan dan diuji sebe
 | ID  | Kelompok              | Kriteria penerimaan                                                           | Fase  |
 | --- | --------------------- | ----------------------------------------------------------------------------- | ----- |
 | F01 | JSON dan schema       | Import valid, error invalid, recovery, limit dan default kompatibel           | P2–P3 |
-| F02 | Model halaman/debitur | Urutan, penamaan, multi-debitur, PDF-only pages tetap benar                   | P2–P5 |
+| F02 | Model halaman/dokumen | Urutan, penamaan, multi-dokumen, PDF-only pages tetap benar                   | P2–P5 |
 | F03 | Teks/gambar           | Add, edit inline, duplicate/delete, safe source dan upload limit              | P3–P4 |
 | F04 | Pointer               | Drag, delapan resize handle, Shift, Alt, rotation, bounds, lock               | P4    |
 | F05 | Selection             | Single, modifier keys, marquee dua arah, Escape, multi-selection              | P4    |
@@ -263,7 +263,7 @@ Default origin root; dukungan `basePath`/subpath harus dinyatakan dan diuji sebe
 | F14 | PWA                   | Install, offline cold start setelah precache, update aman, upgrade v13        | P1–P7 |
 | F15 | Compatibility         | Migrasi localStorage/IndexedDB, origin berbeda, quota/recovery, rollback      | P3–P8 |
 
-Batas awal dipertahankan: 100 debitur, 100 halaman per debitur, 1.000 item per halaman, 5.000 total item; gambar 2 MiB, settings import 5 MiB, PDF 25 MiB/50 halaman, render PDF maksimal 20 juta piksel. Batas ini harus diuji secara independen dan kombinasi yang sah; batas maksimum struktur bukan janji bahwa seluruh kombinasi ekstrem ringan pada semua perangkat. Format backup baru memiliki limit tersendiri yang ditetapkan setelah pengukuran aset, bukan memakai limit settings JSON secara sembarang.
+Batas awal dipertahankan: 100 dokumen, 100 halaman per dokumen, 1.000 item per halaman, 5.000 total item; gambar 2 MiB, settings import 5 MiB, PDF 25 MiB/50 halaman, render PDF maksimal 20 juta piksel. Batas ini harus diuji secara independen dan kombinasi yang sah; batas maksimum struktur bukan janji bahwa seluruh kombinasi ekstrem ringan pada semua perangkat. Format backup baru memiliki limit tersendiri yang ditetapkan setelah pengukuran aset, bukan memakai limit settings JSON secara sembarang.
 
 ## 11. Fase implementasi dan gate
 
@@ -320,8 +320,8 @@ Migrasikan source-text assertions menjadi tes perilaku secara bertahap. Tidak pe
 
 Dataset benchmark awal:
 
-- D1: 1 debitur, 1 halaman, 100 item teks.
-- D2: 5 debitur x 10 halaman x 100 item = 5.000 item, tanpa PDF.
+- D1: 1 dokumen, 1 halaman, 100 item teks.
+- D2: 5 dokumen x 10 halaman x 100 item = 5.000 item, tanpa PDF.
 - D3: PDF 50 halaman dengan item overlay, plus corpus gambar mendekati limit upload.
 - D4: stress struktur halaman banyak dengan sedikit item untuk memastikan virtualisasi tidak membuat semua DOM/PDF canvas sekaligus.
 

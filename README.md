@@ -1,268 +1,265 @@
 # Kartesian
 
-Kartesian is a browser-based visual editor for precisely positioning and printing text and images on F4 or PDF documents.
+**English** · [Bahasa Indonesia](README.id.md)
 
-It is designed for coordinate-based print workflows where data must line up with an existing paper form or PDF template. Users can prepare a document visually, calibrate printer offsets, preview the result against a PDF, and print or export the finished layout directly from the browser.
+**A coordinate print editor in your browser.** Kartesian places text and images on pre-printed forms or PDFs to within 0.1 mm. Lay a document out once, fill it for many records, and print straight from the browser. No server and no account: all data stays on the user's device.
 
-Rencana rewrite ke Next.js tersedia di [Masterplan Rewrite Next.js](docs/NEXTJS-REWRITE-MASTERPLAN.md), mencakup arsitektur, tahapan implementasi, kompatibilitas data, quality gate, dan rollback.
+![The Kartesian editor canvas with a form and millimetre rulers](assets/landing/editor-light.jpg)
 
-## Arsitektur Next.js Modern
+The interface is available in Indonesian and English. The landing page is at `/` (Indonesian) and `/en/` (English), and the editor is at `/editor/`.
 
-Kartesian telah sepenuhnya dimigrasikan ke arsitektur **Next.js 16 (App Router)** dengan React 19, TypeScript strict, Zustand, Zod, dan Tailwind CSS v4. Seluruh implementasi legacy SPA terdahulu telah diarsipkan secara aman pada branch `archive/legacy-baseline` dan tag `v1.0.0-legacy-final` (serta arsip lokal di `backups/legacy/`).
+## Contents
 
-Dokumentasi operasional lengkap tersedia di:
+- [Features](#features)
+- [How it works](#how-it-works)
+- [Getting started](#getting-started)
+- [package.json scripts](#packagejson-scripts)
+- [Using the editor](#using-the-editor)
+- [JSON document format](#json-document-format)
+- [Storage, privacy, and offline use](#storage-privacy-and-offline-use)
+- [Project structure](#project-structure)
+- [Testing and CI](#testing-and-ci)
+- [Deployment](#deployment)
+- [Limits](#limits)
+- [Troubleshooting](#troubleshooting)
+- [More documentation](#more-documentation)
+- [License](#license)
 
-- [Next.js Operations & Runbook](docs/NEXTJS-OPERATIONS.md)
-- [Status & Verifikasi Rewrite](docs/NEXTJS-REWRITE-STATUS.md)
+## Features
 
-## Fitur Utama
+- **Any paper size.** A3, A4, A5, B5, F4 (210 × 330 mm), Letter, Legal, or a custom size from 50 to 500 mm, in portrait or landscape.
+- **Millimetre precision.** Coordinates to 0.1 mm, interactive rulers, guides, and magnetic snapping.
+- **Visual editing.** Drag, resize from 8 handles, multi-select and marquee selection, align and distribute, a floating format toolbar, and up to 50 steps of undo/redo.
+- **One layout, many documents.** Up to 100 documents share the same layout, and their data can be edited directly in the JSON panel.
+- **PDF guides and field detection.** Upload a form as a PDF and use it as the background. Fields (AcroForm, key-value tables, boxes, fill-in lines) are detected automatically and can be applied as placeholders such as `{{name}}`.
+- **Printer calibration.** X/Y offsets of up to ±50 mm correct printer drift.
+- **Print and export.** Print from the browser, or export a standalone HTML file.
+- **Offline and installable.** A PWA with automatic precaching. After the first visit, the editor keeps working without a connection.
+- **CSV data merge.** One template, one document per CSV row: every `{{key}}` is filled from its column, with formats such as `{{amount|number}}`, `{{amount|words}}` and `{{date|date:MMMM d, yyyy}}`.
+- **Form text layout.** Alignment, letter spacing, line height, shrink-to-fit, and character boxes (comb fields) for ID numbers and codes.
+- **Marks, lines, cover boxes, barcodes and QR codes.** Ticks and crosses for checkboxes, strike-through lines, white boxes to cover pre-printed text, Code 128 / EAN-13 barcodes and QR codes, all of which can hold placeholders.
+- **Copy and paste, groups and layers.** Copy elements between pages, documents and tabs; group elements to move them together; reorder, lock or temporarily hide them in the layers panel.
+- **Fit zoom, grid and units.** Fit the page to the width or height, show a 1–10 mm grid with snapping, and show rulers and positions in millimetres, inches or points.
+- **Partial print and native PDF.** Print or export only some documents or pages, and export a vector PDF at the exact paper size without the browser print dialog.
+- **Several workspaces and templates.** Keep separate workspaces for different forms, switch between them, and save reusable templates.
+- **Bilingual.** Indonesian (default) and English, with an ID/EN switch in the editor.
 
-- Kanvas koordinat F4 presisi tinggi (`210 × 330 mm`)
-- Penempatan teks dan gambar drag-and-drop dengan snapping magnetik
-- Handle pengubah ukuran (resize) 8 arah untuk elemen teks dan gambar
-- Penggaris interaktif (_interactive canvas rulers_) dengan penunjuk kursor dan panduan garis bantu
-- Formatting toolbar kontekstual mengambang
-- Multi-seleksi, seleksi marquee, perataan, dan distribusi elemen
-- Deteksi otomatis field PDF (AcroForm, tabel key-value, kotak vektor, garis bawah)
-- Kalibrasi offset pencetakan printer fisik
-- Ekspor cetak PDF dan HTML mandiri (_portable standalone HTML_)
-- Offline PWA dengan precache aset otomatis
+## How it works
 
-## Kebutuhan Sistem
+Kartesian is a **local-first** app built as a **Next.js static export** (`output: 'export'`). The build output in `out/` is plain HTML, JavaScript, CSS, and assets, with no API and no database.
 
-- Node.js 24 (atau versi LTS terkini)
-- pnpm atau npm
-- Python 3.10–3.12 (opsional, untuk service detector PyMuPDF / PaddleOCR)
-- Peramban modern (Chrome, Edge, Firefox, Safari)
+- Documents, images, PDFs, and settings are stored in the browser's **IndexedDB**.
+- Only one tab can write to the workspace at a time. Other tabs become read-only so they never overwrite each other.
+- Field detection runs in the browser with PDF.js. An optional Python service (PyMuPDF/PaddleOCR) runs on `127.0.0.1`, not in the cloud.
 
-## Memulai Cepat (Getting Started)
+Stack: Next.js 16 (App Router), React 19, strict TypeScript, Zustand, Zod, Tailwind CSS v4, PDF.js, Vitest, and Playwright.
 
-1. Clone repositori dan pasang dependensi:
+## Getting started
 
-   ```bash
-   git clone https://github.com/ChernobylCat/Kartesian.git
-   cd Kartesian
-   pnpm install
-   ```
+### Requirements
 
-2. Jalankan server pengembangan lokal:
+- **Node.js 24**
+- **pnpm 12.** The version is pinned in the `packageManager` field of `package.json`. Run `corepack enable` once and Corepack uses the right version.
+- **Python 3.10–3.12** (optional), only for the local detector service.
 
-   ```bash
-   pnpm dev
-   ```
-
-   Buka peramban di [http://localhost:3000](http://localhost:3000).
-
-3. Membangun dan menjalankan versi produksi:
-   ```bash
-   pnpm build
-   pnpm start
-   ```
-   Buka peramban di [http://127.0.0.1:4174](http://127.0.0.1:4174).
-
-Aplikasi berjalan secara lokal tanpa ketergantungan CDN. Seluruh aset PDF worker, font lokal, dan Ace Editor disiapkan ke dalam `public/vendor/` secara otomatis saat proses build melalui `scripts/prepare-next.cjs`.
-
-## How to Use Kartesian
-
-### 1. Prepare the document data
-
-The JSON editor is the structured source of truth for debtors, pages, and printable elements. You can:
-
-- edit the JSON directly;
-- load the included example document;
-- import previously exported settings; or
-- add text and images from the visual editor.
-
-Valid JSON is rendered automatically. Invalid input is annotated in the editor and printing/exporting is disabled until the document is valid again.
-
-### 2. Add elements
-
-- Click **Add Text** to add a text element.
-- Double-click an empty position on a page to create text at that coordinate and immediately edit it.
-- Click **Add Image**, then choose a PNG, JPEG, WebP, or GIF file.
-- Use the **Text** and **Image** buttons in a page header to target a specific page.
-
-Uploaded images are stored as data URLs inside the document JSON. Each image is limited to 2 MB.
-
-### 3. Select and edit elements
-
-Click an element to select it. The property panel provides exact controls for:
-
-- X and Y coordinates in millimetres;
-- width and height in millimetres;
-- font family, font size, and text colour;
-- rotation;
-- layer or z-index; and
-- position locking.
-
-For text elements, the floating toolbar also provides bold, italic, underline, foreground colour, highlight colour, precision properties, duplicate, and delete actions.
-
-Formatting uses an optimised live-preview transaction: the selected DOM element updates immediately, while JSON, history, and autosave changes are grouped and committed after a short debounce. This avoids rebuilding the entire canvas for every colour or numeric input event.
-
-### 4. Move, resize, and edit text
-
-- Drag an unlocked element to move it.
-- Drag any of the eight resize handles to resize it.
-- Hold `Shift` while resizing to preserve the aspect ratio.
-- Hold `Alt` while resizing to resize from the centre.
-- Double-click a text element to edit its content inline.
-- Press `Enter` or click outside the element to save inline text changes.
-- Press `Escape` while editing to cancel the change.
-
-Magnetic snapping can be enabled or disabled from the print options. When enabled, visual guides help align elements with nearby items.
-
-### 5. Select multiple elements
-
-Use `Shift`, `Ctrl`, or `Cmd` while clicking elements to extend or toggle the current selection.
-
-You can also drag a marquee on an empty page area:
-
-- drag from left to right to select elements fully contained by the box;
-- drag from right to left to select every element touched by the box;
-- hold `Shift` to add the marquee result to the selection; or
-- hold `Ctrl`/`Cmd` to toggle the marquee result.
-
-The property panel can apply shared values to multiple elements. Alignment and distribution actions are available when at least two elements on the same page are selected.
-
-### 6. Use a PDF as a placement guide
-
-Choose an existing guide or upload a local PDF. The PDF is rendered beneath the printable elements and can be:
-
-- shown or hidden on screen;
-- displayed with adjustable opacity; and
-- optionally included in the printed output.
-
-Uploaded PDFs, including their original bytes, are stored locally in IndexedDB so field detection can be rerun after a browser reload. PDF files are limited to 25 MB and 50 pages.
-
-When a digital PDF is uploaded, Kartesian also scans it locally for AcroForm text widgets, two-column key-value tables, labelled empty lines or multiline boxes, underscore fields, signatures, and initials. In a key-value table, the populated left cell becomes the label and the empty right cell becomes the suggested field. Dense numbered or repeating table borders are suppressed so they do not become one suggestion per cell. Detected fields appear as non-printing dashed suggestions. Use **Review Candidates** to select or rename placeholders before applying them to the matching page for every debtor. Low-confidence suggestions remain visible but start unchecked. Applying suggestions creates regular text elements such as `{{nama}}`, preserves existing elements, and can be reverted with one Undo action.
-
-Field detection uses a local, per-page fallback pipeline:
-
-1. PDF.js scans digital PDF data in the browser.
-2. Pages without candidates are offered to the optional localhost PyMuPDF service.
-3. The service invokes PaddleOCR only when a requested page has no usable text layer.
-
-PDF.js remains fully functional when the Python service is not running. PyMuPDF improves independent parsing of widgets, tables, text underlines, and vector lines or boxes. PaddleOCR adds conservative suggestions for image-only scans; these suggestions use lower confidence and therefore start unchecked in the review dialog. Handwriting and unusually complex form layouts can still require manual placement.
-
-After uploading a PDF, use **Pindai Ulang Field** and choose one of these modes:
-
-| Mode            | Behaviour                                                                                                  |
-| --------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Otomatis**    | Runs PDF.js first, then sends only unresolved pages to PyMuPDF; image-only pages can continue to PaddleOCR |
-| **PDF.js saja** | Runs entirely in the browser without the Python service                                                    |
-| **PyMuPDF**     | Forces every page through the local PyMuPDF service and disables OCR                                       |
-| **PaddleOCR**   | Forces OCR on every page; useful for scans but slower                                                      |
-
-A successful manual scan replaces the previous candidate list and opens it for review through **Tinjau Kandidat**. A failed service check does not delete existing candidates.
-
-### Optional local detector
-
-The detector binds to `127.0.0.1:8765`; uploaded PDFs are processed on the same computer and are not forwarded to a cloud provider. A virtual environment is recommended.
-
-PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-npm run detector:install
-npm run detector:start
-```
-
-macOS or Linux:
+### Install and develop
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-npm run detector:install
-npm run detector:start
+git clone https://github.com/ChernobylCat/Kartesian.git
+cd Kartesian
+corepack enable
+pnpm install
+pnpm dev
 ```
 
-To enable the image-only scan fallback, create the environment with Python 3.10–3.12 and install the larger PaddleOCR runtime instead:
+Open [http://localhost:3000](http://localhost:3000) for the landing page, or [http://localhost:3000/editor/](http://localhost:3000/editor/) for the editor.
 
-```powershell
-py -3.12 -m venv .venv-ocr
-.\.venv-ocr\Scripts\Activate.ps1
-npm run detector:install:ocr
-npm run detector:start
+### Production build
+
+```bash
+pnpm build
+pnpm start
 ```
 
-On macOS or Linux, use `python3.12 -m venv .venv-ocr` followed by `source .venv-ocr/bin/activate` before running the same npm commands.
+Open [http://127.0.0.1:4174/editor/](http://127.0.0.1:4174/editor/). The service worker, offline mode, and CSP are only active in the production build, so test there when you touch them.
 
-PaddleOCR downloads its recognition models on first use. Its PaddlePaddle runtime does not currently provide official wheels for Python 3.13 or newer, and the installer reports that incompatibility before making changes. Keep the detector terminal open while using Kartesian. The status below the manual scan button and the health endpoint at `http://127.0.0.1:8765/health` report which engines are installed. The server accepts browser origins on localhost by default; set `KARTESIAN_ALLOWED_ORIGINS` to a comma-separated allowlist when Kartesian is served from another trusted origin.
+## package.json scripts
 
-### 7. Calibrate the printer
+Run any script with `pnpm run <name>`. For `dev`, `build`, `start`, and `test`, `pnpm <name>` is enough.
 
-Printer drivers may introduce small horizontal or vertical offsets. To calibrate:
+### Summary
 
-1. Print a test page on blank paper.
-2. Disable browser headers and footers.
-3. Use no margins and a 100%/actual-size print scale.
-4. Measure the printed calibration markers from the paper edges.
-5. Enter the correction in **Offset X** and **Offset Y**.
-6. Print another test and repeat until the layout is aligned.
+| Script                 | What it does                                 |
+| ---------------------- | -------------------------------------------- |
+| `dev`                  | Development server on port 3000              |
+| `build`                | Production build into `out/`                 |
+| `start`                | Serves `out/` on port 4174                   |
+| `docker:build`         | Builds the container image                   |
+| `docker:run`           | Runs the image on port 8080                  |
+| `lint`                 | ESLint for `src/`                            |
+| `typecheck`            | TypeScript type check                        |
+| `format`               | Prettier for the whole repository            |
+| `format:check`         | Checks formatting without changing files     |
+| `format:src`           | Prettier for source, tests, and scripts only |
+| `benchmark`            | Measures performance of the production build |
+| `test:unit`            | Unit and component tests (Vitest)            |
+| `test:e2e`             | Browser tests (Playwright)                   |
+| `test`                 | `test:unit`, then `test:e2e`                 |
+| `check`                | Full quality gate                            |
+| `test:signing`         | Signing configuration policy tests           |
+| `test:detector`        | Python detector helper tests                 |
+| `detector:install`     | Installs the PyMuPDF detector                |
+| `detector:install:ocr` | Installs the PyMuPDF and PaddleOCR detector  |
+| `detector:start`       | Starts the detector on `127.0.0.1:8765`      |
+| `record:showcase`      | Records a demo video of the editor           |
+| `generate:showcase`    | Regenerates the showcase form PDF and image  |
+| `capture:landing`      | Regenerates the landing page screenshots     |
+| `audit`                | Dependency vulnerability audit               |
 
-For example, if an element prints 2 mm too far to the right, start with an X correction of `-2 mm`.
+### Development and build
 
-Calibration markers can be hidden independently in the screen preview and final print output.
+**`dev`** runs `node scripts/build/prepare-next.cjs && next dev --webpack`.
 
-### 8. Print or export
+`prepare-next.cjs` copies the assets the app needs into `public/`: icons, the showcase form, and landing screenshots from `assets/`, plus the PDF.js worker and cmaps, Ace Editor, the Plus Jakarta Sans font, and their licences from `node_modules/`. Next then runs in development mode on port 3000 with hot reload. The service worker is deliberately off in this mode.
 
-Before printing, confirm that the browser print dialog uses:
+**`build`** runs `prepare-next.cjs`, then `next build --webpack`, then `scripts/build/build-offline.cjs`:
 
-- paper size matching the target F4 sheet;
-- scale set to 100% or actual size;
-- no margins; and
-- headers and footers disabled.
+1. `prepare-next.cjs` fills `public/`.
+2. `next build` type-checks and writes the static export to `out/`.
+3. `build-offline.cjs` creates `out/sw.js` with the precache list and a version based on a hash of the files. It also computes CSP hashes for inline scripts and writes the security headers to `out/_headers` (Netlify/Cloudflare format) and `out/security-headers.json`.
 
-Use **Print** for the browser print workflow or **Export to HTML** to download a standalone document containing all rendered pages. Pending formatting transactions are automatically committed before print or export.
+The build needs internet access because `next build` checks security advisories for the installed Next version.
 
-## Keyboard Shortcuts
+**`start`** runs `node scripts/build/serve-next.cjs`, a static server for `out/`, so run `build` first. It listens on `http://127.0.0.1:4174` by default; change that with the `PORT` and `HOST` environment variables. The server applies the security headers from `security-headers.json` (plus HSTS behind HTTPS), compresses responses with brotli/gzip, and sets caching:
 
-| Shortcut                              | Action                                                     |
-| ------------------------------------- | ---------------------------------------------------------- |
-| `Ctrl/Cmd + Z`                        | Undo                                                       |
-| `Ctrl + Y` or `Cmd + Shift + Z`       | Redo                                                       |
-| `Arrow keys`                          | Move selected elements by 0.1 mm                           |
-| `Shift + Arrow keys`                  | Move selected elements by 1 mm                             |
-| `Ctrl/Cmd + A`                        | Select all elements on the active page                     |
-| `Ctrl/Cmd + D`                        | Duplicate selected elements                                |
-| `Alt + L`                             | Lock or unlock selected elements                           |
-| `Alt + A` / `Alt + H` / `Alt + D`     | Align left / horizontal center / right                     |
-| `Alt + W` / `Alt + V` / `Alt + S`     | Align top / vertical center / bottom                       |
-| `Alt + Shift + H` / `Alt + Shift + V` | Distribute horizontally / vertically                       |
-| `Delete` / `Backspace`                | Delete selected elements                                   |
-| `Escape`                              | Clear selection or close the active dialog/fullscreen view |
+- files under `_next/static/` are cached for a year;
+- `sw.js` and all other pages are revalidated with an ETag;
+- unknown paths get `404.html`.
 
-Keyboard shortcuts are ignored while typing in an input, textarea, inline text editor, or the JSON editor.
+The same server is used by the E2E tests and the production container.
 
-## Document Format
+**`docker:build`** runs `docker build -t kartesian .` to build the image from the `Dockerfile`. The first stage installs dependencies with pnpm and runs `pnpm run build`. The second stage contains only Node, `out/`, and `serve-next.cjs`. Requires Docker.
 
-The document root is an array of debtor records. Each debtor contains ordered pages, and each page contains text or image items.
+**`docker:run`** runs `docker run --rm -p 8080:8080 kartesian`, which serves that image at [http://localhost:8080](http://localhost:8080) the same way Cloud Run does.
+
+### Code quality
+
+**`lint`** runs `eslint src --ext .ts,.tsx` with the `eslint-config-next` rules (React, hooks, Next) for the code in `src/`.
+
+**`typecheck`** runs `next typegen && tsc --noEmit`. `next typegen` first generates the Next route types, then TypeScript checks all of `src/` in strict mode without emitting files.
+
+**`format`** runs `prettier --write .` to format the whole repository except what `.prettierignore` lists.
+
+**`format:check`** runs `prettier --check .`. Like `format`, but it only reports unformatted files and changes nothing.
+
+**`format:src`** runs Prettier on `src/`, `tests/`, and `scripts/` only. Use it when you do not want to touch Markdown documents.
+
+**`benchmark`** runs `node scripts/tools/benchmark-next.cjs` against the production build, so run `build` first. It measures datasets D1–D4 (from a small document up to 100 documents × 100 pages), frame intervals while dragging, and heap use while a PDF is opened and deleted repeatedly. It uses Microsoft Edge locally and Chromium in CI. Results are written to `test-results/next-performance.json`.
+
+### Testing
+
+**`test:unit`** runs `vitest run` on `tests/unit/` (domain, storage, field detection, i18n, paper sizes) and `tests/component/` (React components).
+
+**`test:e2e`** runs `playwright test` on `tests/e2e/` against the production build, so run `build` first. Playwright starts `serve-next.cjs` on port 4174 automatically, or reuses a server that is already running.
+
+- By default, the tests run in Chromium, Firefox, and WebKit. Locally, Chromium uses the installed Microsoft Edge.
+- Pick one engine with `PW_BROWSER=chromium|firefox|webkit`.
+- Change the port with `KARTESIAN_TEST_PORT`.
+- The HTML report is written to `playwright-report/`, and traces or screenshots of failures to `test-results/`.
+
+**`test`** runs `test:unit`, then `test:e2e`.
+
+**`check`** is the full quality gate, in order: `lint`, `typecheck`, `test:unit`, `test:signing`, `build`, `test:e2e`, and `test:detector`. Run it before opening a pull request.
+
+**`test:signing`** runs `node --test tests/signing/signing-config.test.cjs`. It checks the environment configuration rules for the planned electronic-signature feature (`scripts/tools/check-signing-config.cjs`, with templates in `infra/signing/`).
+
+**`test:detector`** runs `python -m unittest` on `services/pdf-field-detector/`. Tests that need PyMuPDF are skipped when it is not installed.
+
+### Local PDF detector (optional)
+
+**`detector:install`** runs `python scripts/tools/install-detector.py`, which installs `services/pdf-field-detector/requirements.txt` (PyMuPDF) into the active Python environment. It refuses Python versions below 3.10. Use a virtual environment.
+
+**`detector:install:ocr`** installs `requirements-ocr.txt` (PyMuPDF and PaddleOCR) for scanned PDFs without a text layer. It needs Python 3.10–3.12, because PaddlePaddle does not yet ship wheels for 3.13 and later. The OCR models are downloaded on first use.
+
+**`detector:start`** runs `python services/pdf-field-detector/server.py`, a service on `127.0.0.1:8765` with a status endpoint at `/health`. It only accepts localhost origins. Add other origins with the `KARTESIAN_ALLOWED_ORIGINS` environment variable (comma-separated).
+
+### Asset tools
+
+**`record:showcase`** runs `node scripts/tools/record-showcase.cjs`, which records a demo video of the editor (1920 × 1080) with Playwright. `pnpm dev` must already be running on port 3000. The raw recording goes to `videos/` (ignored by git) and is copied to `public/assets/kartesian-showcase.webm`.
+
+**`generate:showcase`** runs `node scripts/tools/generate-showcase.cjs`, which re-renders the showcase guide form into `assets/doc_1/showcase.pdf` and `showcase-1.png`. This form is the "Showcase document" background option in the editor.
+
+**`capture:landing`** runs `node scripts/tools/capture-landing.cjs` after a `build`. It fills the editor with sample data and takes light and dark screenshots into `assets/landing/`. Run it when the editor's look changes, then `build` again.
+
+### Security
+
+**`audit`** runs `pnpm audit --audit-level high`. It fails when a dependency has a high or critical vulnerability, and it also runs in CI.
+
+## Using the editor
+
+1. **Choose the paper size** above the canvas. The rotate button switches between portrait and landscape, and **Custom…** accepts 50–500 mm per side. Element coordinates do not change, so a smaller sheet is refused while any element would fall outside it. Older workspaces open as F4.
+2. **Add your data.** Add **Text** or an **Image** (PNG/JPEG/WebP/GIF, up to 2 MB), double-click an empty spot to add text there, or edit the **JSON data** directly. While the JSON is invalid, the canvas keeps showing the last valid version, and printing and export are disabled.
+3. **Position elements.** Drag them, pull a resize handle (`Shift` keeps the ratio, `Alt` resizes from the centre), or type X/Y/width/height in the properties panel. A marquee dragged left to right selects elements fully inside it; dragged right to left, it selects everything it touches.
+4. **Use a PDF as a guide** (optional). **Upload PDF** (up to 25 MB and 50 pages), set the opacity, and choose a scan engine:
+   - **Automatic:** PDF.js first, then PyMuPDF for pages with no results, then PaddleOCR for pages without text.
+   - **PDF.js only:** entirely in the browser.
+   - **PyMuPDF** or **PaddleOCR:** forces the local service.
+
+   **Review** the field candidates, rename their labels or keys, and apply them as placeholders on the same page of every document. Applying them can be undone with a single undo.
+
+5. **Calibrate the printer.** Print a test page on blank paper, measure the calibration markers from the paper edges, and enter **Offset X/Y**. For example, if the print is 2 mm too far right, set X to `-2`.
+6. **Print or export.** In the browser's print dialog, choose the same paper size as the workspace, 100% scale, no margins, and no headers or footers. **Export HTML** produces one standalone file with every page, and **Export PDF** a vector PDF at the exact paper size. The filter button next to **Print** limits all three to some documents or a page range such as `1-3, 5` for this session.
+
+### More tools
+
+- **Merge CSV** (sidebar): choose a template document and a CSV file (comma, semicolon or tab separated, up to 5 MB). Column names match placeholders loosely (`Full Name` fills `{{full_name}}`). Preview each row, then create the documents; one undo reverts the merge. Formats: `upper`, `lower`, `title`, `number`, `rupiah`, `words` (amount in words, in the UI language) and `date:<pattern>` with `d`, `dd`, `M`, `MM`, `MMM`, `MMMM`, `yy`, `yyyy`.
+- **Element** menu: tick, cross and dot marks, horizontal, vertical and strike-through lines, a white cover box, a barcode (Code 128 or EAN-13) and a QR code. Their shape, direction, colour, stroke, value and format are in the properties panel. A code whose value still contains `{{key}}` shows as a labelled outline until it is merged.
+- **Workspaces** (folder icon next to _Active workspace_): create, open, rename, duplicate and delete workspaces, save the open one as a template, and start a new workspace from a template. Switching saves the open workspace and reloads the editor. Workspaces and templates are kept in a separate local database (`KartesianLibraryDB`).
+- **Display unit** (in _Print, calibration & storage_): millimetres, inches or points for rulers and position/size inputs. Data is always stored in millimetres.
+- **Native PDF fonts.** PDF export uses the PDF standard fonts: Helvetica for Arial, Verdana and Plus Jakarta Sans, Times for Times New Roman and Georgia, and Courier for Courier New. Characters these fonts cannot encode (for example ✓ typed as text or CJK) print as `?`; use the mark element for ticks. Browser printing keeps the exact editor fonts.
+
+### Keyboard shortcuts
+
+| Shortcut                                       | Action                               |
+| ---------------------------------------------- | ------------------------------------ |
+| `Ctrl/Cmd + Z`, `Ctrl + Y` / `Cmd + Shift + Z` | Undo, redo                           |
+| Arrow / `Shift` + arrow                        | Nudge 0.1 mm / 1 mm                  |
+| `Ctrl/Cmd + A`                                 | Select everything on the active page |
+| `Ctrl/Cmd + D`                                 | Duplicate                            |
+| `Ctrl/Cmd + C` / `X` / `V`                     | Copy / cut / paste elements          |
+| `Ctrl/Cmd + G` / `Ctrl/Cmd + Shift + G`        | Group / ungroup                      |
+| `Alt + L`                                      | Lock / unlock position               |
+| `Alt + A` / `H` / `D`                          | Align left / centre / right          |
+| `Alt + W` / `V` / `S`                          | Align top / middle / bottom          |
+| `Alt + Shift + H` / `V`                        | Distribute horizontally / vertically |
+| `Delete` / `Backspace`                         | Delete the selected elements         |
+| `Escape`                                       | Clear the selection                  |
+| `Ctrl/Cmd + P`                                 | Print                                |
+| `F1` / `?`                                     | Help                                 |
+
+Shortcuts are ignored while typing in an input, in the JSON editor, or while editing text on the canvas.
+
+## JSON document format
+
+The root is an array of documents. Each document has a name and ordered pages, and each page holds text or image items. All documents share the same layout, so one file can hold the same form filled in for many people.
 
 ```json
 [
   {
-    "debitur": "Example Customer",
+    "title": "Sample Customer",
     "pages": [
       {
         "page_number": 1,
         "items": [
           {
-            "type": "text",
-            "text": "Example Customer",
+            "text": "Jane Doe",
             "x": 25,
             "y": 40,
             "width": 60,
-            "height": 8,
             "font_family": "Arial, sans-serif",
             "font_size": 10,
             "color": "#111827",
-            "bold": true,
-            "italic": false,
-            "underline": false,
-            "rotation": 0,
-            "z_index": 1,
-            "locked": false
+            "bold": true
           }
         ]
       }
@@ -271,201 +268,130 @@ The document root is an array of debtor records. Each debtor contains ordered pa
 ]
 ```
 
-### Item properties
+| Property                      | Type                 | Notes                                                                                                               |
+| ----------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `type`                        | `"text"` / `"image"` | Defaults to `text`                                                                                                  |
+| `text`                        | string               | Text content, or a base64 data URL for images                                                                       |
+| `x`, `y`                      | number               | Position in mm; must be on the sheet                                                                                |
+| `width`, `height`             | number               | Optional for text, required for images                                                                              |
+| `font_family`                 | string               | Arial, Courier New, Times New Roman, Georgia, Verdana, or Plus Jakarta Sans (exact values as written by the editor) |
+| `font_size`                   | number               | 4–72 pt                                                                                                             |
+| `color`, `bg_color`           | string               | `#rrggbb` colour                                                                                                    |
+| `bold`, `italic`, `underline` | boolean              | Text formatting. Text is bold by default.                                                                           |
+| `rotation`                    | number               | −360 to 360 degrees                                                                                                 |
+| `z_index`                     | integer              | −1000 to 1000                                                                                                       |
+| `locked`                      | boolean              | Locks position and size                                                                                             |
 
-| Property                      | Type                  | Description                                 |
-| ----------------------------- | --------------------- | ------------------------------------------- |
-| `type`                        | `"text"` or `"image"` | Defaults to text when omitted               |
-| `text`                        | string                | Text content or an image data URL           |
-| `x`, `y`                      | number                | Position in millimetres                     |
-| `width`, `height`             | number                | Optional text box size; required for images |
-| `font_family`                 | string                | One of the supported font-family values     |
-| `font_size`                   | number                | Text size from 4 to 72 pt                   |
-| `color`                       | hex string            | Text colour in `#rrggbb` format             |
-| `bg_color`                    | hex string            | Text highlight colour in `#rrggbb` format   |
-| `bold`, `italic`, `underline` | boolean               | Text formatting flags                       |
-| `rotation`                    | number                | Rotation from -360 to 360 degrees           |
-| `z_index`                     | integer               | Layer value from -1000 to 1000              |
-| `locked`                      | boolean               | Prevents drag and resize interactions       |
+- **Document name.** Read from `title`. Files from older versions may use `name` or `debitur` instead; both are still accepted (in the priority order `title`, `name`, `debitur`) and exported back under the same key.
+- **Paper size.** Not part of the JSON. It is stored with the workspace.
 
-Supported fonts are Arial, Courier New, Times New Roman, Georgia, Verdana, and Plus Jakarta Sans using the exact values generated by the editor.
+## Storage, privacy, and offline use
 
-The schema rejects malformed values, unsupported image sources, unsafe colours, invalid page order, and elements outside the F4 page bounds.
+- **IndexedDB** (`KartesianWorkspaceDB`) stores documents, images, PDFs with their original bytes, field candidates, calibration, and settings.
+- **localStorage** only holds the language choice, theme, onboarding state, and old-format settings, which are migrated to IndexedDB automatically.
+- **Full workspace backup** (in the _Print, calibration & storage_ panel) contains all of the above, with a SHA-256 checksum. Download one before moving to another browser, device, or domain, because browser data is tied to the origin.
+- Clearing site data in the browser deletes all documents and PDFs.
+- After the first visit, the service worker keeps the app available offline. PWA install and offline use need HTTPS or `localhost`.
+- When a new version is available, the editor shows an **Update app** banner, and every tab saves its data before switching.
 
-## Local Storage and Offline Support
-
-- Document JSON, calibration values, UI preferences, and application settings are stored in `localStorage`.
-- Uploaded PDF overlays are stored in IndexedDB.
-- PDFs sent to the optional detector stay on localhost and are held only for the duration of the request.
-- The service worker precaches the application shell for offline use after the first successful visit.
-- PWA installation and offline support require HTTPS or a localhost origin.
-- Exported settings files are limited to 5 MB.
-
-Clearing site data removes locally saved documents, settings, and PDF overlays. Export important settings before clearing browser storage.
-
-## Project Structure
+## Project structure
 
 ```text
 Kartesian/
-├── index.html                     Application shell and print-layout CSS
-├── manifest.webmanifest           PWA metadata
-├── sw.js                          App-shell cache and offline fallback
-├── assets/
-│   ├── app.css                    Compiled Tailwind CSS
-│   ├── icons/                     PWA icons
-│   └── vendor/                    Locally bundled browser dependencies
-├── scripts/
-│   └── copy-vendor.cjs            Copies pinned runtime dependencies
 ├── src/
-│   ├── app.mjs                    Application composition root
-│   ├── app/bootstrap.mjs          Startup and controller orchestration
-│   ├── canvas/
-│   │   ├── commands.mjs           Immutable document commands
-│   │   ├── format-transaction.mjs Live preview and debounced commits
-│   │   ├── interactions.mjs       Drag, resize, snapping, and selection
-│   │   ├── keyboard-controller.mjs
-│   │   └── renderer.mjs
-│   ├── core/                      Configuration validation and utilities
-│   ├── editor/                    Ace/textarea adapter and validation
-│   ├── export/                    Standalone HTML export
-│   ├── overlay/                   PDF overlay controller
-│   ├── pwa/                       Service worker registration
-│   ├── settings/                  Calibration and settings controller
-│   ├── state/                     Undo/redo history
-│   ├── storage/                   localStorage and IndexedDB adapters
-│   └── ui/                        Toolbar, panels, dialogs, and onboarding
-└── tests/
-    ├── e2e/                       Playwright browser tests
-    ├── fixtures/                  Valid and invalid document fixtures
-    ├── support/                   Static test server and global setup
-    └── regression.test.js         Unit and source-contract tests
+│   ├── app/                       Routes: landing (/ and /en/), editor, manifest, error pages
+│   ├── domain/document/           Schema, JSON codec, commands, geometry, paper sizes, history
+│   ├── application/               Autosave, cross-tab handover, output preparation
+│   ├── infrastructure/            IndexedDB, PDF engines, HTML export, settings codec
+│   ├── features/                  UI by feature: editor, landing, pdf, print, settings
+│   ├── components/ui/             Shared UI components (dialog)
+│   ├── i18n/                      Locale core, React hooks, id/en dictionaries
+│   └── styles/                    Global, canvas, print, and landing styles
+├── tests/
+│   ├── unit/                      Domain and application tests (Vitest)
+│   ├── component/                 React component tests (Vitest)
+│   ├── e2e/                       Playwright tests against the production build
+│   ├── signing/                   Signing configuration policy tests (node:test)
+│   ├── fixtures/                  Valid and invalid sample documents
+│   └── support/                   Synthetic PDFs for tests
+├── scripts/
+│   ├── build/                     Used by build/start: assets, service worker, static server
+│   └── tools/                     Tools: benchmark, screenshots, showcase, detector installer
+├── services/pdf-field-detector/   Python field detection service (optional, local)
+├── assets/                        Source icons, showcase form, landing screenshots
+├── public/                        Generated at build time; not committed
+├── infra/signing/                 Environment templates for the e-signature feature
+├── docs/                          Guides, architecture, history, and proposals
+└── Dockerfile                     Image for Google Cloud Run
 ```
 
-## Available Commands
+- **`src/` is layered:** `domain` depends on nothing, `application` and `infrastructure` use `domain`, and `features` (the UI) uses all of them.
+- **UI text** lives in `src/i18n/messages/id.ts` (the reference) and `en.ts`. Add new keys to `id.ts` first; TypeScript fails the build until the English translation exists.
+- **Generated folders** (`out/`, `.next/`, `public/`, `test-results/`, `playwright-report/`, `videos/`) are ignored by git.
 
-| Command                        | Description                                               |
-| ------------------------------ | --------------------------------------------------------- |
-| `npm run build`                | Copy vendor assets and compile Tailwind CSS               |
-| `npm run build:css`            | Compile and minify Tailwind CSS                           |
-| `npm run build:vendor`         | Copy pinned browser dependencies into `assets/vendor`     |
-| `npm run dev:css`              | Watch and rebuild Tailwind CSS                            |
-| `npm run test:unit`            | Run unit and regression checks                            |
-| `npm run test:detector`        | Run dependency-free tests for the Python detector helpers |
-| `npm run detector:install`     | Install the PyMuPDF local fallback                        |
-| `npm run detector:install:ocr` | Install PyMuPDF and the optional PaddleOCR fallback       |
-| `npm run detector:start`       | Start the local detector on `127.0.0.1:8765`              |
-| `npm run test:e2e`             | Run the Playwright browser suite                          |
-| `npm run test:e2e:headed`      | Run Playwright with a visible browser                     |
-| `npm run test:visual`          | Run the visual baseline test                              |
-| `npm run test`                 | Run unit and E2E tests                                    |
-| `npm run check`                | Build the project and run the complete quality gate       |
-| `npm run audit`                | Check npm dependencies for high-severity vulnerabilities  |
+## Testing and CI
 
-Playwright uses the locally installed Microsoft Edge channel by default outside CI. Set `PW_BROWSER` to `chromium`, `firefox`, or `webkit` to select another installed Playwright engine.
+Before opening a pull request, run:
 
 ```bash
-PW_BROWSER=firefox npm run test:e2e
+pnpm run check
 ```
 
-In PowerShell:
+GitHub Actions ([quality.yml](.github/workflows/quality.yml)) runs on every push and pull request, with Node 24 and the pnpm version from `packageManager`:
 
-```powershell
-$env:PW_BROWSER = 'firefox'
-npm.cmd run test:e2e
-```
+- **`quality` job:** install with `--frozen-lockfile`, build, typecheck, lint, unit tests, signing tests, detector tests, and the dependency audit.
+- **`e2e` job:** the Playwright suite in Chromium, Firefox, and WebKit. On failure, traces, screenshots, and the HTML report are uploaded as artifacts.
 
-## Testing and Quality
+## Deployment
 
-The test suite covers:
-
-- document and settings schema validation;
-- safe text and image rendering;
-- editor validation and recovery;
-- drag, inline editing, snapping, and eight-direction resize;
-- single, multi, and marquee selection;
-- alignment, keyboard shortcuts, and context menus;
-- floating toolbar and property-panel synchronisation;
-- debounced formatting without full canvas re-rendering;
-- history transactions, autosave, settings import/export, and PDF persistence;
-- print rules, standalone HTML export, PWA behaviour, and accessibility; and
-- visual regression of the application panel.
-
-Run the same quality gate used by the repository workflow:
+`pnpm build` produces a static site, so any static host can serve it as long as it applies the security headers from `out/_headers`. The project is also ready for Google Cloud Run:
 
 ```bash
-npm run check
+gcloud run deploy kartesian --source . --region asia-southeast2 --allow-unauthenticated --port 8080
 ```
 
-GitHub Actions first verifies the reproducible build, committed generated assets, unit/regression tests, and dependency audit on Node.js 24. It then runs the E2E suite against Chromium, Firefox, and WebKit. Failed browser jobs publish their traces, screenshots, JUnit results, and HTML report as workflow artifacts.
+Setup, custom domains, and things to watch out for are covered in the [Cloud Run deployment guide](docs/guides/DEPLOY-CLOUD-RUN.md) (in Indonesian). Pick the region closest to your users; `asia-southeast2` is Jakarta.
 
-When an intentional UI change affects the visual baseline, update it with:
+## Limits
 
-```bash
-npm run test:e2e -- --update-snapshots
-```
-
-## Application Limits
-
-| Resource             |             Limit |
-| -------------------- | ----------------: |
-| Debtors              |               100 |
-| Pages per debtor     |               100 |
-| Items per page       |             1,000 |
-| Total document items |             5,000 |
-| Image upload         |              2 MB |
-| Settings import      |              5 MB |
-| PDF upload           |  25 MB / 50 pages |
-| PDF canvas rendering | 20,000,000 pixels |
+| Resource                |              Limit |
+| ----------------------- | -----------------: |
+| Documents per workspace |                100 |
+| Pages per document      |                100 |
+| Elements per page       |              1,000 |
+| Total elements          |              5,000 |
+| Custom paper size       | 50–500 mm per side |
+| Image                   |               2 MB |
+| PDF                     |   25 MB / 50 pages |
+| PDF rendering           |  20 million pixels |
+| Legacy settings import  |               5 MB |
+| Workspace backup        |             150 MB |
+| Undo/redo               |           50 steps |
+| CSV for data merge      |               5 MB |
 
 ## Troubleshooting
 
-### The page is blank or modules fail to load
+- **Blank page or modules fail to load.** Run `pnpm build`, then `pnpm start`, and open `/editor/` on `http://127.0.0.1:4174`. The editor needs an HTTP origin for storage and workers. Exported HTML files can be opened straight from disk.
+- **Changes do not show after an update.** Click the **Update app** banner. During development, remember that the service worker only runs in the production build.
+- **The workspace is read-only.** The editor is open in another tab. Click **Take over**, or close that tab.
+- **The print is offset from the preview.** Make sure the print dialog uses the workspace paper size, 100% scale, no margins, and no headers or footers. Then correct what remains with Offset X/Y.
+- **The local detector is not found.** Make sure `pnpm run detector:start` is still running, then check `http://127.0.0.1:8765/health`. PDF.js keeps working without the detector.
+- **Playwright cannot find a browser.** Run `pnpm exec playwright install chromium`, or leave `PW_BROWSER` unset to use the installed Microsoft Edge.
+- **The workspace fails to open.** The recovery page offers automatic repair, restore from backup, and reset. Stored data is not deleted unless you choose reset.
 
-Do not open `index.html` directly through `file://`. Start the local server and use `http://127.0.0.1:4173`.
+## More documentation
 
-### Styles are missing after changing Tailwind classes
+The documentation index and the operations guide are in English; the architecture notes, proposals, and the Cloud Run guide are in Indonesian.
 
-Rebuild the stylesheet:
-
-```bash
-npm run build:css
-```
-
-Use `npm run dev:css` while actively editing UI styles.
-
-### Changes do not appear after an update
-
-The PWA may still have an older app-shell cache. Reload the page once after the new service worker activates. If necessary, clear the site's cached data in browser developer tools and reload.
-
-### Printed coordinates do not match the preview
-
-Verify the paper size, disable margins and browser headers/footers, use a 100% print scale, and then correct the physical difference using Offset X and Offset Y.
-
-### PDF or images cannot be uploaded
-
-Check the supported file types and application limits. PDF rendering also has a pixel limit to prevent excessive memory use.
-
-### Playwright cannot find a browser executable
-
-Install the requested Playwright browser:
-
-```bash
-npx playwright install chromium
-```
-
-Or run local tests through the installed Microsoft Edge channel by leaving `PW_BROWSER` unset.
-
-## Security Notes
-
-- Text is rendered with `textContent`, not injected as HTML.
-- Image sources are restricted to supported base64 data URLs.
-- Document and settings input are validated before use.
-- Browser dependencies are pinned through npm and served locally.
-- The test server sends Content Security Policy, referrer, permissions, and MIME-sniffing protection headers.
-- Export serialization removes editor-only controls and unsafe runtime state.
+- [Documentation index](docs/README.md)
+- [Operations guide](docs/guides/NEXTJS-OPERATIONS.md): commands, runtime boundaries, data migration, and rollback
+- [Cloud Run deployment guide](docs/guides/DEPLOY-CLOUD-RUN.md)
+- [Next.js rewrite architecture](docs/architecture/NEXTJS-REWRITE-MASTERPLAN.md) and [its status](docs/architecture/NEXTJS-REWRITE-STATUS.md)
+- [Electronic-signature proposal](docs/proposals/e-signature/ELECTRONIC-SIGNATURE-MASTERPLAN.md): still a draft, not active in the app
+- The original single-page app from before the Next.js rewrite is on the `archive/legacy-baseline` branch and the `v1.0.0-legacy-final` tag.
 
 ## License
 
-Kartesian is available under the [Apache License 2.0](LICENSE).
+Kartesian is released under the [Apache License 2.0](LICENSE).
 
-Printer behaviour varies by browser, driver, operating system, and hardware. Always verify calibration with a physical test print before production use.
+Print behaviour varies across browsers, drivers, operating systems, and printers. Always verify the calibration with a test print before production use.

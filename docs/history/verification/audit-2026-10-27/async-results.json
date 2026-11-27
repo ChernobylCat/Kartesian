@@ -1,0 +1,43 @@
+{
+  "pdfRestoreDuringScan": {
+    "afterRestore": "restored.pdf",
+    "afterOldScan": "original.pdf"
+  },
+  "rejectedNumericProperty": {
+    "displayedX": "209",
+    "savedX": 20
+  },
+  "mobile": {
+    "viewport": 320,
+    "bodyWidth": 320,
+    "documentWidth": 320,
+    "overflows": [
+      {
+        "text": "Hapus highlight",
+        "right": 350.59375
+      },
+      {
+        "text": "Backup workspace lengkap",
+        "right": 388.953125
+      },
+      {
+        "text": "Ekspor settings legacy",
+        "right": 388.953125
+      },
+      {
+        "text": "Impor settings / backup",
+        "right": 388.953125
+      }
+    ]
+  },
+  "handover": {
+    "ownerCountBeforeRelease": 3,
+    "newOwnerCount": 2,
+    "savedCount": 2,
+    "oldOwnerStatus": "Perubahan belum tersimpan"
+  },
+  "imageActivePage": {
+    "activePage": 2,
+    "imagesPerPage": [1, 0]
+  }
+}

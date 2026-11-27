@@ -10,7 +10,7 @@ Fungsi baru:
 - Saat penggaris mendapat fokus: panah menggeser 1 mm, Shift + panah 10 mm, Alt + panah 0,1 mm, Home/End menuju ujung skala, dan Delete/Backspace/Escape menghapus garis pada sumbu itu. Klik dua kali skala juga menghapusnya. Tombol penghapus membersihkan kedua garis pada halaman tersebut.
 - Mengeklik elemen mengembalikan fokus keyboard ke dokumen sehingga panah kembali menggeser elemen.
 
-Garis bantu dan pilihan tampilan bidik berlaku selama sesi editor. Keduanya bertahan saat halaman divirtualisasi dan ketika halaman panduan mulai diisi. Penyimpanan menggunakan identitas logis debitur/nomor halaman; helper ini tidak menjadi konten JSON, backup, history dokumen, cetak, atau HTML mandiri. Pembacaan pointer dibulatkan ke 0,1 mm dan mengikuti resolusi piksel input browser; keyboard menyediakan langkah presisi untuk garis bantu.
+Garis bantu dan pilihan tampilan bidik berlaku selama sesi editor. Keduanya bertahan saat halaman divirtualisasi dan ketika halaman panduan mulai diisi. Penyimpanan menggunakan identitas logis dokumen/nomor halaman; helper ini tidak menjadi konten JSON, backup, history dokumen, cetak, atau HTML mandiri. Pembacaan pointer dibulatkan ke 0,1 mm dan mengikuti resolusi piksel input browser; keyboard menyediakan langkah presisi untuk garis bantu.
 
 Perhitungan batas pilihan berada di `src/domain/document/measurement.ts`. `CanvasRulers.tsx` menangani tampilan dan input penggaris; `useCanvasPointer.ts` meneruskan pratinjau gesture. Pointer memakai `requestAnimationFrame`, dan dimensi elemen diambil pada awal gesture untuk menghitung pratinjau tanpa membaca ulang semua kotak DOM setiap frame. Pilihan yang sudah dikomit diukur kembali dari DOM dan font yang sudah siap.
 
