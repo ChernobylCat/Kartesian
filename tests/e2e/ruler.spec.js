@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
       window.__rulerPointer = { x: event.clientX, y: event.clientY };
     });
   }, fixture);
-  await page.goto('/');
+  await page.goto('/editor/');
   await expect(page.locator('.canvas-item')).toHaveCount(1);
 });
 async function saved(page) {
@@ -148,11 +148,11 @@ test('ruler guides support pointer, keyboard, snap and live movement without cha
   await expect(element).toBeFocused();
   await page.keyboard.press('ArrowRight');
   await expect
-    .poll(async () => (await stored(page)).document.debtors[0].pages[0].items[0].x)
+    .poll(async () => (await stored(page)).document.documents[0].pages[0].items[0].x)
     .toBe(20.1);
   await page.keyboard.press('ArrowLeft');
   await expect
-    .poll(async () => (await stored(page)).document.debtors[0].pages[0].items[0].x)
+    .poll(async () => (await stored(page)).document.documents[0].pages[0].items[0].x)
     .toBe(20);
   const bounds = await element.boundingBox(),
     sheet = await paper.boundingBox();
@@ -169,12 +169,12 @@ test('ruler guides support pointer, keyboard, snap and live movement without cha
     )
     .toBeCloseTo(50, 1);
   await page.mouse.up();
-  const moved = (await stored(page)).document.debtors[0].pages[0].items[0];
+  const moved = (await stored(page)).document.documents[0].pages[0].items[0];
   expect(moved.x).toBe(50);
   expect(moved.y).toBe(50);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect
-    .poll(async () => (await stored(page)).document.debtors[0].pages[0].items[0].x)
+    .poll(async () => (await stored(page)).document.documents[0].pages[0].items[0].x)
     .toBe(20);
   await x.focus();
   await x.press('Delete');

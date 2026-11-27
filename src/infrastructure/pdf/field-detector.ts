@@ -1,10 +1,13 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { Candidate } from '@/application/ports';
 import type { LegacyDocument } from '@/domain/document/schema';
-import { LIMITS } from '@/domain/document/schema';
+import { DETECTOR_SPACE } from '@/domain/document/background';
+import { DEFAULT_PAPER, type Paper } from '@/domain/document/paper';
+import { t } from '@/i18n/core';
 
-const PAPER_WIDTH_MM = LIMITS.width;
-const PAPER_HEIGHT_MM = LIMITS.height;
+// Detection runs in detector space; `applyFieldCandidates` maps results onto the sheet.
+const DETECTOR_WIDTH_MM = DETECTOR_SPACE.width;
+const DETECTOR_HEIGHT_MM = DETECTOR_SPACE.height;
 const DEFAULT_FONT_SIZE_PT = 11;
 
 type Matrix6 = [number, number, number, number, number, number];
@@ -120,8 +123,8 @@ function normalizeViewportRect(
   points: [number, number][],
   viewport: ViewportLike,
   {
-    paperWidthMm = PAPER_WIDTH_MM,
-    paperHeightMm = PAPER_HEIGHT_MM,
+    paperWidthMm = DETECTOR_WIDTH_MM,
+    paperHeightMm = DETECTOR_HEIGHT_MM,
   }: { paperWidthMm?: number; paperHeightMm?: number } = {},
 ): CanvasRect {
   const viewportPoints = points.map(([x, y]) => viewport.convertToViewportPoint(x, y));
@@ -218,8 +221,8 @@ function makeCandidate({
   const fallback = `field_${pageNumber}_${index + 1}`;
   const cleanLabel = normalizeLabel(label) || `Field ${index + 1}`;
   const key = normalizePlaceholderKey(cleanLabel, fallback);
-  const width = clamp(rect.width, 5, PAPER_WIDTH_MM - rect.x);
-  const height = clamp(rect.height, 4, PAPER_HEIGHT_MM - rect.y);
+  const width = clamp(rect.width, 5, DETECTOR_WIDTH_MM - rect.x);
+  const height = clamp(rect.height, 4, DETECTOR_HEIGHT_MM - rect.y);
   return {
     id: `pdf-field-p${pageNumber}-${source}-${index + 1}-${key}`,
     pageNumber,
@@ -836,7 +839,7 @@ export function extractVectorCandidates({
       const rect = shape.horizontal
         ? {
             x: shape.x,
-            y: clamp(shape.y - 4, 0, PAPER_HEIGHT_MM - 4),
+            y: clamp(shape.y - 4, 0, DETECTOR_HEIGHT_MM - 4),
             width: shape.width,
             height: 5,
           }
@@ -972,9 +975,11 @@ function ensurePage(docEntry: DocEntryLike, pageNumber: number) {
 export function applyFieldCandidates(
   data: LegacyDocument,
   candidates: Candidate[],
+  /** Sheet the candidates were already fitted to (see `fitPdfCandidates`). */
+  paper: Paper = DEFAULT_PAPER,
 ): { data: LegacyDocument; addedCount: number; appliedCandidateIds: string[] } {
   if (!Array.isArray(data) || !Array.isArray(candidates))
-    throw new TypeError('Data dan kandidat field harus berupa array.');
+    throw new TypeError(t('error.candidatesNotArrays'));
   const nextData = structuredClone(data);
   let addedCount = 0;
   const appliedCandidateIds: string[] = [];
@@ -997,16 +1002,18 @@ export function applyFieldCandidates(
         );
       });
       if (duplicate) return;
-      const x = clamp(Number(candidate.x) || 0, 0, PAPER_WIDTH_MM - 1);
-      const y = clamp(Number(candidate.y) || 0, 0, PAPER_HEIGHT_MM - 1);
-      const width = clamp(Number(candidate.width) || 30, 1, PAPER_WIDTH_MM - x);
-      const height = clamp(Number(candidate.height) || 5, 1, PAPER_HEIGHT_MM - y);
+      // Round the origin first so the rounded size cannot push the box past the sheet
+      // (e.g. x 100.05 → 100.1 with width 109.95 → 110 would end at 210.1 mm).
+      const x = round(clamp(Number(candidate.x) || 0, 0, paper.width - 1));
+      const y = round(clamp(Number(candidate.y) || 0, 0, paper.height - 1));
+      const width = round(clamp(Number(candidate.width) || 30, 1, paper.width - x));
+      const height = round(clamp(Number(candidate.height) || 5, 1, paper.height - y));
       page.items.push({
         text,
-        x: round(x),
-        y: round(y),
-        width: round(width),
-        height: round(height),
+        x,
+        y,
+        width,
+        height,
         font_family: 'Arial, sans-serif',
         font_size: DEFAULT_FONT_SIZE_PT,
         color: '#111827',
@@ -1015,6 +1022,8 @@ export function applyFieldCandidates(
       addedCount++;
       candidateApplied = true;
     });
+    // A placeholder that already exists counts as applied, so the candidate is consumed
+    // whenever there is at least one document to apply it to.
     if (candidateApplied || nextData.length > 0) appliedCandidateIds.push(candidate.id);
   });
   return { data: nextData, addedCount, appliedCandidateIds };

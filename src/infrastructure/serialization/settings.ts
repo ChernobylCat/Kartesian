@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { defaultSettings, type Settings } from '@/domain/document/model';
+import { numericInput } from '@/domain/document/schema';
+
+/** localStorage keys written by the pre-IndexedDB editor. */
+export const LEGACY_SETTINGS_KEY = 'overlay_print_pro_settings';
+export const LEGACY_THEME_KEY = 'theme_preference';
 
 export const settingsSchema = z.object({
   offsetX: z.number().finite().min(-50).max(50),
@@ -13,24 +18,14 @@ export const settingsSchema = z.object({
   snap: z.boolean(),
   dark: z.boolean(),
 });
-const number = z
-  .union([
-    z.number(),
-    z
-      .string()
-      .trim()
-      .regex(/^-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i),
-  ])
-  .transform(Number)
-  .pipe(z.number().finite());
 const legacySettings = z
   .object({
     schemaVersion: z.literal(1).optional(),
     jsonInput: z.string().optional(),
     overlayDoc: z.enum(['none', 'doc_1', 'uploaded_pdf']).optional(),
-    offsetX: number.optional(),
-    offsetY: number.optional(),
-    overlayOpacity: number.optional(),
+    offsetX: numericInput.optional(),
+    offsetY: numericInput.optional(),
+    overlayOpacity: numericInput.optional(),
     overlayToggle: z.boolean().optional(),
     printOverlayCheck: z.boolean().optional(),
     hideCalCheck: z.boolean().optional(),

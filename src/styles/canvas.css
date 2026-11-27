@@ -37,8 +37,8 @@
 }
 .canvas-page {
   position: relative;
-  width: 210mm;
-  height: 330mm;
+  width: var(--paper-width, 210mm);
+  height: var(--paper-height, 330mm);
   transform-origin: top left;
   background: white;
   color: #111827;
@@ -80,6 +80,33 @@
 .canvas-item .text-content {
   white-space: pre-wrap;
 }
+.canvas-item .comb {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
+.canvas-item .comb-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  white-space: pre;
+}
+.canvas-item.graphic-item {
+  min-height: 0;
+}
+.canvas-item .graphic {
+  width: 100%;
+  height: 100%;
+}
+.canvas-item svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
 .canvas-item [contenteditable='true'] {
   user-select: text;
   cursor: text;
@@ -95,7 +122,7 @@
   object-fit: contain;
   object-position: center;
   pointer-events: none;
-  z-index: -1;
+  z-index: -1001;
 }
 .resize-handle {
   position: absolute;
@@ -221,7 +248,7 @@
 .canvas-frame {
   position: relative;
   width: 100%;
-  height: calc(330mm * var(--canvas-zoom) + 26px);
+  height: calc(var(--paper-height, 330mm) * var(--canvas-zoom) + 26px);
   border-radius: 7px 7px 0 0;
   box-shadow: 0 6px 28px #14223b12;
 }
@@ -229,8 +256,8 @@
   position: absolute;
   left: 26px;
   top: 26px;
-  width: calc(210mm * var(--canvas-zoom));
-  height: calc(330mm * var(--canvas-zoom));
+  width: calc(var(--paper-width, 210mm) * var(--canvas-zoom));
+  height: calc(var(--paper-height, 330mm) * var(--canvas-zoom));
   overflow: hidden;
 }
 .ruler-origin {
@@ -471,4 +498,17 @@
   .canvas-workspace {
     padding: 24px 16px 60px;
   }
+}
+
+/* Optional screen-only grid, drawn above backgrounds and below items. */
+.canvas-workspace.show-grid .canvas-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1000;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgb(37 99 235 / 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(37 99 235 / 0.14) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
 }

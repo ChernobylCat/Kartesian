@@ -110,7 +110,7 @@ for (const shape of [
     await page.getByRole('button', { name: 'Pilih semua', exact: true }).click();
     await page.getByRole('button', { name: /Terapkan \d+ field/ }).click();
     await expect(page.getByText('Tersimpan di perangkat')).toBeVisible();
-    const applied = (await stored(page)).document.debtors[0].pages[0].items.find(
+    const applied = (await stored(page)).document.documents[0].pages[0].items.find(
       (item) => item.text === '{{tanggal_lahir}}',
     );
     expect(applied.x).toBeCloseTo(fitted.x, 1);
@@ -184,14 +184,14 @@ test('storage failure rolls back the transaction and still permits a complete ba
       buffer: Buffer.from(source.split(',')[1], 'base64'),
     });
   await expect(page.getByText('Gagal menyimpan', { exact: true })).toBeVisible();
-  expect((await stored(page)).document.debtors[0].pages[0].items).toHaveLength(1);
+  expect((await stored(page)).document.documents[0].pages[0].items).toHaveLength(1);
   await page.getByText('Cetak, kalibrasi & penyimpanan', { exact: true }).click();
   const [backup] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Backup workspace lengkap' }).click(),
   ]);
   const payload = JSON.parse(JSON.parse(fs.readFileSync(await backup.path(), 'utf8')).payload);
-  expect(payload.document.debtors[0].pages[0].items).toHaveLength(2);
+  expect(payload.document.documents[0].pages[0].items).toHaveLength(2);
   expect(Object.keys(payload.assets)).toHaveLength(1);
   await page.evaluate(() => {
     IDBObjectStore.prototype.put = window.__originalPut;
@@ -212,7 +212,7 @@ test.beforeEach(async ({ page }) => {
   }, fixture);
   page.on('dialog', (dialog) => dialog.accept());
 });
-async function ready(page, url = '/') {
+async function ready(page, url = '/editor/') {
   await page.goto(url);
   await expect(page.getByRole('heading', { name: 'Kartesian', exact: true })).toBeVisible();
   await expect(page.locator('.canvas-item')).toHaveCount(1);
@@ -284,7 +284,7 @@ test('selection, drag, resize, inline edit and property panel', async ({ page })
     .poll(async () => item.evaluate((element) => parseFloat(element.style.left)))
     .toBe(42);
   await expect(page.getByText('Tersimpan di perangkat')).toBeVisible();
-  expect((await stored(page)).document.debtors[0].pages[0].items[0].text).toBe('Teks diperbarui');
+  expect((await stored(page)).document.documents[0].pages[0].items[0].text).toBe('Teks diperbarui');
 });
 test('invalid JSON blocks output and preserves saved document', async ({ page }) => {
   await ready(page);
@@ -354,7 +354,7 @@ test('PDF worker, field review, apply and undo work without local Python', async
 test('second tab is read-only and supports safe handover', async ({ page, context }) => {
   await ready(page);
   const second = await context.newPage();
-  await second.goto('/');
+  await second.goto('/editor/');
   await expect(second.getByText(/Workspace hanya-baca/)).toBeVisible();
   await second.getByRole('button', { name: 'Ambil alih' }).click();
   await expect(second.getByText(/Workspace hanya-baca/)).toHaveCount(0);
@@ -365,11 +365,11 @@ test('second tab is read-only and supports safe handover', async ({ page, contex
 test('offline cold start has lazy editor, PDF and bundled assets', async ({ page }) => {
   // Stop the actual origin: Playwright WebKit's offline-emulation flag blocks
   // service-worker responses before dispatch (microsoft/playwright#42775).
-  const server = await require('../../scripts/serve-next.cjs').start(0);
+  const server = await require('../../scripts/build/serve-next.cjs').start(0);
   const port = server.address().port;
   let stopped = false;
   try {
-    await ready(page, `http://127.0.0.1:${port}/`);
+    await ready(page, `http://127.0.0.1:${port}/editor/`);
     await page.evaluate(async () => {
       await navigator.serviceWorker.ready;
     });
@@ -410,7 +410,7 @@ test('offline cold start has lazy editor, PDF and bundled assets', async ({ page
 });
 test('large documents virtualize screen pages and keep full print output', async ({ page }) => {
   const data = Array.from({ length: 5 }, (_, index) => ({
-    debitur: `Debitur ${index}`,
+    title: `Dokumen ${index}`,
     pages: Array.from({ length: 10 }, (_, page) => ({
       page_number: page + 1,
       items: Array.from({ length: 100 }, (_, item) => ({
@@ -429,7 +429,7 @@ test('large documents virtualize screen pages and keep full print output', async
       ),
     data,
   );
-  await page.goto('/');
+  await page.goto('/editor/');
   await expect(page.locator('.page-wrapper')).toHaveCount(50);
   await expect.poll(() => page.locator('.canvas-page').count()).toBeLessThan(7);
   await expect(page.locator('.print-surface .output-page')).toHaveCount(50);
@@ -504,7 +504,7 @@ test('recovers invalid legacy storage without replacing it with demo data', asyn
   await page.addInitScript(() =>
     localStorage.setItem('overlay_print_pro_settings', '{"schemaVersion":99}'),
   );
-  await page.goto('/');
+  await page.goto('/editor/');
   await expect(page.getByRole('heading', { name: 'Workspace memerlukan pemulihan' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('overlay_print_pro_settings'))).toBe(
     '{"schemaVersion":99}',
@@ -553,7 +553,7 @@ test('marquee, multi-selection, alignment, locking and keyboard nudge transact c
 }) => {
   const data = [
     {
-      debitur: 'Selection fixture',
+      title: 'Selection fixture',
       pages: [
         {
           page_number: 1,
@@ -574,7 +574,7 @@ test('marquee, multi-selection, alignment, locking and keyboard nudge transact c
       ),
     data,
   );
-  await page.goto('/');
+  await page.goto('/editor/');
   await expect(page.locator('.canvas-item')).toHaveCount(3);
   const sheet = await page.locator('.canvas-page').boundingBox();
   const point = (x, y) => ({
@@ -628,7 +628,7 @@ test('marquee, multi-selection, alignment, locking and keyboard nudge transact c
 test('legacy worker upgrade vetoes invalid drafts, then activates without losing data', async ({
   page,
 }) => {
-  const server = await require('../../scripts/serve-next.cjs').start(0);
+  const server = await require('../../scripts/build/serve-next.cjs').start(0);
   const handler = server.listeners('request')[0];
   let legacy = true;
   server.removeAllListeners('request');
@@ -641,7 +641,7 @@ test('legacy worker upgrade vetoes invalid drafts, then activates without losing
     } else handler(req, res);
   });
   try {
-    await ready(page, `http://127.0.0.1:${server.address().port}/`);
+    await ready(page, `http://127.0.0.1:${server.address().port}/editor/`);
     await page.evaluate(() => navigator.serviceWorker.ready);
     await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
     legacy = false;

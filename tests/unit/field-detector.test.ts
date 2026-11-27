@@ -62,9 +62,9 @@ describe('field-detector (native TypeScript)', () => {
         id: '2',
         pageNumber: 1,
         source: 'acroform', // higher priority than vector-line
-        label: 'Nama Debitur',
-        key: 'nama_debitur',
-        placeholder: '{{nama_debitur}}',
+        label: 'Nama Pemohon',
+        key: 'nama_pemohon',
+        placeholder: '{{nama_pemohon}}',
         x: 20.5,
         y: 50.2,
         width: 59.5,

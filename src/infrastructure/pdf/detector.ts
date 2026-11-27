@@ -1,6 +1,7 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { Candidate } from '@/application/ports';
 import { candidateSchema } from '../storage/workspace';
+import type { Paper } from '@/domain/document/paper';
 import {
   scanPdfDocument,
   deduplicateCandidates,
@@ -8,6 +9,7 @@ import {
   applyFieldCandidates,
 } from './field-detector';
 import type { LegacyDocument } from '@/domain/document/schema';
+import { t } from '@/i18n/core';
 
 export type ScanMode = 'auto' | 'pdfjs' | 'pymupdf' | 'paddleocr';
 export { normalizePlaceholderKey };
@@ -24,7 +26,7 @@ async function timedFetch<T>(
   if (parent?.aborted) cancel();
   else parent?.addEventListener('abort', cancel, { once: true });
   const timer = setTimeout(
-    () => controller.abort(new DOMException('Service lokal timeout.', 'TimeoutError')),
+    () => controller.abort(new DOMException(t('detector.timeout'), 'TimeoutError')),
     timeout,
   );
   try {
@@ -34,7 +36,9 @@ async function timedFetch<T>(
     parent?.removeEventListener('abort', cancel);
   }
 }
-export async function detectorHealth(signal?: AbortSignal) {
+export type DetectorHealth = 'ready' | 'incomplete' | 'unavailable';
+/** State of the optional local detector service; the UI words it. */
+export async function detectorHealth(signal?: AbortSignal): Promise<DetectorHealth> {
   try {
     const ok = await timedFetch(
       `${endpoint}/health`,
@@ -43,9 +47,9 @@ export async function detectorHealth(signal?: AbortSignal) {
       signal,
       async (response) => response.ok,
     );
-    return ok ? 'Service lokal siap' : 'Service lokal belum lengkap';
+    return ok ? 'ready' : 'incomplete';
   } catch {
-    return 'Service lokal tidak tersedia; PDF.js tetap aktif';
+    return 'unavailable';
   }
 }
 export async function scan(
@@ -66,7 +70,7 @@ export async function scan(
         await new Promise((resolve) => setTimeout(resolve, 0));
       },
       onProgress: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) =>
-        progress(`Memindai PDF.js ${pageNumber}/${totalPages}`),
+        progress(t('detector.scanningBrowser', { page: pageNumber, total: totalPages })),
     })) as Candidate[];
   }
   signal.throwIfAborted();
@@ -75,7 +79,7 @@ export async function scan(
   );
   let local: Candidate[] = [];
   if (mode !== 'pdfjs' && pages.length) {
-    progress(`Memindai ${pages.length} halaman dengan service lokal…`);
+    progress(t('detector.scanningLocal', { count: pages.length }));
     const query = new URLSearchParams({
       pages: pages.join(','),
       ocr: mode === 'paddleocr' ? 'always' : mode === 'pymupdf' ? 'never' : 'auto',
@@ -92,7 +96,8 @@ export async function scan(
         120000,
         signal,
         async (response) => {
-          if (!response.ok) throw new Error(`Service lokal HTTP ${response.status}`);
+          if (!response.ok)
+            throw new Error(t('detector.httpError', { status: String(response.status) }));
           return (await response.json()) as { candidates?: unknown[]; warnings?: unknown[] };
         },
       );
@@ -104,12 +109,12 @@ export async function scan(
     } catch (error) {
       signal.throwIfAborted();
       if (mode !== 'auto') throw error;
-      warnings.push('Service lokal tidak tersedia atau timeout. Hasil PDF.js dipertahankan.');
+      warnings.push(t('detector.fallbackWarning'));
     }
   }
   signal.throwIfAborted();
   return { candidates: deduplicateCandidates([...browser, ...local]) as Candidate[], warnings };
 }
-export function applyCandidates(document: LegacyDocument, candidates: Candidate[]) {
-  return applyFieldCandidates(document, candidates).data as LegacyDocument;
+export function applyCandidates(document: LegacyDocument, candidates: Candidate[], paper: Paper) {
+  return applyFieldCandidates(document, candidates, paper).data as LegacyDocument;
 }

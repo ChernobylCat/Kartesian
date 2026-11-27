@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_PAPER as F4 } from '@/domain/document/paper';
 import { measurementBounds, unionBounds } from '@/domain/document/measurement';
 import { snap } from '@/domain/document/geometry';
 import type { Item } from '@/domain/document/model';
@@ -31,7 +32,10 @@ describe('canvas measurements', () => {
     expect(box.height).toBeCloseTo(5.2, 8);
   });
   it('includes session guides in the existing millimeter snap contract', () => {
-    const result = snap({ ...item, width: 10, height: 5 }, 31.2, 21.4, [], 1.5, { x: 50, y: 50 });
+    const result = snap({ ...item, width: 10, height: 5 }, F4, 31.2, 21.4, [], 1.5, {
+      x: 50,
+      y: 50,
+    });
     expect(result).toEqual({ dx: 30, dy: 20, guideX: 50, guideY: 50 });
   });
   it.each([0.4, 0.5, 0.65, 0.75, 1, 1.25, 1.5])(

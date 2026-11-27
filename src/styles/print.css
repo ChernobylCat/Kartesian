@@ -23,6 +23,7 @@
     display: block !important;
   }
   .output-page {
+    isolation: isolate;
     position: relative;
     width: 210mm;
     height: 330mm;
@@ -37,18 +38,9 @@
     break-after: auto;
     page-break-after: auto;
   }
-  .output-item {
-    position: absolute;
-    white-space: pre-wrap;
-    line-height: 1.5;
-    transform-origin: center;
-  }
-  .output-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
+  /* Item rules come from OUTPUT_ITEM_CSS (src/infrastructure/export/html.ts). */
   .output-overlay {
+    z-index: -1001;
     position: absolute;
     inset: 0;
     width: 100%;

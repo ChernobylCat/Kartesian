@@ -72,7 +72,7 @@ for (const viewport of [
         },
         { fixture, dark },
       );
-      await page.goto('/');
+      await page.goto('/editor/');
       const helpButton = page.getByRole('button', { name: 'Bantuan', exact: true });
       // Establish the keyboard opener explicitly before checking focus return.
       await helpButton.focus();

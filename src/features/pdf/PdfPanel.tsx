@@ -14,12 +14,18 @@ import {
   type ScanMode,
 } from '@/infrastructure/pdf/detector';
 import { openPdf, renderPdf } from '@/infrastructure/pdf/pdf-runtime';
+import { paperOf } from '@/domain/document/paper';
 import { fitPdfCandidates } from '@/infrastructure/pdf/background';
+import { formatFixed } from '@/i18n/core';
+import { useT } from '@/i18n/react';
+import type { DetectorHealth } from '@/infrastructure/pdf/detector';
 
 function Review({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const { store } = useEditor();
   const candidates = useEditorState((state) => state.workspace.pdf.candidates);
   const pages = useEditorState((state) => state.workspace.pdf.pages);
+  const paper = useEditorState((state) => paperOf(state.workspace.document));
   const [rows, setRows] = useState<(Candidate & { checked: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,7 +33,7 @@ function Review({ onClose }: { onClose: () => void }) {
     let active = true;
     setLoading(true);
     setError('');
-    void fitPdfCandidates(candidates, pages)
+    void fitPdfCandidates(candidates, pages, paper)
       .then((fitted) => {
         if (active) {
           setRows(
@@ -38,7 +44,7 @@ function Review({ onClose }: { onClose: () => void }) {
       })
       .catch(() => {
         if (active) {
-          setError('Background PDF gagal dibaca. Unggah ulang PDF sebelum menerapkan field.');
+          setError(t('review.backgroundFailed'));
           setRows([]);
           setLoading(false);
         }
@@ -46,7 +52,7 @@ function Review({ onClose }: { onClose: () => void }) {
     return () => {
       active = false;
     };
-  }, [candidates, pages]);
+  }, [candidates, pages, paper, t]);
   function apply() {
     try {
       const state = store.getState();
@@ -58,7 +64,11 @@ function Review({ onClose }: { onClose: () => void }) {
           placeholder: `{{${normalizePlaceholderKey(candidate.key)}}}`,
         }));
       const result = decodeLegacy(
-        applyCandidates(encodeLegacy(state.workspace.document, state.workspace.assets), selected),
+        applyCandidates(
+          encodeLegacy(state.workspace.document, state.workspace.assets),
+          selected,
+          paperOf(state.workspace.document),
+        ),
         state.workspace.document,
         state.workspace.assets,
       );
@@ -72,25 +82,22 @@ function Review({ onClose }: { onClose: () => void }) {
       onClose();
     } catch (error) {
       store.setState({
-        message: error instanceof Error ? error.message : 'Kandidat gagal diterapkan.',
+        message: error instanceof Error ? error.message : t('review.applyFailed'),
       });
     }
   }
   return (
-    <Dialog title="Tinjau kandidat field" wide onClose={onClose}>
-      <p className="muted">
-        Kandidat dengan keyakinan rendah mulai tidak terpilih. Placeholder diterapkan ke halaman
-        yang sama pada setiap dokumen.
-      </p>
+    <Dialog title={t('review.title')} wide onClose={onClose}>
+      <p className="muted">{t('review.intro')}</p>
       <div className="row" style={{ marginBottom: 12 }}>
         <button
           disabled={loading || !!error}
           onClick={() => setRows(rows.map((row) => ({ ...row, checked: true })))}
         >
-          Pilih semua
+          {t('review.selectAll')}
         </button>
         <button onClick={() => setRows(rows.map((row) => ({ ...row, checked: false })))}>
-          Kosongkan pilihan
+          {t('review.clearSelection')}
         </button>
       </div>
       <div className="candidate-list">
@@ -99,7 +106,7 @@ function Review({ onClose }: { onClose: () => void }) {
             <input
               type="checkbox"
               checked={row.checked}
-              aria-label={`Pilih ${row.label}`}
+              aria-label={t('review.selectRow', { label: row.label })}
               onChange={(event) =>
                 setRows(
                   rows.map((entry, i) =>
@@ -110,7 +117,7 @@ function Review({ onClose }: { onClose: () => void }) {
             />
             <input
               type="text"
-              aria-label="Label field"
+              aria-label={t('review.fieldLabel')}
               value={row.label}
               maxLength={120}
               onChange={(event) =>
@@ -123,7 +130,7 @@ function Review({ onClose }: { onClose: () => void }) {
             />
             <input
               type="text"
-              aria-label="Key placeholder"
+              aria-label={t('review.placeholderKey')}
               value={row.key}
               onChange={(event) =>
                 setRows(
@@ -135,54 +142,56 @@ function Review({ onClose }: { onClose: () => void }) {
             />
             <span className="candidate-confidence">{Math.round(row.confidence * 100)}%</span>
             <small>
-              Hal. {row.pageNumber} · {row.source} · {row.x.toFixed(1)}, {row.y.toFixed(1)} mm
+              {t('review.location', {
+                page: row.pageNumber,
+                source: row.source,
+                x: formatFixed(row.x),
+                y: formatFixed(row.y),
+              })}
             </small>
           </div>
         ))}
       </div>
-      {loading && <p role="status">Menyesuaikan koordinat dengan background…</p>}
+      {loading && <p role="status">{t('review.fitting')}</p>}
       {error && <p role="alert">{error}</p>}
-      {!loading && !error && !rows.length && (
-        <p className="muted">
-          Tidak ada kandidat. Anda tetap dapat menambahkan teks secara manual.
-        </p>
-      )}
+      {!loading && !error && !rows.length && <p className="muted">{t('review.empty')}</p>}
       <div className="row spread" style={{ marginTop: 18 }}>
         <button
           className="danger"
           onClick={() => {
-            if (confirm('Hapus semua kandidat?')) {
+            if (confirm(t('review.confirmClear'))) {
               const state = store.getState();
               state.pdf({ ...state.workspace.pdf, candidates: [] });
               onClose();
             }
           }}
         >
-          Hapus kandidat
+          {t('review.clear')}
         </button>
         <button
           className="primary"
           disabled={loading || !!error || !rows.some((row) => row.checked)}
           onClick={apply}
         >
-          Terapkan {rows.filter((row) => row.checked).length} field
+          {t('review.apply', { count: rows.filter((row) => row.checked).length })}
         </button>
       </div>
     </Dialog>
   );
 }
 export default function PdfPanel() {
+  const t = useT();
   const { store } = useEditor();
   const settings = useEditorState((state) => state.workspace.settings);
   const pdf = useEditorState((state) => state.workspace.pdf);
-  const readonly = useEditorState((state) => state.readonly);
+  const readonly = useEditorState((state) => state.readonly || state.frozen);
   const input = useRef<HTMLInputElement>(null);
   const operation = useRef<AbortController | null>(null);
   const [mode, setMode] = useState<ScanMode>('auto');
   const [progress, setProgress] = useState('');
   const [busy, setBusy] = useState(false);
   const [review, setReview] = useState(false);
-  const [health, setHealth] = useState('PDF.js aktif · service lokal opsional');
+  const [health, setHealth] = useState<DetectorHealth | 'checking'>('checking');
   useEffect(() => {
     const controller = new AbortController();
     void detectorHealth(controller.signal).then(setHealth);
@@ -192,11 +201,17 @@ export default function PdfPanel() {
     };
   }, []);
   async function run(file?: File) {
+    if (store.getState().readonly || store.getState().frozen) return;
     operation.current?.abort();
     const controller = new AbortController();
     operation.current = controller;
     const signal = controller.signal;
+    let expected = store.getState().workspace.pdf;
+    const unsubscribe = store.subscribe((state) => {
+      if (state.workspace.pdf !== expected || state.readonly || state.frozen) controller.abort();
+    });
     setBusy(true);
+    setReview(false);
     let instance: Awaited<ReturnType<typeof openPdf>> | undefined;
     try {
       if (
@@ -205,35 +220,38 @@ export default function PdfPanel() {
           file.size > LIMITS.pdfBytes ||
           (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')))
       )
-        throw new Error('PDF harus valid dan berukuran maksimal 25 MB.');
+        throw new Error(t('pdf.invalidFile'));
       const bytes = file
         ? new Uint8Array(await file.arrayBuffer())
         : store.getState().workspace.pdf.bytes;
-      if (!bytes) throw new Error('Byte PDF tidak tersedia. Unggah ulang PDF.');
+      if (!bytes) throw new Error(t('pdf.bytesMissing'));
       signal.throwIfAborted();
-      setProgress('Membuka PDF…');
-      instance = await openPdf(bytes);
+      setProgress(t('pdf.opening'));
+      instance = await openPdf(bytes, signal);
       signal.throwIfAborted();
-      let next = store.getState().workspace.pdf;
       if (file) {
         const pages = await renderPdf(instance.pdf, signal, setProgress);
         signal.throwIfAborted();
-        next = { pages, candidates: [], bytes, fileName: file.name };
-        store.getState().pdf(next);
+        expected = { pages, candidates: [], bytes, fileName: file.name };
+        store.getState().pdf(expected);
         store.getState().settings({ overlay: 'uploaded_pdf' });
       }
       const result = await scan(instance.pdf, bytes, mode, instance.ops, signal, setProgress);
       signal.throwIfAborted();
-      store.getState().pdf({ ...next, candidates: result.candidates as Candidate[] });
-      setProgress(`${result.candidates.length} kandidat ditemukan. ${result.warnings.join(' ')}`);
+      expected = { ...expected, candidates: result.candidates };
+      store.getState().pdf(expected);
+      setProgress(
+        [t('pdf.found', { count: result.candidates.length }), ...result.warnings].join(' '),
+      );
       setReview(true);
     } catch (error) {
       if (!signal.aborted) {
-        const message = error instanceof Error ? error.message : 'PDF gagal diproses.';
+        const message = error instanceof Error ? error.message : t('pdf.failed');
         store.setState({ message });
         setProgress(message);
       }
     } finally {
+      unsubscribe();
       await instance?.pdf.loadingTask.destroy().catch(() => {});
       if (operation.current === controller) {
         operation.current = null;
@@ -244,10 +262,10 @@ export default function PdfPanel() {
   return (
     <section className="sidebar-section">
       <details open>
-        <summary>Panduan PDF & deteksi field</summary>
+        <summary>{t('pdf.section')}</summary>
         <div className="stack">
           <label className="field">
-            Background
+            {t('pdf.background')}
             <select
               value={settings.overlay}
               disabled={readonly}
@@ -257,17 +275,15 @@ export default function PdfPanel() {
                   .settings({ overlay: event.target.value as typeof settings.overlay })
               }
             >
-              <option value="none">Tanpa panduan</option>
-              <option value="doc_1">Dokumen showcase · 1 halaman</option>
+              <option value="none">{t('pdf.overlayNone')}</option>
+              <option value="doc_1">{t('pdf.overlayShowcase')}</option>
               <option value="uploaded_pdf">
-                PDF yang diunggah{pdf.fileName ? ` · ${pdf.fileName}` : ''}
+                {t('pdf.overlayUploaded')}
+                {pdf.fileName ? ` · ${pdf.fileName}` : ''}
               </option>
             </select>
           </label>
-          <p className="settings-note">
-            Panduan dipasang proporsional di tengah kertas F4 tanpa dipotong. Layout yang dibuat
-            dengan panduan versi lama perlu dicek ulang kesesuaiannya.
-          </p>
+          <p className="settings-note">{t('pdf.overlayNote')}</p>
           <input
             hidden
             ref={input}
@@ -280,24 +296,24 @@ export default function PdfPanel() {
             }}
           />
           <button disabled={readonly} onClick={() => input.current?.click()}>
-            <FileUp size={14} /> Unggah PDF
+            <FileUp size={14} /> {t('pdf.upload')}
           </button>
           {(pdf.bytes || pdf.pages.length > 0) && (
             <button
               className="danger"
               disabled={readonly}
               onClick={() => {
-                if (confirm('Hapus PDF unggahan beserta kandidatnya dari workspace aktif?')) {
+                if (confirm(t('pdf.confirmRemove'))) {
                   operation.current?.abort();
                   store.getState().pdf(emptyPdf());
                   store.getState().settings({ overlay: 'none' });
-                  setProgress('PDF unggahan dihapus.');
+                  setProgress(t('pdf.removed'));
                   setReview(false);
                 }
               }}
             >
               <Trash2 size={14} />
-              Hapus PDF
+              {t('pdf.remove')}
             </button>
           )}
           <label className="check-row">
@@ -308,12 +324,12 @@ export default function PdfPanel() {
                 store.getState().settings({ overlayVisible: event.target.checked })
               }
             />
-            Tampilkan panduan
+            {t('pdf.showGuide')}
           </label>
           <label className="field">
-            Opacity · {settings.overlayOpacity}%
+            {t('pdf.opacity', { value: settings.overlayOpacity })}
             <input
-              aria-label="Opacity panduan"
+              aria-label={t('pdf.opacityLabel')}
               type="range"
               min={5}
               max={100}
@@ -324,40 +340,43 @@ export default function PdfPanel() {
             />
           </label>
           <label className="field">
-            Mesin pemindaian
+            {t('pdf.engine')}
             <select
-              aria-label="Mode scan"
+              aria-label={t('pdf.scanMode')}
               value={mode}
               onChange={(event) => setMode(event.target.value as ScanMode)}
             >
-              <option value="auto">Otomatis</option>
-              <option value="pdfjs">PDF.js saja · browser</option>
-              <option value="pymupdf">PyMuPDF · service lokal</option>
-              <option value="paddleocr">PaddleOCR · service lokal</option>
+              <option value="auto">{t('pdf.engineAuto')}</option>
+              <option value="pdfjs">{t('pdf.enginePdfjs')}</option>
+              <option value="pymupdf">{t('pdf.enginePymupdf')}</option>
+              <option value="paddleocr">{t('pdf.enginePaddle')}</option>
             </select>
           </label>
           <div className="row">
             <button disabled={busy || readonly || !pdf.bytes} onClick={() => void run()}>
               <ScanLine size={14} />
-              Pindai ulang
+              {t('pdf.rescan')}
             </button>
-            <button disabled={readonly || !pdf.candidates.length} onClick={() => setReview(true)}>
+            <button
+              disabled={busy || readonly || !pdf.candidates.length}
+              onClick={() => setReview(true)}
+            >
               <ListChecks size={14} />
-              Tinjau ({pdf.candidates.length})
+              {t('pdf.review', { count: pdf.candidates.length })}
             </button>
             {busy && (
               <button
                 onClick={() => {
                   operation.current?.abort();
-                  setProgress('Pemindaian dibatalkan.');
+                  setProgress(t('pdf.scanCancelled'));
                 }}
-                aria-label="Batalkan scan"
+                aria-label={t('pdf.cancelScan')}
               >
                 <X size={14} />
               </button>
             )}
           </div>
-          <p className="settings-note">{health}</p>
+          <p className="settings-note">{t(`detector.health.${health}`)}</p>
           {progress && (
             <p role="status" className="scan-progress">
               {progress}

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useT } from '@/i18n/react';
 export default function Dialog({
   title,
   children,
@@ -12,6 +13,7 @@ export default function Dialog({
   onClose: () => void;
   wide?: boolean;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -38,7 +40,12 @@ export default function Dialog({
     >
       <div className="dialog-header">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Tutup dialog">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onClose}
+          aria-label={t('dialog.close')}
+        >
           <X size={18} />
         </button>
       </div>
