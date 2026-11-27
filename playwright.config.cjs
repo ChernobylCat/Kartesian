@@ -5,7 +5,7 @@ const port = process.env.KARTESIAN_TEST_PORT || '4174';
 const baseURL = `http://127.0.0.1:${port}`;
 
 module.exports = defineConfig({
-  testDir: './tests/next-e2e',
+  testDir: './tests/e2e',
   fullyParallel: false,
   workers: 1,
   timeout: 45000,
@@ -36,7 +36,7 @@ module.exports = defineConfig({
         { name: 'webkit', use: { browserName: 'webkit' } },
       ],
   webServer: {
-    command: 'node scripts/serve-next.cjs',
+    command: 'node scripts/build/serve-next.cjs',
     url: baseURL,
     env: { PORT: port },
     reuseExistingServer: !process.env.CI,

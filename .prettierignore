@@ -9,3 +9,4 @@ pnpm-lock.yaml
 .venv-ocr
 playwright-report
 test-results
+videos

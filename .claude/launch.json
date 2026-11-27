@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kartesian-static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/serve-next.cjs"],
+      "port": 4174
+    }
+  ]
+}

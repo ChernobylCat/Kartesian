@@ -15,4 +15,11 @@ public/fonts/
 *.tsbuildinfo
 next-env.d.ts
 coverage/
-backups/legacy/standalone/
+.env
+.env.*
+!.env.example
+*.env.local
+# Raw recordings from scripts/tools/record-showcase.cjs
+videos/
+# The project uses pnpm; an npm lockfile would drift from pnpm-lock.yaml.
+package-lock.json
