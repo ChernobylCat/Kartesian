@@ -1,0 +1,29 @@
+# Only what `pnpm run build` needs goes into the image build context.
+
+# Dependencies and generated output (rebuilt inside the image)
+node_modules
+.next
+out
+public
+*.tsbuildinfo
+next-env.d.ts
+
+# Not needed to build the site
+docs
+tests
+services
+infra
+videos
+test-results
+playwright-report
+.venv
+.venv-ocr
+**/__pycache__
+
+# Tooling and secrets
+.git
+.github
+.claude
+.env
+.env.*
+**/*.env.local
