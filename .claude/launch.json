@@ -4,7 +4,7 @@
     {
       "name": "kartesian-static",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/serve-next.cjs"],
+      "runtimeArgs": ["scripts/build/serve-next.cjs"],
       "port": 4174
     }
   ]
