@@ -54,12 +54,18 @@ for (const zoom of [0.4, 0.75, 1.5])
     await page.locator('.canvas-item').click();
     const point = await cursor(page, 60, 70);
     const value = page.getByLabel('Posisi kursor halaman 1', { exact: true });
-    await expect
-      .poll(async () => Number(await value.getAttribute('data-x')))
-      .toBeCloseTo(point.x, 1);
-    await expect
-      .poll(async () => Number(await value.getAttribute('data-y')))
-      .toBeCloseTo(point.y, 1);
+    // Allow one 0.1 mm step. The app and `cursor()` both measure from the sheet's top-left
+    // corner, but Firefox snaps the app's getBoundingClientRect() to 1/60 px while Playwright's
+    // boundingBox() there comes from unsnapped box quads. The two differ by under 0.01 mm, so
+    // a pointer on a 0.05 mm rounding boundary rounds either way (69.7 vs 69.8 at 75%).
+    const readout = (axis, expected) =>
+      expect
+        .poll(async () => Math.abs(Number(await value.getAttribute(`data-${axis}`)) - expected), {
+          message: `data-${axis} is within one 0.1 mm step of ${expected}`,
+        })
+        .toBeLessThan(0.15);
+    await readout('x', point.x);
+    await readout('y', point.y);
     // Engine input is quantized to CSS pixels; the readout follows the actual event.
     expect(Math.abs(point.x - 60)).toBeLessThan(25.4 / 96 / zoom + 0.1);
     expect(Math.abs(point.y - 70)).toBeLessThan(25.4 / 96 / zoom + 0.1);
@@ -102,9 +108,7 @@ for (const zoom of [0.4, 0.75, 1.5])
     await expect(page.locator('.ruler-selection-range').first()).toBeVisible();
     if (zoom === 0.4) {
       const edge = await cursor(page, 208, 328);
-      await expect
-        .poll(async () => Number(await value.getAttribute('data-x')))
-        .toBeCloseTo(edge.x, 1);
+      await readout('x', edge.x);
       const tooltip = await page.locator('.ruler-cursor-label').first().boundingBox();
       expect(tooltip.x).toBeGreaterThanOrEqual(box.x);
       expect(tooltip.y).toBeGreaterThanOrEqual(box.y);
