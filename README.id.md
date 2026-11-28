@@ -2,7 +2,7 @@
 
 [English](README.md) · **Bahasa Indonesia**
 
-**Editor cetak koordinat di browser.** Kartesian menempatkan teks dan gambar di atas formulir pracetak atau PDF dengan ketelitian 0,1 mm. Susun layout sekali, isi untuk banyak dokumen, lalu cetak langsung dari browser. Tidak perlu server dan tidak perlu akun: semua data tersimpan di perangkat pengguna.
+**Editor cetak koordinat di browser.** Kartesian menempatkan teks, gambar, barcode, dan kode QR di atas formulir pracetak atau PDF dengan ketelitian 0,1 mm. Susun layout sekali, isi untuk banyak dokumen secara manual atau dari file CSV, lalu cetak langsung dari browser atau ekspor ke PDF. Tidak perlu server dan tidak perlu akun: semua data tersimpan di perangkat pengguna.
 
 ![Kanvas editor Kartesian dengan formulir F4 dan penggaris milimeter](assets/landing/editor-light.jpg)
 
@@ -33,14 +33,14 @@ Antarmuka tersedia dalam Bahasa Indonesia dan English. Landing page ada di `/` (
 - **Satu layout, banyak dokumen.** Hingga 100 dokumen dengan layout yang sama, dan datanya bisa diedit langsung di panel JSON.
 - **Panduan PDF dan deteksi field.** Unggah PDF formulir sebagai latar. Field (AcroForm, tabel key-value, kotak, garis isian) dideteksi otomatis dan bisa diterapkan sebagai placeholder seperti `{{nama}}`.
 - **Kalibrasi printer.** Offset X/Y hingga ±50 mm untuk mengoreksi pergeseran printer.
-- **Cetak dan ekspor.** Cetak langsung dari browser, atau ekspor ke file HTML mandiri.
+- **Cetak dan ekspor.** Cetak langsung dari browser, atau ekspor ke file HTML mandiri maupun PDF vektor berukuran kertas persis tanpa dialog cetak browser.
 - **Offline dan bisa dipasang.** PWA dengan precache otomatis. Setelah dibuka sekali, editor tetap berjalan tanpa internet.
 - **Gabung data CSV.** Satu template, satu dokumen per baris CSV: setiap `{{key}}` diisi dari kolomnya, dengan format seperti `{{nominal|rupiah}}`, `{{nominal|words}}` (terbilang), dan `{{tanggal|date:dd MMMM yyyy}}`.
 - **Tata letak teks formulir.** Perataan, jarak huruf, tinggi baris, perkecil agar muat, dan kotak per karakter (comb) untuk NIK atau kode.
 - **Tanda, garis, kotak penutup, barcode, dan QR.** Centang dan silang untuk kotak pilihan, garis coret, kotak putih untuk menutup teks pracetak, barcode Code 128 / EAN-13, dan kode QR, semuanya bisa berisi placeholder.
 - **Copy/paste, grup, dan layer.** Salin elemen antar halaman, dokumen, dan tab; kelompokkan elemen agar bergerak bersama; atur urutan, kunci, atau sembunyikan sementara di panel layer.
 - **Zoom pas, grid, dan satuan.** Pas lebar atau pas halaman, grid 1–10 mm dengan snap, serta penggaris dan posisi dalam milimeter, inci, atau poin.
-- **Cetak sebagian dan PDF native.** Cetak atau ekspor hanya dokumen/halaman tertentu, dan ekspor PDF vektor berukuran kertas persis tanpa dialog cetak browser.
+- **Cetak sebagian.** Cetak atau ekspor hanya dokumen tertentu, atau rentang halaman seperti `1-3, 5`.
 - **Beberapa workspace dan template.** Simpan workspace terpisah untuk formulir berbeda, berpindah di antaranya, dan simpan template untuk dipakai ulang.
 - **Dwibahasa.** Indonesia (default) dan English, dengan tombol ID/EN di editor.
 
@@ -52,7 +52,7 @@ Kartesian adalah aplikasi **local-first** yang di-build sebagai **static export 
 - Hanya satu tab yang boleh menulis ke workspace. Tab lain otomatis hanya-baca, supaya data tidak saling menimpa.
 - Deteksi field berjalan di browser (PDF.js). Service Python opsional (PyMuPDF/PaddleOCR) berjalan di `127.0.0.1`, bukan di cloud.
 
-Teknologi: Next.js 16 (App Router), React 19, TypeScript strict, Zustand, Zod, Tailwind CSS v4, PDF.js, Vitest, dan Playwright.
+Teknologi: Next.js 16 (App Router), React 19, TypeScript strict, Zustand, Zod, Tailwind CSS v4, PDF.js, pdf-lib, qrcode-generator, Vitest, dan Playwright.
 
 ## Mulai cepat
 
@@ -158,7 +158,7 @@ Server yang sama dipakai oleh test E2E dan container produksi.
 
 ### Pengujian
 
-**`test:unit`** menjalankan `vitest run` untuk `tests/unit/` (domain, penyimpanan, deteksi field, i18n, ukuran kertas) dan `tests/component/` (komponen React).
+**`test:unit`** menjalankan `vitest run` untuk `tests/unit/` (domain, gabung data, barcode dan QR, ekspor PDF, penyimpanan, deteksi field, i18n, ukuran kertas) dan `tests/component/` (komponen React).
 
 **`test:e2e`** menjalankan `playwright test` untuk `tests/e2e/` terhadap build produksi, jadi jalankan `build` dulu. Playwright menyalakan `serve-next.cjs` di port 4174 secara otomatis, atau memakai server yang sudah berjalan.
 
@@ -241,7 +241,7 @@ Shortcut tidak aktif saat mengetik di input, editor JSON, atau saat mengedit tek
 
 ## Format dokumen JSON
 
-Root-nya adalah array dokumen. Setiap dokumen punya nama dan halaman berurutan, dan setiap halaman berisi item teks atau gambar. Semua dokumen memakai layout yang sama, sehingga satu file bisa berisi formulir yang sama untuk banyak orang.
+Root-nya adalah array dokumen. Setiap dokumen punya nama dan halaman berurutan, dan setiap halaman berisi item: teks, gambar, dan grafis (tanda, garis, kotak, barcode, dan kode QR). Semua dokumen memakai layout yang sama, sehingga satu file bisa berisi formulir yang sama untuk banyak orang.
 
 ```json
 [
@@ -268,29 +268,39 @@ Root-nya adalah array dokumen. Setiap dokumen punya nama dan halaman berurutan, 
 ]
 ```
 
-| Properti                      | Tipe                 | Keterangan                                                                                                              |
-| ----------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `type`                        | `"text"` / `"image"` | Default `text`                                                                                                          |
-| `text`                        | string               | Isi teks, atau data URL base64 untuk gambar                                                                             |
-| `x`, `y`                      | number               | Posisi dalam mm, harus berada di dalam kertas                                                                           |
-| `width`, `height`             | number               | Opsional untuk teks, wajib untuk gambar                                                                                 |
-| `font_family`                 | string               | Arial, Courier New, Times New Roman, Georgia, Verdana, atau Plus Jakarta Sans (nilai persis seperti yang dibuat editor) |
-| `font_size`                   | number               | 4–72 pt                                                                                                                 |
-| `color`, `bg_color`           | string               | Warna `#rrggbb`                                                                                                         |
-| `bold`, `italic`, `underline` | boolean              | Format teks. Teks tebal secara default.                                                                                 |
-| `rotation`                    | number               | −360 sampai 360 derajat                                                                                                 |
-| `z_index`                     | integer              | −1000 sampai 1000                                                                                                       |
-| `locked`                      | boolean              | Mengunci posisi dan ukuran                                                                                              |
+| Properti                      | Tipe                              | Keterangan                                                                                                                                                                                                                        |
+| ----------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                        | string                            | `text` (default), `image`, `mark`, `line`, `rect`, `barcode`, atau `qr`                                                                                                                                                           |
+| `text`                        | string                            | Isi teks; data URL base64 untuk `image`; `check`, `cross`, atau `dot` untuk `mark`; `horizontal`, `vertical`, `diagonal`, atau `antidiagonal` untuk `line`; nilai yang dikodekan (maksimal 500 karakter) untuk `barcode` dan `qr` |
+| `x`, `y`                      | number                            | Posisi dalam mm, harus berada di dalam kertas                                                                                                                                                                                     |
+| `width`, `height`             | number                            | Opsional untuk teks, wajib untuk semua tipe lain                                                                                                                                                                                  |
+| `font_family`                 | string                            | Arial, Courier New, Times New Roman, Georgia, Verdana, atau Plus Jakarta Sans (nilai persis seperti yang dibuat editor)                                                                                                           |
+| `font_size`                   | number                            | 4–72 pt                                                                                                                                                                                                                           |
+| `color`, `bg_color`           | string                            | Warna `#rrggbb`. Untuk `rect`, `bg_color` adalah warna isian (default putih)                                                                                                                                                      |
+| `bold`, `italic`, `underline` | boolean                           | Format teks. Teks tebal secara default.                                                                                                                                                                                           |
+| `rotation`                    | number                            | −360 sampai 360 derajat                                                                                                                                                                                                           |
+| `z_index`                     | integer                           | −1000 sampai 1000                                                                                                                                                                                                                 |
+| `locked`                      | boolean                           | Mengunci posisi dan ukuran                                                                                                                                                                                                        |
+| `text_align`                  | `"left"` / `"center"` / `"right"` | Perataan teks di dalam `width`                                                                                                                                                                                                    |
+| `letter_spacing`              | number                            | Jarak tambahan antarhuruf, 0–50 mm                                                                                                                                                                                                |
+| `line_height`                 | number                            | Kelipatan ukuran font, 0,5–4                                                                                                                                                                                                      |
+| `comb_cells`                  | integer                           | 1–100 kotak sama lebar, satu karakter per kotak, untuk NIK dan kode; wajib ada `width`                                                                                                                                            |
+| `fit`                         | `"shrink"`                        | Mengecilkan font (paling kecil 4 pt) sampai teks muat di kotaknya                                                                                                                                                                 |
+| `stroke_width`                | number                            | Tebal garis atau bingkai untuk `mark`, `line`, dan `rect`, 0,05–20 mm                                                                                                                                                             |
+| `barcode_format`              | `"code128"` / `"ean13"`           | Untuk `barcode`; default `code128`. EAN-13 menerima 12 digit, atau 13 digit dengan check digit yang benar                                                                                                                         |
+| `group_id`                    | string                            | Item dengan id yang sama dipilih dan dipindahkan bersama                                                                                                                                                                          |
 
 - **Nama dokumen.** Dibaca dari `title`. File versi lama boleh memakai `name` atau `debitur`; keduanya tetap diterima (dengan prioritas `title`, `name`, `debitur`) dan diekspor kembali dengan key yang sama.
+- **Placeholder.** Isi teks, barcode, dan QR boleh berisi placeholder seperti `{{nama}}` atau `{{nominal|rupiah}}`, yang diisi oleh **Gabung CSV**.
 - **Ukuran kertas.** Tidak termasuk dalam JSON. Ukuran kertas disimpan bersama workspace.
 
 ## Penyimpanan, privasi, dan offline
 
-- **IndexedDB** (`KartesianWorkspaceDB`) menyimpan dokumen, gambar, PDF beserta byte aslinya, kandidat field, kalibrasi, dan pengaturan.
-- **localStorage** hanya menyimpan pilihan bahasa, tema, status tur pengenalan, dan settings format lama yang dimigrasikan otomatis ke IndexedDB.
-- **Backup workspace lengkap** (di panel _Cetak, kalibrasi & penyimpanan_) berisi semua data di atas, dilengkapi checksum SHA-256. Unduh backup sebelum pindah browser, perangkat, atau domain, karena data browser terikat ke origin.
-- Menghapus data situs di browser akan menghapus semua dokumen dan PDF.
+- **IndexedDB** (`KartesianWorkspaceDB`) menyimpan dokumen, gambar, PDF beserta byte aslinya, kandidat field, kalibrasi, dan pengaturan untuk workspace yang sedang terbuka.
+- **IndexedDB** (`KartesianLibraryDB`) menyimpan workspace lain yang tersimpan beserta templat.
+- **localStorage** hanya menyimpan pilihan bahasa, tema, status tur pengenalan, ukuran grid, satuan tampilan, dan settings format lama yang dimigrasikan otomatis ke IndexedDB.
+- **Backup workspace lengkap** (di panel _Cetak, kalibrasi & penyimpanan_) berisi workspace yang sedang terbuka (dokumen, gambar, PDF, kalibrasi, dan pengaturan), dilengkapi checksum SHA-256. Workspace lain dan templat tidak ikut, jadi buka setiap workspace dan backup satu per satu. Unduh backup sebelum pindah browser, perangkat, atau domain, karena data browser terikat ke origin.
+- Menghapus data situs di browser akan menghapus semua workspace, templat, dokumen, dan PDF.
 - Service worker menyimpan aplikasi untuk penggunaan offline setelah kunjungan pertama. Fitur PWA dan offline butuh HTTPS atau `localhost`.
 - Saat versi baru tersedia, editor menampilkan banner **Perbarui aplikasi**, dan semua tab menyimpan data sebelum beralih.
 
@@ -300,10 +310,12 @@ Root-nya adalah array dokumen. Setiap dokumen punya nama dan halaman berurutan, 
 Kartesian/
 ├── src/
 │   ├── app/                       Rute: landing (/ dan /en/), editor, manifest, halaman error
-│   ├── domain/document/           Schema, codec JSON, command, geometri, ukuran kertas, history
-│   ├── application/               Autosave, perpindahan antar tab, persiapan output
-│   ├── infrastructure/            IndexedDB, mesin PDF, ekspor HTML, codec settings
-│   ├── features/                  UI per fitur: editor, landing, pdf, print, settings
+│   ├── domain/document/           Schema, codec JSON, command, geometri, ukuran kertas, history,
+│   │                              grafis, barcode dan QR, clipboard, satuan
+│   ├── domain/merge/              Parser CSV, format placeholder, gabung data
+│   ├── application/               Autosave, perpindahan antar tab, persiapan output, library workspace
+│   ├── infrastructure/            IndexedDB, mesin PDF, ekspor HTML dan PDF, codec settings
+│   ├── features/                  UI per fitur: editor, landing, merge, pdf, print, settings, workspaces
 │   ├── components/ui/             Komponen UI bersama (dialog)
 │   ├── i18n/                      Inti locale, hook React, kamus id/en
 │   └── styles/                    Gaya global, kanvas, cetak, dan landing
@@ -386,7 +398,6 @@ Persiapan, domain sendiri, dan hal yang perlu diperhatikan ada di [Deploy ke Goo
 - [Deploy ke Google Cloud Run](docs/guides/DEPLOY-CLOUD-RUN.md)
 - [Arsitektur rewrite Next.js](docs/architecture/NEXTJS-REWRITE-MASTERPLAN.md) dan [statusnya](docs/architecture/NEXTJS-REWRITE-STATUS.md)
 - [Proposal tanda tangan elektronik](docs/proposals/e-signature/ELECTRONIC-SIGNATURE-MASTERPLAN.md): masih rancangan, belum aktif di aplikasi
-- Kode SPA lama sebelum rewrite Next.js tersedia di branch `archive/legacy-baseline` dan tag `v1.0.0-legacy-final`
 
 ## Lisensi
 

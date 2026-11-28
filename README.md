@@ -2,7 +2,7 @@
 
 **English** · [Bahasa Indonesia](README.id.md)
 
-**A coordinate print editor in your browser.** Kartesian places text and images on pre-printed forms or PDFs to within 0.1 mm. Lay a document out once, fill it for many records, and print straight from the browser. No server and no account: all data stays on the user's device.
+**A coordinate print editor in your browser.** Kartesian places text, images, barcodes, and QR codes on pre-printed forms or PDFs to within 0.1 mm. Lay a document out once, fill it for many records by hand or from a CSV file, then print straight from the browser or export a PDF. No server and no account: all data stays on the user's device.
 
 ![The Kartesian editor canvas with a form and millimetre rulers](assets/landing/editor-light.jpg)
 
@@ -33,14 +33,14 @@ The interface is available in Indonesian and English. The landing page is at `/`
 - **One layout, many documents.** Up to 100 documents share the same layout, and their data can be edited directly in the JSON panel.
 - **PDF guides and field detection.** Upload a form as a PDF and use it as the background. Fields (AcroForm, key-value tables, boxes, fill-in lines) are detected automatically and can be applied as placeholders such as `{{name}}`.
 - **Printer calibration.** X/Y offsets of up to ±50 mm correct printer drift.
-- **Print and export.** Print from the browser, or export a standalone HTML file.
+- **Print and export.** Print from the browser, or export a standalone HTML file or a vector PDF at the exact paper size without the browser print dialog.
 - **Offline and installable.** A PWA with automatic precaching. After the first visit, the editor keeps working without a connection.
 - **CSV data merge.** One template, one document per CSV row: every `{{key}}` is filled from its column, with formats such as `{{amount|number}}`, `{{amount|words}}` and `{{date|date:MMMM d, yyyy}}`.
 - **Form text layout.** Alignment, letter spacing, line height, shrink-to-fit, and character boxes (comb fields) for ID numbers and codes.
 - **Marks, lines, cover boxes, barcodes and QR codes.** Ticks and crosses for checkboxes, strike-through lines, white boxes to cover pre-printed text, Code 128 / EAN-13 barcodes and QR codes, all of which can hold placeholders.
 - **Copy and paste, groups and layers.** Copy elements between pages, documents and tabs; group elements to move them together; reorder, lock or temporarily hide them in the layers panel.
 - **Fit zoom, grid and units.** Fit the page to the width or height, show a 1–10 mm grid with snapping, and show rulers and positions in millimetres, inches or points.
-- **Partial print and native PDF.** Print or export only some documents or pages, and export a vector PDF at the exact paper size without the browser print dialog.
+- **Partial print.** Print or export only some documents, or a page range such as `1-3, 5`.
 - **Several workspaces and templates.** Keep separate workspaces for different forms, switch between them, and save reusable templates.
 - **Bilingual.** Indonesian (default) and English, with an ID/EN switch in the editor.
 
@@ -52,7 +52,7 @@ Kartesian is a **local-first** app built as a **Next.js static export** (`output
 - Only one tab can write to the workspace at a time. Other tabs become read-only so they never overwrite each other.
 - Field detection runs in the browser with PDF.js. An optional Python service (PyMuPDF/PaddleOCR) runs on `127.0.0.1`, not in the cloud.
 
-Stack: Next.js 16 (App Router), React 19, strict TypeScript, Zustand, Zod, Tailwind CSS v4, PDF.js, Vitest, and Playwright.
+Stack: Next.js 16 (App Router), React 19, strict TypeScript, Zustand, Zod, Tailwind CSS v4, PDF.js, pdf-lib, qrcode-generator, Vitest, and Playwright.
 
 ## Getting started
 
@@ -158,7 +158,7 @@ The same server is used by the E2E tests and the production container.
 
 ### Testing
 
-**`test:unit`** runs `vitest run` on `tests/unit/` (domain, storage, field detection, i18n, paper sizes) and `tests/component/` (React components).
+**`test:unit`** runs `vitest run` on `tests/unit/` (domain, data merge, barcodes and QR, PDF export, storage, field detection, i18n, paper sizes) and `tests/component/` (React components).
 
 **`test:e2e`** runs `playwright test` on `tests/e2e/` against the production build, so run `build` first. Playwright starts `serve-next.cjs` on port 4174 automatically, or reuses a server that is already running.
 
@@ -241,7 +241,7 @@ Shortcuts are ignored while typing in an input, in the JSON editor, or while edi
 
 ## JSON document format
 
-The root is an array of documents. Each document has a name and ordered pages, and each page holds text or image items. All documents share the same layout, so one file can hold the same form filled in for many people.
+The root is an array of documents. Each document has a name and ordered pages, and each page holds items: text, images, and graphics (marks, lines, boxes, barcodes, and QR codes). All documents share the same layout, so one file can hold the same form filled in for many people.
 
 ```json
 [
@@ -268,29 +268,39 @@ The root is an array of documents. Each document has a name and ordered pages, a
 ]
 ```
 
-| Property                      | Type                 | Notes                                                                                                               |
-| ----------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `type`                        | `"text"` / `"image"` | Defaults to `text`                                                                                                  |
-| `text`                        | string               | Text content, or a base64 data URL for images                                                                       |
-| `x`, `y`                      | number               | Position in mm; must be on the sheet                                                                                |
-| `width`, `height`             | number               | Optional for text, required for images                                                                              |
-| `font_family`                 | string               | Arial, Courier New, Times New Roman, Georgia, Verdana, or Plus Jakarta Sans (exact values as written by the editor) |
-| `font_size`                   | number               | 4–72 pt                                                                                                             |
-| `color`, `bg_color`           | string               | `#rrggbb` colour                                                                                                    |
-| `bold`, `italic`, `underline` | boolean              | Text formatting. Text is bold by default.                                                                           |
-| `rotation`                    | number               | −360 to 360 degrees                                                                                                 |
-| `z_index`                     | integer              | −1000 to 1000                                                                                                       |
-| `locked`                      | boolean              | Locks position and size                                                                                             |
+| Property                      | Type                              | Notes                                                                                                                                                                                                                     |
+| ----------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                        | string                            | `text` (default), `image`, `mark`, `line`, `rect`, `barcode`, or `qr`                                                                                                                                                     |
+| `text`                        | string                            | Text content; a base64 data URL for `image`; `check`, `cross`, or `dot` for `mark`; `horizontal`, `vertical`, `diagonal`, or `antidiagonal` for `line`; the value to encode (up to 500 characters) for `barcode` and `qr` |
+| `x`, `y`                      | number                            | Position in mm; must be on the sheet                                                                                                                                                                                      |
+| `width`, `height`             | number                            | Optional for text, required for every other type                                                                                                                                                                          |
+| `font_family`                 | string                            | Arial, Courier New, Times New Roman, Georgia, Verdana, or Plus Jakarta Sans (exact values as written by the editor)                                                                                                       |
+| `font_size`                   | number                            | 4–72 pt                                                                                                                                                                                                                   |
+| `color`, `bg_color`           | string                            | `#rrggbb` colour. For `rect`, `bg_color` is the fill (white by default)                                                                                                                                                   |
+| `bold`, `italic`, `underline` | boolean                           | Text formatting. Text is bold by default.                                                                                                                                                                                 |
+| `rotation`                    | number                            | −360 to 360 degrees                                                                                                                                                                                                       |
+| `z_index`                     | integer                           | −1000 to 1000                                                                                                                                                                                                             |
+| `locked`                      | boolean                           | Locks position and size                                                                                                                                                                                                   |
+| `text_align`                  | `"left"` / `"center"` / `"right"` | Text alignment within `width`                                                                                                                                                                                             |
+| `letter_spacing`              | number                            | Extra space between characters, 0–50 mm                                                                                                                                                                                   |
+| `line_height`                 | number                            | Multiple of the font size, 0.5–4                                                                                                                                                                                          |
+| `comb_cells`                  | integer                           | 1–100 equal cells with one character each, for ID numbers; needs `width`                                                                                                                                                  |
+| `fit`                         | `"shrink"`                        | Lowers the font size (down to 4 pt) until the text fits its box                                                                                                                                                           |
+| `stroke_width`                | number                            | Line or border thickness of `mark`, `line` and `rect`, 0.05–20 mm                                                                                                                                                         |
+| `barcode_format`              | `"code128"` / `"ean13"`           | For `barcode`; defaults to `code128`. EAN-13 takes 12 digits, or 13 with a valid check digit                                                                                                                              |
+| `group_id`                    | string                            | Items with the same id are selected and moved together                                                                                                                                                                    |
 
 - **Document name.** Read from `title`. Files from older versions may use `name` or `debitur` instead; both are still accepted (in the priority order `title`, `name`, `debitur`) and exported back under the same key.
+- **Placeholders.** Text, barcode, and QR values can contain placeholders such as `{{name}}` or `{{amount|number}}`, which **Merge CSV** fills in.
 - **Paper size.** Not part of the JSON. It is stored with the workspace.
 
 ## Storage, privacy, and offline use
 
-- **IndexedDB** (`KartesianWorkspaceDB`) stores documents, images, PDFs with their original bytes, field candidates, calibration, and settings.
-- **localStorage** only holds the language choice, theme, onboarding state, and old-format settings, which are migrated to IndexedDB automatically.
-- **Full workspace backup** (in the _Print, calibration & storage_ panel) contains all of the above, with a SHA-256 checksum. Download one before moving to another browser, device, or domain, because browser data is tied to the origin.
-- Clearing site data in the browser deletes all documents and PDFs.
+- **IndexedDB** (`KartesianWorkspaceDB`) stores documents, images, PDFs with their original bytes, field candidates, calibration, and settings for the open workspace.
+- **IndexedDB** (`KartesianLibraryDB`) stores the other saved workspaces and the templates.
+- **localStorage** only holds the language choice, theme, onboarding state, grid size, display unit, and old-format settings, which are migrated to IndexedDB automatically.
+- **Full workspace backup** (in the _Print, calibration & storage_ panel) contains the open workspace (documents, images, PDFs, calibration, and settings), with a SHA-256 checksum. Other saved workspaces and templates are not included, so open each workspace and back it up separately. Download one before moving to another browser, device, or domain, because browser data is tied to the origin.
+- Clearing site data in the browser deletes all workspaces, templates, documents, and PDFs.
 - After the first visit, the service worker keeps the app available offline. PWA install and offline use need HTTPS or `localhost`.
 - When a new version is available, the editor shows an **Update app** banner, and every tab saves its data before switching.
 
@@ -300,10 +310,12 @@ The root is an array of documents. Each document has a name and ordered pages, a
 Kartesian/
 ├── src/
 │   ├── app/                       Routes: landing (/ and /en/), editor, manifest, error pages
-│   ├── domain/document/           Schema, JSON codec, commands, geometry, paper sizes, history
-│   ├── application/               Autosave, cross-tab handover, output preparation
-│   ├── infrastructure/            IndexedDB, PDF engines, HTML export, settings codec
-│   ├── features/                  UI by feature: editor, landing, pdf, print, settings
+│   ├── domain/document/           Schema, JSON codec, commands, geometry, paper sizes, history,
+│   │                              graphics, barcodes and QR, clipboard, units
+│   ├── domain/merge/              CSV parser, placeholder formats, data merge
+│   ├── application/               Autosave, cross-tab handover, output preparation, workspace library
+│   ├── infrastructure/            IndexedDB, PDF engines, HTML and PDF export, settings codec
+│   ├── features/                  UI by feature: editor, landing, merge, pdf, print, settings, workspaces
 │   ├── components/ui/             Shared UI components (dialog)
 │   ├── i18n/                      Locale core, React hooks, id/en dictionaries
 │   └── styles/                    Global, canvas, print, and landing styles
@@ -388,7 +400,6 @@ The documentation index and the operations guide are in English; the architectur
 - [Cloud Run deployment guide](docs/guides/DEPLOY-CLOUD-RUN.md)
 - [Next.js rewrite architecture](docs/architecture/NEXTJS-REWRITE-MASTERPLAN.md) and [its status](docs/architecture/NEXTJS-REWRITE-STATUS.md)
 - [Electronic-signature proposal](docs/proposals/e-signature/ELECTRONIC-SIGNATURE-MASTERPLAN.md): still a draft, not active in the app
-- The original single-page app from before the Next.js rewrite is on the `archive/legacy-baseline` branch and the `v1.0.0-legacy-final` tag.
 
 ## License
 
