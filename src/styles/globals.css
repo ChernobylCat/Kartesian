@@ -207,6 +207,14 @@ a {
 .save-label {
   font-size: 11px;
   color: var(--muted);
+  /* Gives way first when the header runs short: the status is cut with an ellipsis
+     instead of pushing the buttons onto a second line. Its title keeps the full text. */
+  flex: 1 1 0;
+  min-width: 4em;
+  max-width: max-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .editor-layout {
   display: grid;
@@ -578,10 +586,28 @@ kbd {
   margin-bottom: 12px;
 }
 @media (max-width: 1000px) {
+  /* The header stays on one 64 px line down to 721 px, so it drops the tagline and
+     packs its controls a little closer to make room for the export icons. */
   .app-header {
     padding: 0 12px;
+    gap: 12px;
   }
-  .header-optional {
+  .app-header .row {
+    gap: 6px;
+  }
+  .app-header .header-divider {
+    margin: 0 4px;
+  }
+  .header-optional,
+  .brand small {
+    display: none;
+  }
+  /* A labelled header button that collapses to its icon; aria-label and title keep the name. */
+  .header-collapsible {
+    width: 33px;
+    padding: 6px;
+  }
+  .header-collapsible .button-label {
     display: none;
   }
   .editor-layout {
@@ -607,7 +633,6 @@ kbd {
     flex-wrap: wrap;
     padding: 10px;
   }
-  .brand small,
   .save-label {
     display: none;
   }
