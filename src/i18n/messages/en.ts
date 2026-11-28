@@ -410,23 +410,54 @@ export const en: Record<keyof typeof id, string> = {
   'templates.use': 'Use',
   'theme.toggle': 'Toggle theme',
   'toast.close': 'Close notification',
+  'tour.add.body':
+    'Add text and images, or open Element for ticks, lines, cover boxes, barcodes and QR codes. Double-click an empty spot on the canvas to add text right there.',
+  'tour.add.title': 'Add content',
+  'tour.back': 'Back',
   'tour.canvas.body':
-    'Click to select, drag to move, and pull a handle to resize. Hold Shift or Ctrl to select several elements.',
-  'tour.canvas.title': 'Canvas & properties',
+    'Drag an element to move it and pull its handles to resize it. Click a ruler to add a guide. Select an element to set its position to 0.1 mm, its alignment, letter spacing or character boxes in the Element properties panel.',
+  'tour.canvas.title': 'Place it precisely',
+  'tour.close': 'Close tour',
+  'tour.done': 'Done',
   'tour.finish': 'Start building',
+  'tour.merge.body':
+    'Merge CSV fills each placeholder from the column with the same name, one row per document. Formats such as {{amount|number}} or {{date|date:MMMM d, yyyy}} are applied as it fills.',
+  'tour.merge.title': 'Fill many documents from a CSV',
+  'tour.new.body':
+    'The editor has gained several features since your last visit. Here is a quick look.',
+  'tour.new.elements.body':
+    'The Element menu now has ticks, crosses and dots, lines and strike-throughs, white cover boxes, and barcodes and QR codes that can hold placeholders.',
+  'tour.new.elements.title': 'Elements for forms',
+  'tour.new.layers.body':
+    'The layers panel orders, locks and hides elements. Group elements with Ctrl+G, copy and paste between documents, turn on the grid, or show sizes in inches and points.',
+  'tour.new.layers.title': 'Faster editing',
+  'tour.new.merge.body':
+    'Fill placeholders from a CSV file, one row per document, with formats such as {{amount|number}} and {{amount|words}} for amounts in words.',
+  'tour.new.merge.title': 'Merge data from a CSV',
+  'tour.new.output.body':
+    'Export a vector PDF at the exact paper size without the print dialog, and use the filter button to print only some documents or pages.',
+  'tour.new.output.title': 'PDF export and partial printing',
+  'tour.new.title': "What's new in Kartesian",
+  'tour.new.workspaces.body':
+    'Keep separate workspaces for different forms, switch between them, and save layouts you reuse as templates.',
+  'tour.new.workspaces.title': 'Workspaces and templates',
   'tour.next': 'Next',
+  'tour.output.body':
+    'Print on the same paper at 100% scale with no margins, or export a PDF or HTML file. The filter button picks certain documents or pages. If the print is offset, set Offset X/Y in the Print, calibration & storage panel.',
+  'tour.output.title': 'Print or export',
+  'tour.paper.body':
+    'Match your form: A4, F4, Letter, Legal or a custom size from 50 to 500 mm. The button next to it switches between portrait and landscape.',
+  'tour.paper.title': 'Choose the paper size',
   'tour.pdf.body':
-    'Upload a PDF, scan it for fields, and review the candidates before applying them. PDF.js works without the Python service.',
-  'tour.pdf.title': 'PDF guide',
-  'tour.print.body':
-    'Choose the same paper size as the workspace, 100% scale, no margins, and no headers or footers. Workspace backups include the PDF and images.',
-  'tour.print.title': 'Print precisely',
-  'tour.skip': 'Skip',
+    'Upload the form as a PDF to use it as the background. Kartesian detects its fill-in fields and turns them into placeholders such as {{name}}. The background is only a guide and is not printed unless you choose to.',
+  'tour.pdf.title': 'Use your form as a guide',
+  'tour.progress': '{current} of {total}',
+  'tour.skip': 'Skip tour',
   'tour.start': 'Start the tour',
-  'tour.title': 'Kartesian tour · {step}/{total}',
   'tour.welcome.body':
-    'Lay out text and images in millimetre coordinates on A4, F4, Letter, Legal or custom paper. Documents are stored on your device.',
-  'tour.welcome.title': 'Welcome to Kartesian.',
+    'Kartesian places data exactly in the boxes of a pre-printed form, to within 0.1 mm. This short tour shows the flow, from a blank form to the printed page. All your data stays on this device.',
+  'tour.welcome.title': 'Welcome to Kartesian',
+  'tour.whatsNew': "See what's new",
   'transfer.fixJson': 'Fix the JSON draft before releasing or updating the workspace.',
   'transfer.inProgress': 'The workspace is preparing a handover. Try again when it is done.',
   'transfer.unsaved': 'The latest changes are not saved yet. Save, then try again.',

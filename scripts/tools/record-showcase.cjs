@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('@playwright/test');
+const { skipOnboarding } = require('../../tests/support/onboarding.cjs');
 
 const rootDir = path.resolve(__dirname, '..', '..');
 const videosDir = path.join(rootDir, 'videos');
@@ -173,9 +174,9 @@ async function run() {
   page._mousePos = { x: 960, y: 540 };
 
   // Set initial workspace state with sample document
+  await skipOnboarding(page);
   await page.addInitScript((docData) => {
     try {
-      localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
       localStorage.setItem('overlay_print_pro_settings', JSON.stringify({
         schemaVersion: 1,
         jsonInput: JSON.stringify(docData),

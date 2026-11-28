@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
+const { skipOnboarding } = require('../support/onboarding.cjs');
 const fixture = JSON.parse(fs.readFileSync('tests/fixtures/valid-text.json', 'utf8'));
 
 test.beforeEach(async ({ page }) => {
+  await skipOnboarding(page);
   await page.addInitScript((data) => {
-    localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
     localStorage.setItem(
       'overlay_print_pro_settings',
       JSON.stringify({ schemaVersion: 1, jsonInput: JSON.stringify(data), overlayDoc: 'none' }),

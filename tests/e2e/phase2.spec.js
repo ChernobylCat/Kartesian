@@ -1,5 +1,6 @@
 // Phase 2 features: graphic elements and codes, groups, layers, zoom fit and grid.
 const { test, expect } = require('@playwright/test');
+const { skipOnboarding } = require('../support/onboarding.cjs');
 
 const data = [
   {
@@ -17,8 +18,8 @@ const data = [
 ];
 
 test.beforeEach(async ({ page }) => {
+  await skipOnboarding(page);
   await page.addInitScript((value) => {
-    localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
     if (!localStorage.getItem('overlay_print_pro_settings'))
       localStorage.setItem(
         'overlay_print_pro_settings',

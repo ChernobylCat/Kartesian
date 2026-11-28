@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const { pdfFixture } = require('../support/pdf-fixtures.cjs');
+const { skipOnboarding } = require('../support/onboarding.cjs');
 const fixture = JSON.parse(fs.readFileSync('tests/fixtures/valid-text.json', 'utf8'));
 
 async function expectSquareMarker(page, locator) {
@@ -202,8 +203,8 @@ test('storage failure rolls back the transaction and still permits a complete ba
   await expect(page.locator('.canvas-item img')).toHaveCount(1);
 });
 test.beforeEach(async ({ page }) => {
+  await skipOnboarding(page);
   await page.addInitScript((data) => {
-    localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
     if (!localStorage.getItem('overlay_print_pro_settings'))
       localStorage.setItem(
         'overlay_print_pro_settings',

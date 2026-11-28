@@ -67,13 +67,16 @@ import { slotPageNumber } from './page-slots';
 import { t as translateNow } from '@/i18n/core';
 import { useDocumentLanguage, useT } from '@/i18n/react';
 import LanguageSwitch from './components/LanguageSwitch';
+import { readPendingTour, type TourKind } from '../onboarding/onboarding';
+import type { Driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
+import '@/styles/tour.css';
 
 const JsonPanel = dynamic(() => import('./components/JsonPanel'), {
   ssr: false,
   loading: () => <p className="muted">{translateNow('json.loading')}</p>,
 });
 type Runtime = { store: EditorStore; flush: () => Promise<void>; lease: SessionLease };
-const ONBOARDING_KEY = 'kartesian_onboarding_complete_v1';
 
 const newText = () => ({ text: translateNow('item.newText'), x: 20, y: 20, font_size: 10 });
 
@@ -287,7 +290,7 @@ function Editor({ lease }: { lease: SessionLease }) {
   const zoom = useFitZoom(zoomMode, paper);
   const grid = useEditorState((state) => state.grid);
   const [help, setHelp] = useState(false);
-  const [tour, setTour] = useState<number | null>(null);
+  const [tour, setTour] = useState<TourKind | null>(null);
   const [jsonOpen, setJsonOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [scopeOpen, setScopeOpen] = useState(false);
@@ -307,14 +310,35 @@ function Editor({ lease }: { lease: SessionLease }) {
     } catch {}
   }, [settings.dark]);
   useEffect(() => {
+    // A read-only tab is a second window on a workspace; the owner tab shows the tour.
+    const pending = readPendingTour();
+    if (pending && !store.getState().readonly) setTour(pending);
     try {
-      if (localStorage.getItem(ONBOARDING_KEY) !== 'true') setTour(0);
       const savedGrid = Number(localStorage.getItem(GRID_KEY));
       if (GRID_SIZES.includes(savedGrid)) store.setState({ grid: savedGrid });
       const savedUnit = localStorage.getItem(UNIT_KEY);
       if (isUnit(savedUnit)) store.setState({ unit: savedUnit });
     } catch {}
   }, [store]);
+  // The tour code and driver.js load on demand, so the editor does not pay for them
+  // until a tour starts. The chunk is precached, so this also works offline.
+  useEffect(() => {
+    if (!tour) return;
+    let cancelled = false;
+    let running: Driver | undefined;
+    void import('../onboarding/run-tour')
+      .then(({ startTour }) => {
+        if (!cancelled) running = startTour(tour, () => setTour(null));
+      })
+      .catch((error: unknown) => {
+        setTour(null);
+        store.setState({ message: errorMessage(error) });
+      });
+    return () => {
+      cancelled = true;
+      if (running?.isActive()) running.destroy();
+    };
+  }, [tour, store]);
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => store.setState({ message: '' }), 7000);
@@ -507,29 +531,9 @@ function Editor({ lease }: { lease: SessionLease }) {
     saving: t('save.saving'),
     error: t('save.error'),
   }[saveStatus];
-  const tourSteps = [
-    <>
-      <b>{t('tour.welcome.title')}</b>
-      <p>{t('tour.welcome.body')}</p>
-    </>,
-    <>
-      <b>{t('tour.canvas.title')}</b>
-      <p>{t('tour.canvas.body')}</p>
-    </>,
-    <>
-      <b>{t('tour.pdf.title')}</b>
-      <p>{t('tour.pdf.body')}</p>
-    </>,
-    <>
-      <b>{t('tour.print.title')}</b>
-      <p>{t('tour.print.body')}</p>
-    </>,
-  ];
-  function finishTour() {
-    try {
-      localStorage.setItem(ONBOARDING_KEY, 'true');
-    } catch {}
-    setTour(null);
+  function openTour(kind: TourKind) {
+    setHelp(false);
+    setTour(kind);
   }
   return (
     <>
@@ -576,44 +580,46 @@ function Editor({ lease }: { lease: SessionLease }) {
               <Redo2 size={16} />
             </button>
             <span className="header-divider" />
-            <button
-              className="header-optional"
-              disabled={!!error || outputBusy}
-              onClick={() => void exportHtml()}
-            >
-              <FileDown size={15} />
-              {t('export.html')}
-            </button>
-            <button
-              className="header-optional"
-              disabled={!!error || outputBusy}
-              onClick={() => void exportPdfFile()}
-            >
-              <FileText size={15} />
-              {t('export.pdf')}
-            </button>
-            <button
-              id="btnPrint"
-              className="primary"
-              disabled={!!error || outputBusy}
-              onClick={() => void print()}
-            >
-              <Printer size={15} />
-              {outputBusy
-                ? t('output.preparing')
-                : isFullScope(outputScope)
-                  ? t('print.action')
-                  : t('print.partial')}
-            </button>
-            <button
-              className={`icon-button ${isFullScope(outputScope) ? '' : 'active'}`}
-              aria-label={t('scope.title')}
-              title={t('scope.title')}
-              disabled={!!error}
-              onClick={() => setScopeOpen(true)}
-            >
-              <ListFilter size={16} />
-            </button>
+            <div className="row" data-tour="output">
+              <button
+                className="header-optional"
+                disabled={!!error || outputBusy}
+                onClick={() => void exportHtml()}
+              >
+                <FileDown size={15} />
+                {t('export.html')}
+              </button>
+              <button
+                className="header-optional"
+                disabled={!!error || outputBusy}
+                onClick={() => void exportPdfFile()}
+              >
+                <FileText size={15} />
+                {t('export.pdf')}
+              </button>
+              <button
+                id="btnPrint"
+                className="primary"
+                disabled={!!error || outputBusy}
+                onClick={() => void print()}
+              >
+                <Printer size={15} />
+                {outputBusy
+                  ? t('output.preparing')
+                  : isFullScope(outputScope)
+                    ? t('print.action')
+                    : t('print.partial')}
+              </button>
+              <button
+                className={`icon-button ${isFullScope(outputScope) ? '' : 'active'}`}
+                aria-label={t('scope.title')}
+                title={t('scope.title')}
+                disabled={!!error}
+                onClick={() => setScopeOpen(true)}
+              >
+                <ListFilter size={16} />
+              </button>
+            </div>
             <button
               className="icon-button"
               aria-label={t('theme.toggle')}
@@ -670,7 +676,7 @@ function Editor({ lease }: { lease: SessionLease }) {
         <div className="editor-layout">
           <aside className="sidebar" aria-label={t('sidebar.label')}>
             <section className="sidebar-section">
-              <div className="row spread">
+              <div className="row spread" data-tour="workspaces">
                 <div className="section-label">{t('sidebar.workspace')}</div>
                 <button
                   className="icon-button"
@@ -690,7 +696,7 @@ function Editor({ lease }: { lease: SessionLease }) {
                 <span>·</span>
                 <span>{t('count.elements', { count: totalItems })}</span>
               </div>
-              <div className="row" style={{ marginTop: 16 }}>
+              <div className="row" style={{ marginTop: 16 }} data-tour="add">
                 <button
                   id="btnAddText"
                   disabled={readonly || !!error}
@@ -723,6 +729,7 @@ function Editor({ lease }: { lease: SessionLease }) {
                   {t('add.document')}
                 </button>
                 <button
+                  data-tour="merge"
                   disabled={readonly || !!error}
                   onClick={() => setMergeTarget(target().documentId)}
                 >
@@ -980,31 +987,9 @@ function Editor({ lease }: { lease: SessionLease }) {
                 ))}
               </tbody>
             </table>
-            <button
-              style={{ marginTop: 15 }}
-              onClick={() => {
-                setHelp(false);
-                setTour(0);
-              }}
-            >
-              {t('tour.start')}
-            </button>
-          </Dialog>
-        )}
-        {tour !== null && (
-          <Dialog
-            title={t('tour.title', { step: tour + 1, total: tourSteps.length })}
-            onClose={finishTour}
-          >
-            <div className="tour-step">{tourSteps[tour]}</div>
-            <div className="dialog-actions row spread">
-              <button onClick={finishTour}>{t('tour.skip')}</button>
-              <button
-                className="primary"
-                onClick={() => (tour === tourSteps.length - 1 ? finishTour() : setTour(tour + 1))}
-              >
-                {tour === tourSteps.length - 1 ? t('tour.finish') : t('tour.next')}
-              </button>
+            <div className="row" style={{ marginTop: 15 }}>
+              <button onClick={() => openTour('full')}>{t('tour.start')}</button>
+              <button onClick={() => openTour('whatsNew')}>{t('tour.whatsNew')}</button>
             </div>
           </Dialog>
         )}

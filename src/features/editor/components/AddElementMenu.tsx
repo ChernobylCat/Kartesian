@@ -56,7 +56,7 @@ export default function AddElementMenu({
     };
   }, [open]);
   return (
-    <div className="menu-anchor" ref={root}>
+    <div className="menu-anchor" ref={root} data-tour="elements">
       <button
         disabled={disabled}
         aria-haspopup="menu"

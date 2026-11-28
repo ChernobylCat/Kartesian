@@ -11,11 +11,16 @@ import {
 } from '@/domain/document/clipboard';
 import { errorMessage } from '@/application/error-message';
 import { useEditor } from '../context';
+import { isTourActive } from '../../onboarding/onboarding';
 
-/** Clipboard shortcuts belong to text fields while one of them has focus. */
+/**
+ * Clipboard shortcuts belong to text fields while one of them has focus, and to the
+ * browser while a tour is open (copying its text must not copy, cut or paste elements).
+ */
 const isEditable = (target: EventTarget | null) =>
-  target instanceof Element &&
-  !!target.closest('input,textarea,select,[contenteditable="true"],.ace_editor');
+  isTourActive() ||
+  (target instanceof Element &&
+    !!target.closest('input,textarea,select,[contenteditable="true"],.ace_editor'));
 
 /**
  * Copy, cut and paste of selected elements through the system clipboard

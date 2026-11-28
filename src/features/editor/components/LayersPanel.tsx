@@ -57,7 +57,7 @@ export default function LayersPanel() {
   }
 
   return (
-    <section className="sidebar-section">
+    <section className="sidebar-section" data-tour="layers">
       <details>
         <summary>{t('layers.title', { count: items.length })}</summary>
         {!items.length ? (

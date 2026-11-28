@@ -408,23 +408,54 @@ export const id = {
   'templates.use': 'Pakai',
   'theme.toggle': 'Ganti tema',
   'toast.close': 'Tutup notifikasi',
+  'tour.add.body':
+    'Tambahkan teks dan gambar, atau buka Elemen untuk tanda centang, garis, kotak penutup, barcode, dan QR. Klik dua kali area kosong di kanvas untuk menambah teks di titik itu.',
+  'tour.add.title': 'Tambahkan isi',
+  'tour.back': 'Kembali',
   'tour.canvas.body':
-    'Klik untuk memilih, geser untuk memindahkan, dan tarik handle untuk mengubah ukuran. Gunakan Shift/Ctrl untuk multi-selection.',
-  'tour.canvas.title': 'Canvas & properti',
+    'Seret elemen untuk memindahkannya dan tarik pegangannya untuk mengubah ukuran. Klik skala di tepi halaman untuk menambah garis bantu. Pilih elemen untuk mengatur posisi 0,1 mm, perataan, jarak huruf, atau kotak per huruf di panel Properti elemen.',
+  'tour.canvas.title': 'Atur posisinya',
+  'tour.close': 'Tutup tur',
+  'tour.done': 'Selesai',
   'tour.finish': 'Mulai menyusun',
+  'tour.merge.body':
+    'Gabung CSV mengisi setiap placeholder dari kolom yang namanya sama, satu baris untuk satu dokumen. Format seperti {{nominal|rupiah}} atau {{tanggal|date:d MMMM yyyy}} langsung diterapkan.',
+  'tour.merge.title': 'Isi banyak dokumen dari CSV',
+  'tour.new.body':
+    'Sejak kunjungan terakhir Anda, editor mendapat beberapa fitur baru. Berikut ringkasannya.',
+  'tour.new.elements.body':
+    'Menu Elemen kini berisi tanda centang, silang, dan titik, garis dan coretan, kotak penutup putih, serta barcode dan kode QR yang bisa berisi placeholder.',
+  'tour.new.elements.title': 'Elemen untuk formulir',
+  'tour.new.layers.body':
+    'Panel layer mengatur urutan, kunci, dan visibilitas elemen. Kelompokkan elemen dengan Ctrl+G, salin-tempel antardokumen, nyalakan grid, atau tampilkan ukuran dalam inci dan poin.',
+  'tour.new.layers.title': 'Kerja lebih cepat',
+  'tour.new.merge.body':
+    'Isi placeholder dari file CSV, satu baris untuk satu dokumen, lengkap dengan format seperti {{nominal|rupiah}} dan {{nominal|words}} untuk terbilang.',
+  'tour.new.merge.title': 'Gabung data dari CSV',
+  'tour.new.output.body':
+    'Ekspor PDF vektor berukuran kertas persis tanpa dialog cetak, dan pakai tombol filter untuk mencetak dokumen atau halaman tertentu saja.',
+  'tour.new.output.title': 'Ekspor PDF dan cetak sebagian',
+  'tour.new.title': 'Yang baru di Kartesian',
+  'tour.new.workspaces.body':
+    'Simpan beberapa workspace untuk formulir yang berbeda, berpindah di antaranya, dan jadikan layout yang sering dipakai sebagai template.',
+  'tour.new.workspaces.title': 'Workspace dan template',
   'tour.next': 'Berikutnya',
+  'tour.output.body':
+    'Cetak dengan kertas yang sama, skala 100%, dan tanpa margin, atau ekspor ke PDF dan HTML. Tombol filter memilih dokumen atau halaman tertentu. Kalau hasil cetak bergeser, atur offset X/Y di panel Cetak, kalibrasi & penyimpanan.',
+  'tour.output.title': 'Cetak atau ekspor',
+  'tour.paper.body':
+    'Samakan dengan formulir Anda: A4, F4, Letter, Legal, atau ukuran kustom 50–500 mm. Tombol di sebelahnya memutar kertas antara potret dan lanskap.',
+  'tour.paper.title': 'Pilih ukuran kertas',
   'tour.pdf.body':
-    'Unggah PDF, pindai field, lalu tinjau kandidat sebelum menerapkannya. PDF.js berfungsi tanpa service Python.',
-  'tour.pdf.title': 'Panduan PDF',
-  'tour.print.body':
-    'Pilih ukuran kertas yang sama dengan workspace, skala 100%, margin nol, tanpa header/footer. Backup workspace menyertakan PDF dan gambar.',
-  'tour.print.title': 'Cetak dengan presisi',
-  'tour.skip': 'Lewati',
+    'Unggah PDF formulir sebagai latar. Kartesian mendeteksi kolom isiannya dan menjadikannya placeholder seperti {{nama}}. Latar hanya panduan dan tidak ikut tercetak, kecuali Anda memilihnya.',
+  'tour.pdf.title': 'Pasang formulir sebagai panduan',
+  'tour.progress': '{current} dari {total}',
+  'tour.skip': 'Lewati tur',
   'tour.start': 'Mulai panduan',
-  'tour.title': 'Panduan Kartesian · {step}/{total}',
   'tour.welcome.body':
-    'Susun teks dan gambar dengan koordinat milimeter pada kertas A4, F4, Letter, Legal, atau ukuran kustom. Dokumen disimpan pada perangkat Anda.',
-  'tour.welcome.title': 'Selamat datang di Kartesian.',
+    'Kartesian menempatkan data tepat di kolom formulir pracetak, dengan ketelitian 0,1 mm. Tur singkat ini menunjukkan alurnya, dari formulir kosong sampai hasil cetak. Semua data tetap tersimpan di perangkat Anda.',
+  'tour.welcome.title': 'Selamat datang di Kartesian',
+  'tour.whatsNew': 'Lihat yang baru',
   'transfer.fixJson': 'Perbaiki draft JSON sebelum melepas atau memperbarui workspace.',
   'transfer.inProgress': 'Workspace sedang menyiapkan perpindahan. Coba lagi setelah selesai.',
   'transfer.unsaved': 'Perubahan terakhir belum tersimpan. Coba simpan lalu ulangi.',
