@@ -8,7 +8,7 @@ import {
   Undo2,
   Redo2,
   Printer,
-  FileDown,
+  FileCode,
   Moon,
   Sun,
   CircleHelp,
@@ -557,11 +557,21 @@ function Editor({ lease }: { lease: SessionLease }) {
             <span
               className={`save-label ${saveStatus === 'error' ? 'danger-text' : ''}`}
               role="status"
+              title={status}
             >
               {offline.offline && <WifiOff size={12} />} {status}
             </span>
             {saveStatus === 'error' && (
-              <button onClick={() => void flush().catch(() => {})}>{t('save.retry')}</button>
+              // From 721 px up only the icon shows; aria-label and title keep the name.
+              <button
+                className="save-retry"
+                aria-label={t('save.retry')}
+                title={t('save.retry')}
+                onClick={() => void flush().catch(() => {})}
+              >
+                <RefreshCw size={15} />
+                <span className="button-label">{t('save.retry')}</span>
+              </button>
             )}
             <button
               className="icon-button"
@@ -581,21 +591,26 @@ function Editor({ lease }: { lease: SessionLease }) {
             </button>
             <span className="header-divider" />
             <div className="row" data-tour="output">
+              {/* On narrow screens only the icons show; aria-label and title keep the names. */}
               <button
-                className="header-optional"
+                className="header-collapsible"
+                aria-label={t('export.html')}
+                title={t('export.html')}
                 disabled={!!error || outputBusy}
                 onClick={() => void exportHtml()}
               >
-                <FileDown size={15} />
-                {t('export.html')}
+                <FileCode size={15} />
+                <span className="button-label">{t('export.html')}</span>
               </button>
               <button
-                className="header-optional"
+                className="header-collapsible"
+                aria-label={t('export.pdf')}
+                title={t('export.pdf')}
                 disabled={!!error || outputBusy}
                 onClick={() => void exportPdfFile()}
               >
                 <FileText size={15} />
-                {t('export.pdf')}
+                <span className="button-label">{t('export.pdf')}</span>
               </button>
               <button
                 id="btnPrint"

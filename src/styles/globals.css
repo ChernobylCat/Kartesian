@@ -178,6 +178,9 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  /* Never squeezed: when the header runs short, the save status gives way instead, so
+     the tagline and the pill do not wrap onto extra lines. */
+  flex-shrink: 0;
 }
 .brand-mark {
   display: grid;
@@ -207,6 +210,28 @@ a {
 .save-label {
   font-size: 11px;
   color: var(--muted);
+  /* Gives way first when the header runs short: the status is cut with an ellipsis
+     instead of pushing the buttons onto a second line. Its title keeps the full text. */
+  flex: 1 1 0;
+  min-width: 4em;
+  max-width: max-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* After a failed save the status may give way completely, so the Retry button beside it
+   stays in the bar. Its title and the error toast keep the message. */
+.save-label.danger-text {
+  min-width: 0;
+}
+/* Retry after a failed save: an icon beside the red status, named by its aria-label
+   and title. At 720 px and below the status is hidden, so Retry shows its name too. */
+.save-retry {
+  width: 33px;
+  padding: 6px;
+}
+.save-retry .button-label {
+  display: none;
 }
 .editor-layout {
   display: grid;
@@ -577,11 +602,37 @@ kbd {
   font-size: 11px;
   margin-bottom: 12px;
 }
+/* Below 1280 px the full header no longer fits its 64 px bar in every state: printing
+   only some pages lengthens Print, and a failed save adds a Retry button. So the header
+   drops the decorative tagline and LOCAL WORKSPACE pill and packs its controls closer.
+   The labelled exports and the whole save status then still fit down to 1001 px. */
+@media (max-width: 1279px) {
+  .app-header {
+    gap: 12px;
+  }
+  .app-header .row {
+    gap: 6px;
+  }
+  .app-header .header-divider {
+    margin: 0 4px;
+  }
+  .header-optional,
+  .brand small {
+    display: none;
+  }
+}
 @media (max-width: 1000px) {
+  /* The header stays on one 64 px line down to 721 px: it narrows its padding with the
+     canvas bar below and shows the exports as icons. */
   .app-header {
     padding: 0 12px;
   }
-  .header-optional {
+  /* A labelled header button that collapses to its icon; aria-label and title keep the name. */
+  .header-collapsible {
+    width: 33px;
+    padding: 6px;
+  }
+  .header-collapsible .button-label {
     display: none;
   }
   .editor-layout {
@@ -607,9 +658,15 @@ kbd {
     flex-wrap: wrap;
     padding: 10px;
   }
-  .brand small,
   .save-label {
     display: none;
+  }
+  .save-retry {
+    width: auto;
+    padding: 6px 11px;
+  }
+  .save-retry .button-label {
+    display: inline;
   }
   .editor-layout {
     display: block;
