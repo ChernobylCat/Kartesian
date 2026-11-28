@@ -219,6 +219,20 @@ a {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* After a failed save the status may give way completely, so the Retry button beside it
+   stays in the bar. Its title and the error toast keep the message. */
+.save-label.danger-text {
+  min-width: 0;
+}
+/* Retry after a failed save: an icon beside the red status, named by its aria-label
+   and title. At 720 px and below the status is hidden, so Retry shows its name too. */
+.save-retry {
+  width: 33px;
+  padding: 6px;
+}
+.save-retry .button-label {
+  display: none;
+}
 .editor-layout {
   display: grid;
   grid-template-columns: 310px minmax(0, 1fr);
@@ -646,6 +660,13 @@ kbd {
   }
   .save-label {
     display: none;
+  }
+  .save-retry {
+    width: auto;
+    padding: 6px 11px;
+  }
+  .save-retry .button-label {
+    display: inline;
   }
   .editor-layout {
     display: block;

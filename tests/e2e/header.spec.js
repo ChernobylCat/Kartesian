@@ -1,6 +1,6 @@
 // Editor header at every width: Export HTML and Export PDF stay reachable (as icon
 // buttons on narrow screens), and the header neither scrolls sideways nor spills out of
-// its bar. On desktop widths nothing in it wraps either.
+// its bar, even after a failed save adds Retry. Nothing in it wraps onto a second line.
 const { test, expect } = require('@playwright/test');
 const { skipOnboarding } = require('../support/onboarding.cjs');
 
@@ -13,9 +13,13 @@ const data = [
 const NARROW_WIDTHS = [320, 375, 640, 768, 1000];
 // Below 1280 px the header drops its tagline and pill; 1001 and 1280 are the tightest fits.
 const DESKTOP_WIDTHS = [1001, 1024, 1100, 1180, 1279, 1280, 1366, 1440];
+// The narrowest one-line width and the narrowest width of each desktop header.
+const FAILED_SAVE_WIDTHS = [721, 768, 1000, 1001, 1280, 1440];
 const UI = {
   id: {
     saved: 'Tersimpan di perangkat',
+    failed: 'Gagal menyimpan',
+    retry: 'Coba simpan',
     scope: 'Pilih dokumen dan halaman untuk dicetak',
     pages: 'Halaman di setiap dokumen (kosongkan untuk semua)',
     apply: 'Terapkan',
@@ -23,6 +27,8 @@ const UI = {
   },
   en: {
     saved: 'Saved on this device',
+    failed: 'Save failed',
+    retry: 'Retry save',
     scope: 'Choose documents and pages to print',
     pages: 'Pages in each document (leave empty for all)',
     apply: 'Apply',
@@ -106,6 +112,17 @@ async function printPart(page, lang = 'id') {
   await dialog.getByLabel(ui.pages).fill('1');
   await dialog.getByRole('button', { name: ui.apply, exact: true }).click();
   await expect(page.locator('#btnPrint')).toHaveText(ui.partial);
+}
+
+/** Makes every IndexedDB write fail, then adds a text so the autosave fails. */
+async function failSave(page) {
+  await page.evaluate(() => {
+    window.__put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function () {
+      throw new DOMException('Simulated quota failure', 'QuotaExceededError');
+    };
+  });
+  await page.locator('#btnAddText').click();
 }
 
 /** Clicks an export button and returns the downloaded file. */
@@ -214,3 +231,40 @@ for (const lang of ['id', 'en'])
         }
       }
     });
+
+for (const lang of ['id', 'en'])
+  test(`after a failed save, Retry stays in the bar from 721 to 1440 px (${lang})`, async ({
+    page,
+  }) => {
+    const ui = UI[lang];
+    await ready(page, { lang });
+    // Partial print is the widest header; the failed save then adds Retry to it.
+    await printPart(page, lang);
+    const status = page.locator('.app-header .save-label');
+    await expect(status).toHaveAttribute('title', ui.saved);
+    await failSave(page);
+    await expect(status).toHaveAttribute('title', ui.failed);
+    const retry = page.getByRole('button', { name: ui.retry, exact: true });
+    for (const width of FAILED_SAVE_WIDTHS) {
+      await page.setViewportSize({ width, height: 720 });
+      await test.step(`${width} px`, async () => {
+        await checkHeader(page);
+        // Beside the status only the icon shows; its title keeps the name.
+        await expect(retry).toBeInViewport();
+        await expect(retry).toHaveAttribute('title', ui.retry);
+        await expect(retry.locator('.button-label')).toBeHidden();
+        expect((await retry.boundingBox()).width).toBeLessThanOrEqual(34);
+      });
+    }
+    // Phones hide the status, so Retry shows its name there.
+    await page.setViewportSize({ width: 375, height: 667 });
+    await checkHeader(page);
+    await expect(retry.locator('.button-label')).toBeVisible();
+    // Once storage works again, Retry saves the change.
+    await page.evaluate(() => {
+      IDBObjectStore.prototype.put = window.__put;
+    });
+    await retry.click();
+    await expect(status).toHaveAttribute('title', ui.saved);
+    await expect(retry).toHaveCount(0);
+  });

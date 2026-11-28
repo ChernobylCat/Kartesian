@@ -562,7 +562,16 @@ function Editor({ lease }: { lease: SessionLease }) {
               {offline.offline && <WifiOff size={12} />} {status}
             </span>
             {saveStatus === 'error' && (
-              <button onClick={() => void flush().catch(() => {})}>{t('save.retry')}</button>
+              // From 721 px up only the icon shows; aria-label and title keep the name.
+              <button
+                className="save-retry"
+                aria-label={t('save.retry')}
+                title={t('save.retry')}
+                onClick={() => void flush().catch(() => {})}
+              >
+                <RefreshCw size={15} />
+                <span className="button-label">{t('save.retry')}</span>
+              </button>
             )}
             <button
               className="icon-button"
