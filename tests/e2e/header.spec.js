@@ -1,5 +1,6 @@
-// Editor header on narrow screens: Export HTML and Export PDF stay reachable as icon
-// buttons, and the header neither scrolls sideways nor spills out of its bar.
+// Editor header at every width: Export HTML and Export PDF stay reachable (as icon
+// buttons on narrow screens), and the header neither scrolls sideways nor spills out of
+// its bar. On desktop widths nothing in it wraps either.
 const { test, expect } = require('@playwright/test');
 const { skipOnboarding } = require('../support/onboarding.cjs');
 
@@ -10,6 +11,24 @@ const data = [
   },
 ];
 const NARROW_WIDTHS = [320, 375, 640, 768, 1000];
+// Below 1280 px the header drops its tagline and pill; 1001 and 1280 are the tightest fits.
+const DESKTOP_WIDTHS = [1001, 1024, 1100, 1180, 1279, 1280, 1366, 1440];
+const UI = {
+  id: {
+    saved: 'Tersimpan di perangkat',
+    scope: 'Pilih dokumen dan halaman untuk dicetak',
+    pages: 'Halaman di setiap dokumen (kosongkan untuk semua)',
+    apply: 'Terapkan',
+    partial: 'Cetak sebagian',
+  },
+  en: {
+    saved: 'Saved on this device',
+    scope: 'Choose documents and pages to print',
+    pages: 'Pages in each document (leave empty for all)',
+    apply: 'Apply',
+    partial: 'Print selection',
+  },
+};
 
 async function ready(page, { dark = false, lang = 'id' } = {}) {
   await skipOnboarding(page);
@@ -38,7 +57,11 @@ async function bytesOf(download) {
   return Buffer.concat(chunks);
 }
 
-/** The page does not scroll sideways, and every header control sits inside the bar. */
+/**
+ * The page does not scroll sideways, every header control sits inside the bar, and no
+ * header text wraps onto a second line (a squeezed brand once wrapped its tagline and
+ * pill while staying inside the bar).
+ */
 async function checkHeader(page) {
   const layout = await page.evaluate(() => {
     const root = document.documentElement;
@@ -56,13 +79,33 @@ async function checkHeader(page) {
         );
       })
       .map((node) => node.getAttribute('aria-label') || node.textContent.trim());
+    const wrapped = [];
+    const texts = document.createTreeWalker(header, NodeFilter.SHOW_TEXT);
+    while (texts.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(texts.currentNode);
+      const tops = [...range.getClientRects()].map((rect) => rect.top);
+      if (tops.length && Math.max(...tops) - Math.min(...tops) > 4)
+        wrapped.push(texts.currentNode.textContent.trim());
+    }
     return {
       page: root.scrollWidth - root.clientWidth,
       header: header.scrollWidth - header.clientWidth,
       outside,
+      wrapped,
     };
   });
-  expect(layout).toEqual({ page: 0, header: 0, outside: [] });
+  expect(layout).toEqual({ page: 0, header: 0, outside: [], wrapped: [] });
+}
+
+/** Prints only page 1. The longer Print label makes this the widest everyday header. */
+async function printPart(page, lang = 'id') {
+  const ui = UI[lang];
+  await page.getByRole('button', { name: ui.scope }).click();
+  const dialog = page.getByRole('dialog', { name: ui.scope });
+  await dialog.getByLabel(ui.pages).fill('1');
+  await dialog.getByRole('button', { name: ui.apply, exact: true }).click();
+  await expect(page.locator('#btnPrint')).toHaveText(ui.partial);
 }
 
 /** Clicks an export button and returns the downloaded file. */
@@ -129,12 +172,7 @@ test('a phone exports a PDF from the English header too', async ({ page }) => {
 
 test('the save status gives way before the narrow header wraps', async ({ page }) => {
   await ready(page);
-  // Printing only some pages lengthens the Print label, the widest state of the header.
-  await page.getByRole('button', { name: 'Pilih dokumen dan halaman untuk dicetak' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Pilih dokumen dan halaman untuk dicetak' });
-  await dialog.getByLabel('Halaman di setiap dokumen (kosongkan untuk semua)').fill('1');
-  await dialog.getByRole('button', { name: 'Terapkan', exact: true }).click();
-  await expect(page.locator('#btnPrint')).toHaveText('Cetak sebagian');
+  await printPart(page);
   await page.setViewportSize({ width: 721, height: 720 });
   await checkHeader(page);
   // A shortened status keeps its full text in the tooltip.
@@ -143,3 +181,36 @@ test('the save status gives way before the narrow header wraps', async ({ page }
   ).toHaveAttribute('title', 'Tersimpan di perangkat');
   await expect(page.getByRole('button', { name: 'Bantuan', exact: true })).toBeInViewport();
 });
+
+for (const lang of ['id', 'en'])
+  for (const dark of [false, true])
+    test(`the desktop header stays on one line in its bar from 1001 to 1440 px (${lang}, ${dark ? 'dark' : 'light'})`, async ({
+      page,
+    }) => {
+      const ui = UI[lang];
+      await ready(page, { dark, lang });
+      const header = page.locator('.app-header');
+      const labels = header.locator('.header-collapsible .button-label');
+      const extras = header.locator('.brand small, .brand .pill');
+      const status = header.locator('.save-label');
+      await expect(labels).toHaveCount(2);
+      await expect(extras).toHaveCount(2);
+      for (const partial of [false, true]) {
+        if (partial) await printPart(page, lang);
+        // An unsaved change shows a longer status for a moment, so wait until it settles.
+        await expect(status).toHaveAttribute('title', ui.saved);
+        for (const width of DESKTOP_WIDTHS) {
+          await page.setViewportSize({ width, height: 720 });
+          await test.step(`${width} px${partial ? `, ${ui.partial}` : ''}`, async () => {
+            await checkHeader(page);
+            // Desktop widths keep the export labels and show the whole save status.
+            for (const label of await labels.all()) await expect(label).toBeVisible();
+            expect(await status.evaluate((node) => node.scrollWidth - node.clientWidth)).toBe(0);
+            // The decorative tagline and LOCAL WORKSPACE pill show only where all of it fits.
+            for (const extra of await extras.all())
+              if (width >= 1280) await expect(extra).toBeVisible();
+              else await expect(extra).toBeHidden();
+          });
+        }
+      }
+    });
