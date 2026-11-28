@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const { pdfFixture } = require('../support/pdf-fixtures.cjs');
+const { skipOnboarding } = require('../support/onboarding.cjs');
 const fixture = JSON.parse(fs.readFileSync('tests/fixtures/valid-text.json', 'utf8'));
 
 async function focusWithKey(page, dialog, target, key) {
@@ -12,6 +13,27 @@ async function focusWithKey(page, dialog, target, key) {
     expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
   }
   await expect(target).toBeFocused();
+}
+
+const TOUR_STEPS = 7;
+
+/** The tour popover stays on screen, with its text unclipped and its buttons reachable. */
+async function checkTourLayout(page, popover) {
+  await expect(popover).toBeVisible();
+  const viewport = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+  }));
+  const box = await popover.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  const description = popover.locator('.driver-popover-description');
+  expect(
+    await description.evaluate((node) => node.scrollWidth - node.clientWidth),
+  ).toBeLessThanOrEqual(1);
+  await expect(popover.locator('.driver-popover-next-btn')).toBeInViewport();
 }
 
 async function checkLayout(page, dialog) {
@@ -57,9 +79,11 @@ for (const viewport of [
       page,
     }, testInfo) => {
       await page.setViewportSize(viewport);
+      // Without motion the tour moves straight to each step, so its position is final.
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await skipOnboarding(page);
       await page.addInitScript(
         ({ fixture, dark }) => {
-          localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
           localStorage.setItem('theme_preference', dark ? 'dark' : 'light');
           localStorage.setItem(
             'overlay_print_pro_settings',
@@ -94,18 +118,21 @@ for (const viewport of [
       await expect(helpButton).toBeFocused();
       await helpButton.click();
       await help.getByRole('button', { name: 'Mulai panduan' }).click();
-      for (let step = 1; step <= 4; step++) {
-        const tour = page.getByRole('dialog', {
-          name: `Panduan Kartesian · ${step}/4`,
-          exact: true,
-        });
-        await checkLayout(page, tour);
-        if (step === 1)
+      const tour = page.locator('.driver-popover');
+      for (let step = 1; step <= TOUR_STEPS; step++) {
+        await expect(tour.locator('.driver-popover-progress-text')).toHaveText(
+          `${step} dari ${TOUR_STEPS}`,
+        );
+        await checkTourLayout(page, tour);
+        if (step === 1 || step === 5)
           await page.screenshot({
-            path: `test-results/dialog-tour-${testInfo.project.name}-${viewport.width}-${dark ? 'dark' : 'light'}.png`,
+            path: `test-results/dialog-tour-${step}-${testInfo.project.name}-${viewport.width}-${dark ? 'dark' : 'light'}.png`,
           });
         await tour
-          .getByRole('button', { name: step === 4 ? 'Mulai menyusun' : 'Berikutnya', exact: true })
+          .getByRole('button', {
+            name: step === TOUR_STEPS ? 'Mulai menyusun' : 'Berikutnya',
+            exact: true,
+          })
           .click();
       }
       await expect(page.getByRole('dialog')).toHaveCount(0);

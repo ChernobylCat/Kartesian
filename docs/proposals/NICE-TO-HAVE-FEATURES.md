@@ -12,23 +12,23 @@ Ukuran usaha: **S** ≈ 1–2 hari, **M** ≈ 3–5 hari, **L** ≈ 1–2 minggu
 
 ## Status implementasi — 23 November 2026
 
-Fitur 1–12 sudah dibangun, lengkap dengan unit test dan test E2E (`tests/e2e/phase1.spec.js`, `phase2.spec.js`, `phase3.spec.js`). Penyimpangan dari usulan awal:
+Fitur 1–12 sudah dibangun, lengkap dengan unit test dan test E2E (`tests/e2e/phase1.spec.js`, `phase2.spec.js`, `phase3.spec.js`). Fitur 13 dibatalkan. Penyimpangan dari usulan awal:
 
-| #   | Status  | Catatan                                                                                                                                                                                                                             |
-| --- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Selesai | Format nilai: `upper`, `lower`, `title`, `number`, `rupiah`, `words` (terbilang/English), `date:<pola>`. Hasil merge mengganti semua dokumen secara default (bisa dibatalkan dengan undo), atau ditambahkan bila opsinya dimatikan. |
-| 2   | Selesai | Perkecil agar muat mengukur teks dengan metrik font browser.                                                                                                                                                                        |
-| 3   | Selesai | Lewat clipboard sistem, jadi juga bisa antar tab.                                                                                                                                                                                   |
-| 4   | Selesai | Pilihan berlaku **selama sesi saja**, tidak disimpan per workspace, supaya format settings tidak berubah.                                                                                                                           |
-| 5   | Selesai | —                                                                                                                                                                                                                                   |
-| 6   | Selesai | Urutan diubah dengan tombol naik/turun, bukan drag. Menyembunyikan elemen hanya berlaku di layar dan selama sesi.                                                                                                                   |
-| 7   | Selesai | Grid 1, 2, 5, 10 mm; snap menarik sudut kiri-atas elemen ke garis grid. Pilihan grid disimpan per perangkat.                                                                                                                        |
-| 8   | Selesai | Duplikat dari elemen yang dikelompokkan membentuk grup baru.                                                                                                                                                                        |
-| 9   | Selesai | Disimpan di database terpisah `KartesianLibraryDB` (database utama tidak diubah, jadi rollback tetap aman). Template berisi salinan lengkap workspace.                                                                              |
-| 10  | Selesai | Default tetap milimeter untuk semua ukuran kertas; satuan dipilih manual dan disimpan per perangkat.                                                                                                                                |
-| 11  | Selesai | Code 128 dan EAN-13 ditulis sendiri dan diverifikasi terhadap `python-barcode`; QR memakai `qrcode-generator` (MIT).                                                                                                                |
-| 12  | Selesai | Memakai `pdf-lib` (MIT) dengan font standar PDF: Helvetica, Times, Courier. Georgia, Verdana, dan Plus Jakarta Sans disubstitusi; karakter di luar font standar menjadi `?`. Cetak browser tetap memakai font editor yang persis.   |
-| 13  | Ditunda | Ditunda atas keputusan pemilik proyek (23 November 2026); infrastruktur i18n sudah siap.                                                                                                                                            |
+| #   | Status     | Catatan                                                                                                                                                                                                                             |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Selesai    | Format nilai: `upper`, `lower`, `title`, `number`, `rupiah`, `words` (terbilang/English), `date:<pola>`. Hasil merge mengganti semua dokumen secara default (bisa dibatalkan dengan undo), atau ditambahkan bila opsinya dimatikan. |
+| 2   | Selesai    | Perkecil agar muat mengukur teks dengan metrik font browser.                                                                                                                                                                        |
+| 3   | Selesai    | Lewat clipboard sistem, jadi juga bisa antar tab.                                                                                                                                                                                   |
+| 4   | Selesai    | Pilihan berlaku **selama sesi saja**, tidak disimpan per workspace, supaya format settings tidak berubah.                                                                                                                           |
+| 5   | Selesai    | —                                                                                                                                                                                                                                   |
+| 6   | Selesai    | Urutan diubah dengan tombol naik/turun, bukan drag. Menyembunyikan elemen hanya berlaku di layar dan selama sesi.                                                                                                                   |
+| 7   | Selesai    | Grid 1, 2, 5, 10 mm; snap menarik sudut kiri-atas elemen ke garis grid. Pilihan grid disimpan per perangkat.                                                                                                                        |
+| 8   | Selesai    | Duplikat dari elemen yang dikelompokkan membentuk grup baru.                                                                                                                                                                        |
+| 9   | Selesai    | Disimpan di database terpisah `KartesianLibraryDB` (database utama tidak diubah, jadi rollback tetap aman). Template berisi salinan lengkap workspace.                                                                              |
+| 10  | Selesai    | Default tetap milimeter untuk semua ukuran kertas; satuan dipilih manual dan disimpan per perangkat.                                                                                                                                |
+| 11  | Selesai    | Code 128 dan EAN-13 ditulis sendiri dan diverifikasi terhadap `python-barcode`; QR memakai `qrcode-generator` (MIT).                                                                                                                |
+| 12  | Selesai    | Memakai `pdf-lib` (MIT) dengan font standar PDF: Helvetica, Times, Courier. Georgia, Verdana, dan Plus Jakarta Sans disubstitusi; karakter di luar font standar menjadi `?`. Cetak browser tetap memakai font editor yang persis.   |
+| 13  | Dibatalkan | Dicoret atas keputusan pemilik proyek (28 November 2026). Aplikasi tetap dua bahasa: Indonesia dan Inggris.                                                                                                                         |
 
 ## Ringkasan
 
@@ -46,7 +46,7 @@ Fitur 1–12 sudah dibangun, lengkap dengan unit test dan test E2E (`tests/e2e/p
 | 10  | Satuan inci/poin untuk pengguna Letter/Legal                                   | Sedang (global) | M            | 3     |
 | 11  | Elemen barcode dan QR                                                          | Sedang          | M            | 3     |
 | 12  | Ekspor PDF native (vektor, tanpa dialog cetak)                                 | Tinggi          | L            | 3     |
-| 13  | Bahasa tambahan                                                                | Rendah–sedang   | S per bahasa | 3     |
+| 13  | ~~Bahasa tambahan~~ (dibatalkan)                                               | Rendah–sedang   | S per bahasa | 3     |
 
 **Urutan yang disarankan.** Tahap 1 menuntaskan janji utama produk, "susun sekali, isi untuk banyak dokumen", dan menutup masalah yang paling sering muncul saat mengisi formulir nyata. Tahap 2 mempercepat kerja harian. Tahap 3 membuka pasar global dan memperbesar skala pemakaian.
 
@@ -158,7 +158,9 @@ Hasil cetak browser bisa berbeda antar browser dan driver. Ekspor PDF vektor den
 
 Risikonya ada pada metrik font yang harus sama dengan kanvas. Font perlu disematkan, dan perlu ada test pembanding posisi teks di PDF terhadap kanvas, seperti test cetak yang sudah ada.
 
-### 13. Bahasa tambahan
+### 13. ~~Bahasa tambahan~~ (dibatalkan)
+
+> Dicoret atas keputusan pemilik proyek pada 28 November 2026. Aplikasi tetap dua bahasa, Indonesia dan Inggris. Catatan di bawah disimpan sebagai rujukan.
 
 Infrastruktur i18n sudah siap: tambahkan satu kamus di `src/i18n/messages/`, isi `LANDING`, lalu daftarkan di `LOCALES`. Test kamus otomatis memastikan key dan placeholder lengkap. Prioritas bahasa sebaiknya mengikuti data pengunjung setelah aplikasi dirilis global.
 

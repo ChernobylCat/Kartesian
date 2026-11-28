@@ -295,7 +295,7 @@ export default function PdfPanel() {
               if (file) void run(file);
             }}
           />
-          <button disabled={readonly} onClick={() => input.current?.click()}>
+          <button data-tour="pdf" disabled={readonly} onClick={() => input.current?.click()}>
             <FileUp size={14} /> {t('pdf.upload')}
           </button>
           {(pdf.bytes || pdf.pages.length > 0) && (

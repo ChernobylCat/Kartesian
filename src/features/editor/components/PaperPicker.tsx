@@ -64,7 +64,7 @@ export default function PaperPicker() {
   );
 
   return (
-    <div className="paper-picker">
+    <div className="paper-picker" data-tour="paper">
       <label className="sr-only" htmlFor="paperSize">
         {t('paper.size')}
       </label>

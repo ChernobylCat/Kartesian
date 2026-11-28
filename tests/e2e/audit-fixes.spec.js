@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const { pdfFixture } = require('../support/pdf-fixtures.cjs');
+const { skipOnboarding } = require('../support/onboarding.cjs');
 test.use({ serviceWorkers: 'block' });
 const fixture = [
   {
@@ -11,9 +12,9 @@ const fixture = [
 ];
 
 async function ready(page, data = fixture, settings = {}) {
+  await skipOnboarding(page);
   await page.addInitScript(
     ({ data, settings }) => {
-      localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
       if (!localStorage.getItem('overlay_print_pro_settings'))
         localStorage.setItem(
           'overlay_print_pro_settings',

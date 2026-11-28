@@ -52,7 +52,7 @@ Kartesian is a **local-first** app built as a **Next.js static export** (`output
 - Only one tab can write to the workspace at a time. Other tabs become read-only so they never overwrite each other.
 - Field detection runs in the browser with PDF.js. An optional Python service (PyMuPDF/PaddleOCR) runs on `127.0.0.1`, not in the cloud.
 
-Stack: Next.js 16 (App Router), React 19, strict TypeScript, Zustand, Zod, Tailwind CSS v4, PDF.js, pdf-lib, qrcode-generator, Vitest, and Playwright.
+Stack: Next.js 16 (App Router), React 19, strict TypeScript, Zustand, Zod, Tailwind CSS v4, PDF.js, pdf-lib, qrcode-generator, driver.js, Vitest, and Playwright.
 
 ## Getting started
 
@@ -196,6 +196,8 @@ The same server is used by the E2E tests and the production container.
 **`audit`** runs `pnpm audit --audit-level high`. It fails when a dependency has a high or critical vulnerability, and it also runs in CI.
 
 ## Using the editor
+
+On the first visit, a short tour points out each step below. Reopen it, or the shorter **What's new** tour, from **Help** (`F1`).
 
 1. **Choose the paper size** above the canvas. The rotate button switches between portrait and landscape, and **Custom…** accepts 50–500 mm per side. Element coordinates do not change, so a smaller sheet is refused while any element would fall outside it. Older workspaces open as F4.
 2. **Add your data.** Add **Text** or an **Image** (PNG/JPEG/WebP/GIF, up to 2 MB), double-click an empty spot to add text there, or edit the **JSON data** directly. While the JSON is invalid, the canvas keeps showing the last valid version, and printing and export are disabled.

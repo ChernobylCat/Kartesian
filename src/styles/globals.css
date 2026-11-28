@@ -563,13 +563,6 @@ kbd {
   color: var(--muted);
   margin: 7px 0 0;
 }
-.tour-step {
-  font-size: 14px;
-  line-height: 1.8;
-}
-.tour-step p {
-  margin-top: 6px;
-}
 .sr-only {
   position: absolute;
   clip: rect(0, 0, 0, 0);

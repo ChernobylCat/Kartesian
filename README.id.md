@@ -52,7 +52,7 @@ Kartesian adalah aplikasi **local-first** yang di-build sebagai **static export 
 - Hanya satu tab yang boleh menulis ke workspace. Tab lain otomatis hanya-baca, supaya data tidak saling menimpa.
 - Deteksi field berjalan di browser (PDF.js). Service Python opsional (PyMuPDF/PaddleOCR) berjalan di `127.0.0.1`, bukan di cloud.
 
-Teknologi: Next.js 16 (App Router), React 19, TypeScript strict, Zustand, Zod, Tailwind CSS v4, PDF.js, pdf-lib, qrcode-generator, Vitest, dan Playwright.
+Teknologi: Next.js 16 (App Router), React 19, TypeScript strict, Zustand, Zod, Tailwind CSS v4, PDF.js, pdf-lib, qrcode-generator, driver.js, Vitest, dan Playwright.
 
 ## Mulai cepat
 
@@ -196,6 +196,8 @@ Server yang sama dipakai oleh test E2E dan container produksi.
 **`audit`** menjalankan `pnpm audit --audit-level high`. Perintah ini gagal bila ada dependensi dengan kerentanan tingkat tinggi atau kritis, dan juga dijalankan di CI.
 
 ## Menggunakan editor
+
+Pada kunjungan pertama, tur singkat menunjukkan setiap langkah di bawah ini. Buka lagi tur itu, atau tur **Yang baru** yang lebih singkat, dari **Bantuan** (`F1`).
 
 1. **Pilih ukuran kertas** di atas kanvas. Tombol putar mengganti potret/lanskap, dan **Kustom…** menerima 50–500 mm per sisi. Koordinat elemen tidak berubah, jadi kertas yang lebih kecil ditolak selama masih ada elemen yang akan keluar dari kertas. Workspace lama terbuka sebagai F4.
 2. **Siapkan data.** Tambahkan **Teks** atau **Gambar** (PNG/JPEG/WebP/GIF, maksimal 2 MB), klik dua kali area kosong untuk menambah teks di titik itu, atau edit **Data JSON** langsung. Selama JSON tidak valid, kanvas tetap menampilkan versi valid terakhir, dan cetak serta ekspor dinonaktifkan.

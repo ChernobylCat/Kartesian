@@ -1,7 +1,8 @@
 const { test, expect } = require('@playwright/test');
+const { skipOnboarding } = require('../support/onboarding.cjs');
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('kartesian_onboarding_complete_v1', 'true'));
+  await skipOnboarding(page);
 });
 
 test('Indonesian landing page leads to the Indonesian editor', async ({ page }) => {

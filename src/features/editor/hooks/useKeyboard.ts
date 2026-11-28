@@ -5,11 +5,14 @@ import { moveSelection, type Align } from '@/domain/document/commands';
 import { useEditor } from '../context';
 import { measureSelection } from '../measure-items';
 import { t } from '@/i18n/core';
+import { isTourActive } from '../../onboarding/onboarding';
 
 export function useKeyboard(print: () => void, help: () => void) {
   const { store } = useEditor();
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
+      // The tour owns the keyboard: arrows step through it and Escape closes it.
+      if (isTourActive()) return;
       const target = event.target as HTMLElement;
       if (event.key === 'Escape') {
         store.getState().select([]);

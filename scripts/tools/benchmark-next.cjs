@@ -4,6 +4,7 @@ const os = require('node:os');
 const { chromium } = require('@playwright/test');
 const { start } = require('../build/serve-next.cjs');
 const { pdfFixture } = require('../../tests/support/pdf-fixtures.cjs');
+const { skipOnboarding } = require('../../tests/support/onboarding.cjs');
 
 function dataset(documents, pages, items) {
   return Array.from({ length: documents }, (_, di) => ({
@@ -75,6 +76,7 @@ const percentile = (values, fraction) => {
         viewport: { width: 1440, height: 1000 },
         serviceWorkers: 'block',
       });
+      await skipOnboarding(context);
       await context.addInitScript((value) => {
         const workers = new Set();
         const objectUrls = new Set();
@@ -105,7 +107,6 @@ const percentile = (values, fraction) => {
           objectUrls: objectUrls.size,
           fontFaces: document.fonts.size,
         });
-        localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
         localStorage.setItem(
           'overlay_print_pro_settings',
           JSON.stringify({

@@ -2,6 +2,7 @@
 const path = require('node:path');
 const root = path.resolve(__dirname, '..', '..');
 const { chromium } = require('@playwright/test');
+const { skipOnboarding } = require('../../tests/support/onboarding.cjs');
 const out = process.argv[2] || path.join(root, 'assets/landing');
 const F = 'Arial, sans-serif';
 const data = [
@@ -91,9 +92,9 @@ const data = [
         colorScheme: dark ? 'dark' : 'light',
       });
       const page = await context.newPage();
+      await skipOnboarding(page);
       await page.addInitScript(
         ([value, dark]) => {
-          localStorage.setItem('kartesian_onboarding_complete_v1', 'true');
           localStorage.setItem('theme_preference', dark ? 'dark' : 'light');
           localStorage.setItem(
             'overlay_print_pro_settings',
